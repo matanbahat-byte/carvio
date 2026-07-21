@@ -45,6 +45,34 @@ html {
   to { opacity: 1; transform: translate(-50%, 0) scale(1); }
 }
 
+@keyframes soft-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-4px) rotate(3deg); }
+}
+
+@keyframes gentle-glow {
+  0%, 100% { box-shadow: 0 0 0 rgba(34, 211, 238, 0); }
+  50% { box-shadow: 0 0 28px rgba(34, 211, 238, 0.12); }
+}
+
+@keyframes wave {
+  0%, 60%, 100% { transform: rotate(0deg); }
+  10% { transform: rotate(18deg); }
+  20% { transform: rotate(-8deg); }
+  30% { transform: rotate(16deg); }
+  40% { transform: rotate(-4deg); }
+}
+
+@keyframes drift {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(-8deg); }
+  50% { transform: translate3d(8px, -12px, 0) rotate(7deg); }
+}
+
+@keyframes pulse-ring {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(244, 114, 182, 0.2); }
+  50% { box-shadow: 0 0 0 9px rgba(244, 114, 182, 0); }
+}
+
 button,
 select {
   cursor: pointer;
@@ -73,6 +101,7 @@ textarea:focus-visible {
 
   .focus-card {
     @apply rounded-2xl border border-cyan-400/20 bg-gradient-to-br from-cyan-400/10 to-emerald-400/5 p-5 shadow-lg shadow-cyan-950/20 transition duration-300 hover:-translate-y-0.5 hover:border-cyan-400/35 hover:shadow-cyan-950/40;
+    animation: gentle-glow 4s ease-in-out infinite;
   }
 
   .section-heading {
@@ -109,6 +138,179 @@ textarea:focus-visible {
 
   .status-select {
     @apply min-h-9 rounded-full border px-3 py-1 text-sm font-medium transition hover:brightness-125;
+  }
+
+  .data-chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1;
+  }
+
+  .calendar-button {
+    @apply inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:border-violet-400/30 hover:bg-violet-400/10 hover:text-white;
+  }
+
+  .traffic-option {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition hover:border-white/25 hover:text-white;
+  }
+
+  .analytics-card {
+    @apply rounded-2xl border border-white/10 bg-slate-950/55 p-5 shadow-xl shadow-slate-950/20 transition duration-300 hover:border-violet-400/20;
+  }
+
+  .insight-box {
+    @apply rounded-xl border border-cyan-400/15 bg-cyan-400/5 p-3.5;
+  }
+
+  .recommendation-box {
+    @apply rounded-xl border border-emerald-400/15 bg-emerald-400/5 p-3.5;
+  }
+
+  .emoji-bounce {
+    @apply inline-block text-lg;
+    animation: soft-float 2.8s ease-in-out infinite;
+  }
+
+  .search-source-card {
+    @apply rounded-2xl border border-white/10 bg-slate-950/55 p-4 transition duration-300 hover:-translate-y-1 hover:border-cyan-400/30 hover:bg-slate-950/80 hover:shadow-xl hover:shadow-cyan-950/20;
+  }
+
+  .search-source-featured {
+    @apply border-cyan-400/40 bg-cyan-400/10 shadow-xl shadow-cyan-950/25 ring-1 ring-cyan-400/10;
+  }
+
+  .search-readiness {
+    @apply flex items-center gap-3 rounded-2xl border border-cyan-400/15 bg-cyan-400/5 px-4 py-3;
+  }
+
+  .skill-chip {
+    @apply rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-slate-400 transition duration-200 hover:-translate-y-0.5 hover:border-cyan-400/30 hover:text-white;
+  }
+
+  .skill-chip-selected {
+    @apply border-cyan-400/40 bg-cyan-400/10 text-cyan-100 shadow-lg shadow-cyan-950/15;
+  }
+
+  .message-studio-panel {
+    @apply relative overflow-hidden rounded-3xl border border-pink-400/20 bg-[radial-gradient(circle_at_top_right,_rgba(244,114,182,0.15),_transparent_35%),linear-gradient(135deg,_rgba(30,41,59,0.92),_rgba(15,23,42,0.96))] p-5 shadow-2xl shadow-pink-950/20 backdrop-blur sm:p-6;
+  }
+
+  .choice-card {
+    @apply flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl border border-white/10 bg-slate-950/45 px-3 py-3 text-sm font-medium text-slate-400 transition duration-300 hover:-translate-y-1 hover:border-pink-400/30 hover:text-white;
+  }
+
+  .choice-card-active {
+    @apply border-pink-400/45 bg-pink-400/10 text-pink-100 shadow-lg shadow-pink-950/20;
+  }
+
+  .message-pill {
+    @apply rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-slate-400 transition hover:border-pink-400/30 hover:text-white;
+  }
+
+  .message-pill-active {
+    @apply border-pink-400/45 bg-pink-400/15 text-pink-100;
+  }
+
+  .message-preview {
+    @apply rounded-3xl border border-pink-400/15 bg-slate-950/60 p-5 shadow-xl shadow-slate-950/30;
+  }
+
+  .message-generate-button {
+    @apply bg-gradient-to-r from-pink-500 to-violet-500 text-white shadow-pink-950/30 hover:from-pink-400 hover:to-violet-400;
+    animation: pulse-ring 2.4s ease-in-out infinite;
+  }
+
+  .message-sparkle {
+    @apply hidden text-5xl sm:block;
+    animation: soft-float 2.2s ease-in-out infinite;
+  }
+
+  .hero-orb {
+    @apply pointer-events-none absolute select-none opacity-20 blur-[0.2px];
+    animation: drift 5s ease-in-out infinite;
+  }
+
+  .hero-orb-one {
+    @apply -right-2 top-4 text-7xl sm:right-6 sm:text-8xl;
+  }
+
+  .hero-orb-two {
+    @apply right-28 top-2 text-3xl sm:right-44;
+    animation-delay: -1.7s;
+  }
+
+  .animate-wave {
+    transform-origin: 70% 70%;
+    animation: wave 2.8s ease-in-out infinite;
+  }
+
+  .section-nav {
+    @apply sticky top-3 z-40 rounded-2xl border border-white/10 bg-slate-950/85 p-2 shadow-2xl shadow-slate-950/40 backdrop-blur-xl;
+  }
+
+  .section-nav-scroll {
+    @apply flex gap-1 overflow-x-auto;
+    scrollbar-width: none;
+  }
+
+  .section-nav-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .section-nav-link {
+    @apply inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-slate-400 transition duration-200 hover:-translate-y-0.5 hover:bg-white/10 hover:text-white sm:text-sm;
+  }
+
+  .pilot-banner {
+    @apply flex flex-col gap-5 rounded-3xl border border-amber-400/25 bg-[radial-gradient(circle_at_top_right,_rgba(251,191,36,0.14),_transparent_40%),rgba(30,41,59,0.82)] p-5 shadow-xl shadow-amber-950/10 sm:p-6 lg:flex-row lg:items-center lg:justify-between;
+  }
+
+  .feedback-question {
+    @apply rounded-2xl border border-white/10 bg-slate-950/45 p-4;
+  }
+
+  .feedback-score {
+    @apply flex cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-white/10 bg-white/5 px-1 py-2 text-slate-400 transition hover:border-amber-400/30 hover:bg-amber-400/5;
+  }
+
+  .feedback-score:has(input:checked) {
+    @apply border-amber-400/50 bg-amber-400/10 text-amber-100 shadow-lg shadow-amber-950/20;
+  }
+
+  .feedback-score-face {
+    @apply text-xl transition duration-200;
+  }
+
+  .feedback-score:has(input:checked) .feedback-score-face {
+    @apply scale-110;
+  }
+
+  .reset-panel {
+    @apply relative overflow-hidden rounded-3xl border border-emerald-400/20 bg-[radial-gradient(circle_at_top_right,_rgba(52,211,153,0.13),_transparent_38%),linear-gradient(135deg,_rgba(15,23,42,0.92),_rgba(6,78,59,0.16))] p-5 shadow-2xl shadow-emerald-950/20 sm:p-6;
+    scroll-margin-top: 6.5rem;
+  }
+
+  .reset-inner-card {
+    @apply rounded-2xl border border-emerald-400/15 bg-slate-950/55 p-5 shadow-xl shadow-slate-950/20;
+  }
+
+  .reset-chip {
+    @apply rounded-full border border-emerald-400/15 bg-emerald-400/5 px-3 py-1.5 text-xs font-medium text-emerald-100/80;
+  }
+
+  .reset-message {
+    @apply flex gap-3 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-4;
+  }
+
+  .recovery-choice {
+    @apply flex min-h-20 items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/45 p-3 text-left transition duration-300 hover:-translate-y-0.5 hover:border-emerald-400/25 hover:bg-emerald-400/5;
+  }
+
+  .recovery-choice-active {
+    @apply border-emerald-400/45 bg-emerald-400/10 shadow-lg shadow-emerald-950/20;
+  }
+
+  .panel[id],
+  .message-studio-panel[id] {
+    scroll-margin-top: 6.5rem;
   }
 
   .modal-actions {
