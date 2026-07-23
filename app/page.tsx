@@ -3,6 +3,7 @@
 import { ChangeEvent, FormEvent, ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   ArrowUpRight,
+  ArrowUp,
   BarChart3,
   BriefcaseBusiness,
   CalendarPlus,
@@ -28,6 +29,7 @@ import {
   MessageCircleMore,
   MessagesSquare,
   Pencil,
+  Palette,
   Phone,
   Plus,
   RotateCcw,
@@ -185,6 +187,7 @@ type UserProfile = {
 
 type DailyMood = "" | "ready" | "low" | "difficult";
 type Language = "en" | "he";
+type ColorTheme = "dark" | "light" | "ocean" | "plum";
 type SocialPlatform = "LinkedIn" | "Instagram" | "Facebook";
 type PostProfile = {
   platform: SocialPlatform;
@@ -776,7 +779,9 @@ export default function Home() {
   const [recoveryApplication, setRecoveryApplication] = useState<Application | null>(null);
   const [recoveryNeed, setRecoveryNeed] = useState<RecoveryNeed>("I need a moment");
   const [notice, setNotice] = useState("");
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [theme, setTheme] = useState<ColorTheme>("dark");
+  const [showAppearance, setShowAppearance] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
   const [language, setLanguage] = useState<Language>("en");
   const [resumeProcessing, setResumeProcessing] = useState(false);
   const [expandedTools, setExpandedTools] = useState({ studio: false, social: false, cv: false, search: true, analytics: false });
@@ -791,7 +796,7 @@ export default function Home() {
       setResumes(readStored<ResumeFile[]>(RESUMES_KEY, []));
       setSearchProfile({ ...emptySearchProfile, ...readStored<Partial<SearchProfile>>(SEARCH_PROFILE_KEY, emptySearchProfile) });
       setRecoveryEntries(readStored<RecoveryEntry[]>(RECOVERY_KEY, []));
-      setTheme(readStored<"dark" | "light">(THEME_KEY, "dark"));
+      setTheme(readStored<ColorTheme>(THEME_KEY, "dark"));
       setLanguage(readStored<Language>(LANGUAGE_KEY, "en"));
       const savedProfile = { ...emptyUserProfile, ...readStored<Partial<UserProfile>>(PROFILE_KEY, emptyUserProfile) };
       setUserProfile(savedProfile);
@@ -825,8 +830,16 @@ export default function Home() {
   useEffect(() => {
     if (!hydrated) return;
     window.localStorage.setItem(THEME_KEY, JSON.stringify(theme));
-    document.documentElement.style.colorScheme = theme;
+    document.documentElement.style.colorScheme = theme === "light" ? "light" : "dark";
+    document.documentElement.dataset.carvioTheme = theme;
   }, [theme, hydrated]);
+
+  useEffect(() => {
+    const onScroll = () => setShowBackToTop(window.scrollY > 420);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -1298,7 +1311,7 @@ export default function Home() {
   }
 
   return (
-    <main className={`carvio-shell min-h-screen px-4 py-6 text-slate-100 sm:px-6 sm:py-8 lg:px-8 ${theme === "light" ? "carvio-light" : ""}`} dir={language === "he" ? "rtl" : "ltr"}>
+    <main className={`carvio-shell min-h-screen px-4 py-6 text-slate-100 sm:px-6 sm:py-8 lg:px-8 ${theme === "light" ? "carvio-light" : theme === "ocean" ? "carvio-ocean" : theme === "plum" ? "carvio-plum" : ""}`} dir={language === "he" ? "rtl" : "ltr"}>
       <div className="mx-auto flex max-w-7xl flex-col gap-8">
         <header className="relative scroll-mt-28 overflow-hidden rounded-3xl border border-white/10 bg-slate-900/70 p-6 shadow-2xl shadow-cyan-950/30 backdrop-blur xl:p-8" id="dashboard">
           <div className="hero-orb hero-orb-one" aria-hidden="true">🚀</div><div className="hero-orb hero-orb-two" aria-hidden="true">✨</div>
@@ -1321,7 +1334,21 @@ export default function Home() {
                 <span className="mt-1 block text-sm text-slate-400">{todayFocus.detail}</span>
               </button>
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                <button aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`} className="secondary-button" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} type="button">{theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />} {theme === "dark" ? copy.light : copy.dark}</button>
+                <button aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} className="secondary-button" onClick={() => setTheme(theme === "light" ? "dark" : "light")} type="button">{theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />} {theme === "light" ? copy.dark : copy.light}</button>
+                <div className="relative">
+                  <button aria-expanded={showAppearance} aria-haspopup="dialog" className="secondary-button" onClick={() => setShowAppearance((current) => !current)} type="button"><Palette className="h-4 w-4 text-fuchsia-300" /> {language === "he" ? "צבעים ונגישות" : "Colors & accessibility"}</button>
+                  {showAppearance && <div aria-label={language === "he" ? "בחירת פלטת צבעים" : "Choose a color palette"} className="appearance-menu" role="dialog">
+                    <div><p className="text-sm font-semibold">{language === "he" ? "פלטת צבעים" : "Color palette"}</p><p className="mt-1 text-xs leading-5 text-slate-400">{language === "he" ? "כל הפלטות נבנו עם טקסט בעל ניגודיות גבוהה." : "Every palette keeps text contrast high and readable."}</p></div>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      {([
+                        { value: "dark", label: language === "he" ? "יער כהה" : "Dark forest", colors: ["#07110d", "#166534", "#14b8a6"] },
+                        { value: "light", label: language === "he" ? "אור נקי" : "Clean light", colors: ["#ffffff", "#e0f2fe", "#059669"] },
+                        { value: "ocean", label: language === "he" ? "אוקיינוס" : "Deep ocean", colors: ["#071827", "#075985", "#22d3ee"] },
+                        { value: "plum", label: language === "he" ? "שזיף חם" : "Warm plum", colors: ["#211126", "#7e22ce", "#fb7185"] },
+                      ] as { value: ColorTheme; label: string; colors: string[] }[]).map((option) => <button aria-pressed={theme === option.value} className={`palette-option ${theme === option.value ? "palette-option-active" : ""}`} key={option.value} onClick={() => { setTheme(option.value); setShowAppearance(false); }} type="button"><span className="flex" aria-hidden="true">{option.colors.map((color) => <span className="h-5 w-5 border border-white/20 first:rounded-s-full last:rounded-e-full" key={color} style={{ backgroundColor: color }} />)}</span><span>{option.label}</span>{theme === option.value && <CheckCircle2 className="h-4 w-4 text-emerald-300" />}</button>)}
+                    </div>
+                  </div>}
+                </div>
                 <button className="secondary-button" onClick={() => setLanguage(language === "en" ? "he" : "en")} type="button"><Languages className="h-4 w-4 text-cyan-300" /> {copy.hebrew}</button>
                 <button className="secondary-button" onClick={() => setShowTrustCenter(true)} type="button"><ShieldCheck className="h-4 w-4 text-emerald-300" /> {copy.saved}</button>
                 <button className="secondary-button" onClick={resetDemoData} type="button"><RotateCcw className="h-4 w-4" /> {copy.resetDemo}</button>
@@ -1679,6 +1706,8 @@ export default function Home() {
       </div>
 
       {notice && <div aria-atomic="true" aria-live="polite" className="toast" role="status"><CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-300" /><span>{notice}</span><button aria-label="Dismiss notification" className="ml-1 rounded-full p-1 text-slate-400 transition hover:bg-white/10 hover:text-white" onClick={() => setNotice("")} type="button"><X className="h-4 w-4" /></button></div>}
+
+      <button aria-label={language === "he" ? "חזרה לראש העמוד ולהגדרות" : "Back to top and settings"} className={`back-to-top ${showBackToTop ? "back-to-top-visible" : ""}`} onClick={() => document.getElementById("dashboard")?.scrollIntoView({ behavior: "smooth", block: "start" })} tabIndex={showBackToTop ? 0 : -1} type="button"><ArrowUp className="h-5 w-5" /><span>{language === "he" ? "למעלה" : "Top"}</span></button>
 
       {showTrustCenter && (
         <Modal title="Your data & privacy 🔒" description="Carvio's pilot stores your information only in this browser. You stay in control." onClose={() => setShowTrustCenter(false)}>
