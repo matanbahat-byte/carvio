@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   ArrowUpRight,
   BarChart3,
@@ -8,6 +8,7 @@ import {
   CalendarPlus,
   CalendarClock,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   CircleAlert,
   Copy,
@@ -20,6 +21,8 @@ import {
   HeartHandshake,
   Lightbulb,
   Link as LinkIcon,
+  Languages,
+  LoaderCircle,
   Mail,
   MapPin,
   MessageCircleMore,
@@ -30,7 +33,10 @@ import {
   RotateCcw,
   Search,
   Send,
+  ShieldCheck,
   Sparkles,
+  Moon,
+  Sun,
   Target,
   Trash2,
   TrendingUp,
@@ -47,6 +53,10 @@ const FEEDBACK_KEY = "carvio.feedback.v1";
 const RESUMES_KEY = "carvio.resumes.v1";
 const SEARCH_PROFILE_KEY = "carvio.search-profile.v1";
 const RECOVERY_KEY = "carvio.recovery.v1";
+const THEME_KEY = "carvio.theme.v1";
+const PROFILE_KEY = "carvio.profile.v1";
+const CHECKIN_KEY = "carvio.checkin.v1";
+const LANGUAGE_KEY = "carvio.language.v1";
 
 const applicationStatuses = [
   "Applied",
@@ -162,6 +172,48 @@ type RecoveryEntry = {
   nextAction: string;
   completedAt: string;
 };
+
+type UserProfile = {
+  name: string;
+  targetRole: string;
+  location: string;
+  seniority: string;
+  weeklyGoal: string;
+  challenge: "Applications" | "Networking" | "CV" | "Interviews";
+  completed: boolean;
+};
+
+type DailyMood = "" | "ready" | "low" | "difficult";
+type Language = "en" | "he";
+type SocialPlatform = "LinkedIn" | "Instagram" | "Facebook";
+type PostProfile = {
+  platform: SocialPlatform;
+  topic: string;
+  audience: string;
+  goal: "Share expertise" | "Tell a story" | "Start a conversation" | "Celebrate a milestone" | "Job-search visibility";
+  tone: "Thoughtful" | "Bold" | "Warm" | "Practical" | "Inspirational";
+  length: "Short" | "Medium" | "Long";
+  keyPoint: string;
+  callToAction: string;
+};
+
+const emptyUserProfile: UserProfile = { name: "", targetRole: "", location: "", seniority: "", weeklyGoal: "5", challenge: "Applications", completed: false };
+const emptyPostProfile: PostProfile = { platform: "LinkedIn", topic: "", audience: "", goal: "Share expertise", tone: "Thoughtful", length: "Medium", keyPoint: "", callToAction: "" };
+
+const uiCopy = {
+  en: {
+    careerTag: "Career tracking, reimagined", welcome: "Welcome back", hero: "Let’s move your search forward.", heroBody: "One clear next step at a time—across every application and conversation.",
+    overview: "Overview", applications: "Applications", networking: "Networking", reset: "Reset", studio: "Studio", posts: "Post Studio", cv: "CV Lab", search: "Job Search", analytics: "Analytics",
+    light: "Light mode", dark: "Dark mode", saved: "Saved on this device", resetDemo: "Reset demo data", feedback: "Send feedback", hebrew: "עברית",
+    checkin: "Daily check-in", arriving: "How are you arriving today?", adapt: "Carvio will adapt the size and tone of your next step.",
+  },
+  he: {
+    careerTag: "ניהול קריירה, בדרך חדשה", welcome: "שמחים שחזרת", hero: "בואו נקדם את חיפוש העבודה שלך.", heroBody: "צעד ברור אחד בכל פעם—בכל מועמדות ובכל שיחה.",
+    overview: "סקירה", applications: "מועמדויות", networking: "נטוורקינג", reset: "איזון מחדש", studio: "הודעות", posts: "סטודיו פוסטים", cv: "קורות חיים", search: "חיפוש משרות", analytics: "נתונים",
+    light: "מצב בהיר", dark: "מצב כהה", saved: "נשמר במכשיר", resetDemo: "איפוס נתוני הדגמה", feedback: "שליחת משוב", hebrew: "English",
+    checkin: "בדיקה יומית", arriving: "איך הגעת לכאן היום?", adapt: "Carvio יתאים את הצעד הבא לאנרגיה ולמצב שלך.",
+  },
+} as const;
 
 type ApplicationDraft = Omit<Application, "id">;
 type ContactDraft = Omit<Contact, "id">;
@@ -466,6 +518,31 @@ function reviewResumeText(text: string) {
   return results.slice(0, 5);
 }
 
+async function extractResumeText(file: File) {
+  const fileName = file.name.toLowerCase();
+  if (file.type.startsWith("text/") || /\.(txt|md|rtf|csv)$/i.test(fileName)) {
+    return (await file.text()).slice(0, 30000);
+  }
+  if (/\.docx$/i.test(fileName) || file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+    const mammoth = await import("mammoth");
+    const result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+    return result.value.slice(0, 30000);
+  }
+  if (/\.pdf$/i.test(fileName) || file.type === "application/pdf") {
+    const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    await import("pdfjs-dist/legacy/build/pdf.worker.mjs");
+    const document = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+    const pages: string[] = [];
+    for (let pageNumber = 1; pageNumber <= Math.min(document.numPages, 12); pageNumber += 1) {
+      const page = await document.getPage(pageNumber);
+      const content = await page.getTextContent();
+      pages.push(content.items.map((item) => "str" in item ? item.str : "").join(" "));
+    }
+    return pages.join("\n\n").slice(0, 30000);
+  }
+  return "";
+}
+
 function normalizedSearchProfile(profile: SearchProfile) {
   const roleWithLocation = profile.role.match(/^(.+?)\s+in\s+([^,]+)$/i);
   const role = roleWithLocation && !profile.location.trim() ? roleWithLocation[1].trim() : profile.role.trim();
@@ -535,6 +612,41 @@ function generateOutreachMessage(profile: MessageProfile) {
     "Senior & strategic": `The role’s scope resonates with my experience in ${value}, particularly where business priorities and execution need to connect.`,
   };
   return `${greeting}\n\n${openingByIntent[profile.intent]}${context}\n\n${toneBridge[profile.tone]}\n\n${askByRecipient[profile.recipientType]}\n\n${close}`;
+}
+
+function generateSocialPost(profile: PostProfile, language: Language) {
+  const topic = profile.topic.trim() || (language === "he" ? "תובנה מקצועית שלמדתי לאחרונה" : "a professional lesson I learned recently");
+  const audience = profile.audience.trim() || (language === "he" ? "אנשים בתחום שלי" : "people in my field");
+  const point = profile.keyPoint.trim() || (language === "he" ? "התקדמות אמיתית מתחילה בצעד קטן ומדויק" : "real progress starts with one small, deliberate action");
+  const cta = profile.callToAction.trim() || (language === "he" ? "מה הניסיון שלכם בנושא?" : "What has your experience been?");
+  const hashtagSource = topic.split(/\s+/).filter((word) => word.length > 3).slice(0, 3).map((word) => `#${word.replace(/[^\p{L}\p{N}]/gu, "")}`).join(" ");
+  const platformTag = profile.platform === "LinkedIn" ? "#CareerGrowth" : profile.platform === "Instagram" ? "#CareerJourney" : "#ProfessionalGrowth";
+  const hook = language === "he"
+    ? profile.tone === "Bold" ? `דעה שאולי לא כולם יסכימו איתה: ${point}.` : profile.tone === "Inspirational" ? `לפעמים שינוי גדול מתחיל ברגע קטן. ✨` : `לאחרונה אני חושב/ת הרבה על ${topic}.`
+    : profile.tone === "Bold" ? `A view not everyone will agree with: ${point}.` : profile.tone === "Inspirational" ? "Sometimes a meaningful change begins with one small moment. ✨" : `I’ve been thinking a lot about ${topic}.`;
+  const goalBridge = language === "he"
+    ? ({
+        "Share expertise": "הנה התובנה המקצועית שהפכה עבורי את הרעיון לפרקטיקה:",
+        "Tell a story": "החוויה הזו לימדה אותי משהו שלא היה ברור לי בהתחלה:",
+        "Start a conversation": "אני משתף/ת את זה לא כתשובה סופית, אלא כהזמנה לשיחה:",
+        "Celebrate a milestone": "זה רגע ששווה לעצור, להעריך וללמוד ממנו:",
+        "Job-search visibility": "המסר הזה משקף גם את סוג העשייה וההשפעה שאני רוצה להביא לתפקיד הבא:",
+      } as Record<PostProfile["goal"], string>)[profile.goal]
+    : ({
+        "Share expertise": "Here is the professional insight that made the idea practical for me:",
+        "Tell a story": "The experience taught me something I could not see clearly at first:",
+        "Start a conversation": "I’m sharing this not as a final answer, but as an invitation to compare perspectives:",
+        "Celebrate a milestone": "This is a moment worth pausing to appreciate—and learn from:",
+        "Job-search visibility": "It also reflects the kind of work and impact I want to bring to my next role:",
+      } as Record<PostProfile["goal"], string>)[profile.goal];
+  const body = language === "he"
+    ? `${goalBridge}\n\nמה שהבנתי הוא ש${point}.\n\nעבור ${audience}, זו לא רק תיאוריה—זו דרך לקבל החלטות טובות יותר, ללמוד תוך כדי תנועה ולבנות אמון לאורך זמן.`
+    : `${goalBridge}\n\nWhat I keep coming back to is this: ${point}.\n\nFor ${audience}, this is more than an idea—it is a practical way to make better decisions, learn in motion, and build trust over time.`;
+  const platformOpening = profile.platform === "Instagram" ? "📌 " : profile.platform === "Facebook" ? "💭 " : "";
+  const extra = profile.length === "Long"
+    ? (language === "he" ? `\n\nשלוש שאלות שכדאי לקחת מכאן:\n1. מה כבר עובד?\n2. מה אפשר לפשט?\n3. מהו הצעד הקטן הבא?` : `\n\nThree questions worth taking away:\n1. What is already working?\n2. What could be simplified?\n3. What is the next small step?`)
+    : profile.length === "Short" ? "" : (language === "he" ? `\n\nהמטרה היא לא שלמות. המטרה היא תנועה עם כוונה.` : `\n\nThe goal is not perfection. The goal is intentional movement.`);
+  return `${platformOpening}${hook}\n\n${body}${extra}\n\n${cta}\n\n${hashtagSource} ${platformTag}`.trim();
 }
 
 const trafficLightMeta: Record<TrafficLight, { label: string; dot: string; card: string }> = {
@@ -658,10 +770,19 @@ export default function Home() {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [messageProfile, setMessageProfile] = useState<MessageProfile>(emptyMessageProfile);
   const [generatedMessage, setGeneratedMessage] = useState("");
+  const [postProfile, setPostProfile] = useState<PostProfile>(emptyPostProfile);
+  const [generatedPost, setGeneratedPost] = useState("");
   const [recoveryEntries, setRecoveryEntries] = useState<RecoveryEntry[]>([]);
   const [recoveryApplication, setRecoveryApplication] = useState<Application | null>(null);
   const [recoveryNeed, setRecoveryNeed] = useState<RecoveryNeed>("I need a moment");
   const [notice, setNotice] = useState("");
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [language, setLanguage] = useState<Language>("en");
+  const [resumeProcessing, setResumeProcessing] = useState(false);
+  const [expandedTools, setExpandedTools] = useState({ studio: false, social: false, cv: false, search: true, analytics: false });
+  const [userProfile, setUserProfile] = useState<UserProfile>(emptyUserProfile);
+  const [showTrustCenter, setShowTrustCenter] = useState(false);
+  const [dailyMood, setDailyMood] = useState<DailyMood>("");
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -670,6 +791,12 @@ export default function Home() {
       setResumes(readStored<ResumeFile[]>(RESUMES_KEY, []));
       setSearchProfile({ ...emptySearchProfile, ...readStored<Partial<SearchProfile>>(SEARCH_PROFILE_KEY, emptySearchProfile) });
       setRecoveryEntries(readStored<RecoveryEntry[]>(RECOVERY_KEY, []));
+      setTheme(readStored<"dark" | "light">(THEME_KEY, "dark"));
+      setLanguage(readStored<Language>(LANGUAGE_KEY, "en"));
+      const savedProfile = { ...emptyUserProfile, ...readStored<Partial<UserProfile>>(PROFILE_KEY, emptyUserProfile) };
+      setUserProfile(savedProfile);
+      const checkIn = readStored<{ date: string; mood: DailyMood }>(CHECKIN_KEY, { date: "", mood: "" });
+      setDailyMood(checkIn.date === new Date().toISOString().slice(0, 10) ? checkIn.mood : "");
       setHydrated(true);
     }, 0);
     return () => window.clearTimeout(timeout);
@@ -694,6 +821,27 @@ export default function Home() {
   useEffect(() => {
     if (hydrated) window.localStorage.setItem(RECOVERY_KEY, JSON.stringify(recoveryEntries));
   }, [recoveryEntries, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    window.localStorage.setItem(THEME_KEY, JSON.stringify(theme));
+    document.documentElement.style.colorScheme = theme;
+  }, [theme, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    window.localStorage.setItem(LANGUAGE_KEY, JSON.stringify(language));
+    document.documentElement.lang = language;
+    document.documentElement.dir = language === "he" ? "rtl" : "ltr";
+  }, [language, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) window.localStorage.setItem(PROFILE_KEY, JSON.stringify(userProfile));
+  }, [userProfile, hydrated]);
+
+  useEffect(() => {
+    if (hydrated && dailyMood) window.localStorage.setItem(CHECKIN_KEY, JSON.stringify({ date: new Date().toISOString().slice(0, 10), mood: dailyMood }));
+  }, [dailyMood, hydrated]);
 
   useEffect(() => {
     if (!notice) return;
@@ -723,6 +871,23 @@ export default function Home() {
     ];
   }, [applications, contacts]);
 
+  const weeklyMomentum = useMemo(() => {
+    const now = Date.now();
+    const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
+    const recentApplications = applications.filter((item) => item.appliedDate && new Date(item.appliedDate).getTime() >= weekAgo).length;
+    const recentConversations = contacts.filter((item) => item.lastContactDate && new Date(item.lastContactDate).getTime() >= weekAgo).length;
+    const plannedMoves = applications.filter((item) => item.nextStep.trim() && item.nextStepDue && new Date(item.nextStepDue).getTime() >= now).length + contacts.filter((item) => item.nextAction.trim() && item.nextActionDue && new Date(item.nextActionDue).getTime() >= now).length;
+    const total = recentApplications + recentConversations + plannedMoves;
+    const goal = Math.max(1, Number(userProfile.weeklyGoal) || 5);
+    return { recentApplications, recentConversations, plannedMoves, total, goal, progress: Math.min(100, (total / goal) * 100) };
+  }, [applications, contacts, userProfile.weeklyGoal]);
+
+  function navigateToSection(target: string) {
+    const tool = target === "message-studio" ? "studio" : target === "social-studio" ? "social" : target === "cv-lab" ? "cv" : target === "job-search" ? "search" : target === "analytics" ? "analytics" : null;
+    if (tool) setExpandedTools((current) => ({ ...current, [tool]: true }));
+    window.setTimeout(() => document.getElementById(target)?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+  }
+
   const insights = useMemo(() => {
     const result: { title: string; text: string; tone: string }[] = [];
     const active = applications.filter((item) => !["Rejected", "Withdrawn"].includes(item.status));
@@ -743,6 +908,14 @@ export default function Home() {
   }, [applications, contacts]);
 
   const todayFocus = useMemo(() => {
+    if (dailyMood === "difficult") {
+      const rejected = applications.find((item) => item.status === "Rejected");
+      return rejected ? { eyebrow: "A gentler day", title: "Take a Carvio Reset—without forcing positivity", detail: `${rejected.role} at ${rejected.company}`, target: "carvio-reset" } : { eyebrow: "A gentler day", title: "Choose one small action, then stop", detail: "Your wellbeing matters more than clearing a list.", target: "applications" };
+    }
+    if (dailyMood === "low") {
+      const smallStep = contacts.find((item) => item.nextAction.trim()) || null;
+      return smallStep ? { eyebrow: "One small move", title: smallStep.nextAction, detail: `${smallStep.name}${smallStep.company ? ` · ${smallStep.company}` : ""}`, target: "networking" } : { eyebrow: "One small move", title: "Review one active opportunity", detail: "Five focused minutes is meaningful progress.", target: "applications" };
+    }
     const followUp = applications.find((item) => item.status === "Follow-up due" || isPast(item.nextStepDue));
     if (followUp) return { eyebrow: "Follow-up due", title: followUp.nextStep || `Follow up with ${followUp.company}`, detail: `${followUp.role} at ${followUp.company}`, target: "applications" };
     const missingStep = applications.find((item) => !["Rejected", "Withdrawn"].includes(item.status) && !item.nextStep.trim());
@@ -752,7 +925,7 @@ export default function Home() {
     const contact = contacts.find((item) => item.nextAction.trim());
     if (contact) return { eyebrow: "Networking next step", title: contact.nextAction, detail: `${contact.name} · ${contact.role}${contact.company ? ` at ${contact.company}` : ""}`, target: "networking" };
     return { eyebrow: "Start your day", title: "Add your next opportunity", detail: "A clear pipeline starts with one application.", target: "applications" };
-  }, [applications, contacts]);
+  }, [applications, contacts, dailyMood]);
 
   const nextBestActions = useMemo(() => {
     const actions: { id: string; score: number; label: string; detail: string; target: string; kind: string }[] = [];
@@ -820,7 +993,7 @@ export default function Home() {
       setNotice("Application updated.");
     } else {
       setApplications((items) => [savedApplication, ...items]);
-      setNotice("Application added.");
+      setNotice("Application added — one thoughtful step forward 🎉");
     }
     setShowApplicationModal(false);
     if (savedApplication.status === "Rejected" && !recoveryEntries.some((entry) => entry.applicationId === savedApplication.id)) {
@@ -838,7 +1011,7 @@ export default function Home() {
   function updateApplicationStatus(application: Application, status: ApplicationStatus) {
     const updated = { ...application, status };
     setApplications((items) => items.map((item) => item.id === application.id ? updated : item));
-    setNotice(`${application.company} moved to ${status}.`);
+    setNotice(status === "Interview" ? `${application.company} moved to Interview — take a moment to celebrate 🎉` : status === "Offer" ? `An offer from ${application.company} — what a milestone! ✨` : `${application.company} moved to ${status}.`);
     if (status === "Rejected" && application.status !== "Rejected" && !recoveryEntries.some((entry) => entry.applicationId === application.id)) {
       window.setTimeout(() => setRecoveryApplication(updated), 250);
     }
@@ -865,7 +1038,7 @@ export default function Home() {
       setNotice("Contact updated.");
     } else {
       setContacts((items) => [{ ...contactDraft, id: makeId("contact") }, ...items]);
-      setNotice("Contact added.");
+      setNotice("New connection added — your network is growing 🤝");
     }
     setShowContactModal(false);
   }
@@ -885,19 +1058,23 @@ export default function Home() {
       return;
     }
     const selected = Array.from(files).slice(0, available);
+    setResumeProcessing(true);
     const additions = await Promise.all(selected.map(async (file) => {
-      const isText = file.type.startsWith("text/") || /\.(txt|md|rtf|csv)$/i.test(file.name);
       let extractedText = "";
-      if (isText && file.size <= 2_000_000) extractedText = (await file.text()).slice(0, 15000);
+      if (file.size <= 10_000_000) {
+        try { extractedText = await extractResumeText(file); } catch { extractedText = ""; }
+      }
       return { id: makeId("resume"), name: file.name, size: file.size, type: file.type || "Unknown type", addedAt: new Date().toISOString(), extractedText } satisfies ResumeFile;
     }));
+    setResumeProcessing(false);
     setResumes((items) => [...items, ...additions]);
     const first = additions[0];
     if (first) {
       setSelectedResumeId(first.id);
-      if (first.extractedText) setResumeText(first.extractedText.slice(0, 15000));
+      setResumeText(first.extractedText.slice(0, 30000));
     }
-    setNotice(`${additions.length} CV ${additions.length === 1 ? "version" : "versions"} added.`);
+    const ready = additions.filter((item) => item.extractedText).length;
+    setNotice(ready ? `${ready} CV ${ready === 1 ? "version is" : "versions are"} ready for review ✨` : "CV saved. This file needs editable text or a non-scanned PDF for an automatic review.");
   }
 
   function selectResume(resume: ResumeFile) {
@@ -971,6 +1148,102 @@ export default function Home() {
     setSearchProfile({ ...searchProfile, skills: next.join(", ") });
   }
 
+  function saveSearchAsApplication() {
+    setEditingApplicationId(null);
+    setApplicationDraft({ ...emptyApplication, role: resolvedSearch.role, company: "", location: resolvedSearch.location, source: "Carvio Job Search", nextStep: "Review matching roles and save the strongest one", priority: "Medium" });
+    setShowApplicationModal(true);
+  }
+
+  function openOutreachForApplication(application: Application) {
+    setMessageProfile({ ...emptyMessageProfile, recipientType: application.contactName ? "Recruiter" : "Hiring manager", intent: application.status === "Applied" ? "Follow up after applying" : "Introduce myself", recipientName: application.contactName, company: application.company, role: application.role });
+    setGeneratedMessage("");
+    setExpandedTools((current) => ({ ...current, studio: true }));
+    navigateToSection("message-studio");
+  }
+
+  function planMessageFollowUp() {
+    const match = applications.find((item) => item.company.toLowerCase() === messageProfile.company.trim().toLowerCase() && item.role.toLowerCase() === messageProfile.role.trim().toLowerCase());
+    if (!match) {
+      setNotice("Save this role in Applications first, then Carvio can plan its follow-up.");
+      return;
+    }
+    const due = new Date();
+    due.setDate(due.getDate() + 7);
+    setApplications((items) => items.map((item) => item.id === match.id ? { ...item, nextStep: `Follow up on outreach to ${messageProfile.recipientName || messageProfile.recipientType.toLowerCase()}`, nextStepDue: due.toISOString().slice(0, 10) } : item));
+    setNotice("Follow-up added to the application for seven days from now ✅");
+  }
+
+  function createPostDraft() {
+    if (!postProfile.topic.trim() && !postProfile.keyPoint.trim()) {
+      setNotice(language === "he" ? "כדאי להוסיף נושא או מסר מרכזי כדי ליצור פוסט מדויק." : "Add a topic or key point so Carvio can create a focused post.");
+      return;
+    }
+    setGeneratedPost(generateSocialPost(postProfile, language));
+    setNotice(language === "he" ? "טיוטת הפוסט מוכנה לעריכה ✨" : "Your post draft is ready to edit ✨");
+  }
+
+  async function sharePost() {
+    if (!generatedPost.trim()) return;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `${postProfile.platform} post`, text: generatedPost });
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
+    }
+    await navigator.clipboard.writeText(generatedPost);
+    setNotice(language === "he" ? "הפוסט הועתק. כעת אפשר להדביק אותו בפלטפורמה 📋" : "Post copied. You can now paste it into the platform 📋");
+  }
+
+  async function openSocialPlatform() {
+    if (generatedPost.trim()) await navigator.clipboard.writeText(generatedPost).catch(() => undefined);
+    const urls: Record<SocialPlatform, string> = {
+      LinkedIn: "https://www.linkedin.com/feed/?shareActive=true",
+      Instagram: "https://www.instagram.com/",
+      Facebook: "https://www.facebook.com/",
+    };
+    window.open(urls[postProfile.platform], "_blank", "noopener,noreferrer");
+    setNotice(language === "he" ? `הפוסט הועתק ו־${postProfile.platform} נפתח. נשאר רק להדביק ולאשר.` : `Post copied and ${postProfile.platform} opened. Paste, review, and publish when ready.`);
+  }
+
+  function exportCarvioData() {
+    const backup = { version: 1, exportedAt: new Date().toISOString(), applications, contacts, resumes, searchProfile, recoveryEntries, userProfile };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `carvio-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setNotice("Your private Carvio backup was downloaded 🔒");
+  }
+
+  async function importCarvioData(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    try {
+      const backup = JSON.parse(await file.text()) as { applications?: Partial<Application>[]; contacts?: (Partial<Contact> & { companyRole?: string })[]; resumes?: ResumeFile[]; searchProfile?: Partial<SearchProfile>; recoveryEntries?: RecoveryEntry[]; userProfile?: Partial<UserProfile> };
+      if (!Array.isArray(backup.applications) || !Array.isArray(backup.contacts)) throw new Error("Invalid backup");
+      setApplications(backup.applications.map(normalizeApplication));
+      setContacts(backup.contacts.map(normalizeContact));
+      if (Array.isArray(backup.resumes)) setResumes(backup.resumes.slice(0, 6));
+      if (backup.searchProfile) setSearchProfile({ ...emptySearchProfile, ...backup.searchProfile });
+      if (Array.isArray(backup.recoveryEntries)) setRecoveryEntries(backup.recoveryEntries);
+      if (backup.userProfile) setUserProfile({ ...emptyUserProfile, ...backup.userProfile });
+      setNotice("Backup restored successfully ✅");
+    } catch {
+      setNotice("This file is not a valid Carvio backup.");
+    }
+  }
+
+  function deleteAllLocalData() {
+    if (!window.confirm("Permanently delete all Carvio data stored in this browser? Download a backup first if you may need it later.")) return;
+    [APPLICATIONS_KEY, CONTACTS_KEY, FEEDBACK_KEY, RESUMES_KEY, SEARCH_PROFILE_KEY, RECOVERY_KEY, PROFILE_KEY, CHECKIN_KEY].forEach((key) => window.localStorage.removeItem(key));
+    setApplications([]); setContacts([]); setResumes([]); setRecoveryEntries([]); setSearchProfile(emptySearchProfile); setUserProfile(emptyUserProfile); setDailyMood(""); setShowTrustCenter(false);
+    setNotice("All local Carvio data was deleted.");
+  }
+
   function resetDemoData() {
     if (window.confirm("Reset applications and contacts to the original demo data? Your current entries will be replaced.")) {
       setApplications(demoApplications);
@@ -1018,24 +1291,26 @@ export default function Home() {
     setNotice("Gmail is ready with your feedback. Please press Send 💛");
   }
 
+  const copy = uiCopy[language];
+
   if (!hydrated) {
     return <main className="min-h-screen bg-slate-950" aria-label="Loading Carvio" />;
   }
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.18),_transparent_30%),linear-gradient(135deg,_#020617_0%,_#111827_50%,_#0f172a_100%)] px-4 py-6 text-slate-100 sm:px-6 sm:py-8 lg:px-8">
-      <div className="mx-auto flex max-w-7xl flex-col gap-6">
+    <main className={`carvio-shell min-h-screen px-4 py-6 text-slate-100 sm:px-6 sm:py-8 lg:px-8 ${theme === "light" ? "carvio-light" : ""}`} dir={language === "he" ? "rtl" : "ltr"}>
+      <div className="mx-auto flex max-w-7xl flex-col gap-8">
         <header className="relative scroll-mt-28 overflow-hidden rounded-3xl border border-white/10 bg-slate-900/70 p-6 shadow-2xl shadow-cyan-950/30 backdrop-blur xl:p-8" id="dashboard">
           <div className="hero-orb hero-orb-one" aria-hidden="true">🚀</div><div className="hero-orb hero-orb-two" aria-hidden="true">✨</div>
           <div className="grid gap-7 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
             <div className="space-y-4">
               <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-sm font-medium text-cyan-200">
-                <Compass className="h-4 w-4" /> Career tracking, reimagined
+                <Compass className="h-4 w-4" /> {copy.careerTag}
               </div>
               <div>
-                <p className="text-sm font-medium text-slate-400">Welcome back to Carvio <span className="inline-block animate-wave">👋</span></p>
-                <h1 className="mt-1 text-4xl font-semibold tracking-tight sm:text-5xl">Let’s move your search forward.</h1>
-                <p className="mt-3 max-w-2xl text-lg leading-8 text-slate-300">One clear next step at a time—across every application and conversation. <span className="emoji-bounce">🎯</span></p>
+                <p className="text-sm font-medium text-slate-400">{copy.welcome}{userProfile.name ? `, ${userProfile.name}` : ""} <span className="inline-block animate-wave">👋</span></p>
+                <h1 className="mt-1 text-4xl font-semibold tracking-tight sm:text-5xl">{copy.hero}</h1>
+                <p className="mt-3 max-w-2xl text-lg leading-8 text-slate-300">{copy.heroBody} <span className="emoji-bounce">🎯</span></p>
               </div>
             </div>
             <div>
@@ -1046,8 +1321,11 @@ export default function Home() {
                 <span className="mt-1 block text-sm text-slate-400">{todayFocus.detail}</span>
               </button>
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                <button className="secondary-button" onClick={resetDemoData} type="button"><RotateCcw className="h-4 w-4" /> Reset demo data</button>
-                <button className="secondary-button" onClick={() => { setFeedbackError(""); setShowFeedbackModal(true); }} type="button"><MessageCircleMore className="h-4 w-4" /> Send feedback</button>
+                <button aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`} className="secondary-button" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} type="button">{theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />} {theme === "dark" ? copy.light : copy.dark}</button>
+                <button className="secondary-button" onClick={() => setLanguage(language === "en" ? "he" : "en")} type="button"><Languages className="h-4 w-4 text-cyan-300" /> {copy.hebrew}</button>
+                <button className="secondary-button" onClick={() => setShowTrustCenter(true)} type="button"><ShieldCheck className="h-4 w-4 text-emerald-300" /> {copy.saved}</button>
+                <button className="secondary-button" onClick={resetDemoData} type="button"><RotateCcw className="h-4 w-4" /> {copy.resetDemo}</button>
+                <button className="secondary-button" onClick={() => { setFeedbackError(""); setShowFeedbackModal(true); }} type="button"><MessageCircleMore className="h-4 w-4" /> {copy.feedback}</button>
               </div>
               <p className="mt-3 text-xs text-slate-500">Keyboard shortcuts: <kbd className="shortcut-key">A</kbd> application · <kbd className="shortcut-key">C</kbd> contact</p>
             </div>
@@ -1057,25 +1335,32 @@ export default function Home() {
         <nav aria-label="Carvio sections" className="section-nav">
           <div className="section-nav-scroll">
             {[
-              ["dashboard", "🏠", "Overview"],
-              ["applications", "💼", "Applications"],
-              ["networking", "🤝", "Networking"],
-              ["carvio-reset", "🌿", "Reset"],
-              ["message-studio", "✍️", "Studio"],
-              ["cv-lab", "📄", "CV Lab"],
-              ["job-search", "🔎", "Job Search"],
-              ["analytics", "📊", "Analytics"],
-            ].map(([target, emoji, label]) => <button className="section-nav-link" key={target} onClick={() => document.getElementById(target)?.scrollIntoView({ behavior: "smooth", block: "start" })} type="button"><span>{emoji}</span>{label}</button>)}
+              ["dashboard", "🏠", copy.overview],
+              ["applications", "💼", copy.applications],
+              ["networking", "🤝", copy.networking],
+              ["carvio-reset", "🌿", copy.reset],
+              ["message-studio", "✍️", copy.studio],
+              ["social-studio", "📣", copy.posts],
+              ["cv-lab", "📄", copy.cv],
+              ["job-search", "🔎", copy.search],
+              ["analytics", "📊", copy.analytics],
+            ].map(([target, emoji, label]) => <button className="section-nav-link" key={target} onClick={() => navigateToSection(target)} type="button"><span>{emoji}</span>{label}</button>)}
           </div>
         </nav>
+
+        <section className="checkin-card" aria-label="Daily check-in">
+          <div><p className="eyebrow text-emerald-300">{copy.checkin}</p><h2 className="mt-2 text-xl font-semibold">{copy.arriving}</h2><p className="mt-1 text-sm text-slate-400">{copy.adapt}</p></div>
+          <div className="grid grid-cols-3 gap-2">{([{"value":"ready","emoji":"🙂","label":"Ready to move"},{"value":"low","emoji":"😐","label":"Low energy"},{"value":"difficult","emoji":"😔","label":"This feels difficult"}] as { value: Exclude<DailyMood, "">; emoji: string; label: string }[]).map((item) => <button aria-pressed={dailyMood === item.value} className={`checkin-choice ${dailyMood === item.value ? "checkin-choice-active" : ""}`} key={item.value} onClick={() => { setDailyMood(item.value); setNotice(item.value === "ready" ? "Let’s choose one meaningful move 🎯" : item.value === "low" ? "One small action is enough today 🌿" : "Carvio will keep today gentle. You are not your outcomes 🫶"); }} type="button"><span className="text-2xl">{item.emoji}</span><span>{item.label}</span></button>)}</div>
+        </section>
 
         <section className="pilot-banner">
           <div className="flex items-start gap-4"><span className="emoji-bounce text-4xl">🧪</span><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-300">Carvio Private Pilot</p><h2 className="mt-2 text-xl font-semibold sm:text-2xl">You are helping shape what Carvio becomes.</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">The founders would genuinely value your honest experience—what helped, what confused you, and what would make Carvio worth returning to. The survey takes about four minutes.</p></div></div>
           <button className="primary-button shrink-0 bg-amber-400 px-5 hover:bg-amber-300" onClick={() => { setFeedbackError(""); setShowFeedbackModal(true); }} type="button"><MessageCircleMore className="h-4 w-4" /> Share pilot feedback</button>
         </section>
 
-        <section aria-label="Dashboard metrics" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-          {metrics.map((metric) => {
+        <section aria-label="Dashboard overview" className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="grid gap-4 sm:grid-cols-3">
+          {metrics.slice(0, 3).map((metric) => {
             const Icon = metric.icon;
             return (
               <div className="metric-card" key={metric.label}>
@@ -1087,6 +1372,14 @@ export default function Home() {
               </div>
             );
           })}
+          </div>
+          <div className="momentum-card">
+            <div className="flex items-start justify-between gap-4"><div><p className="eyebrow text-emerald-300">Weekly Momentum</p><h2 className="mt-2 text-xl font-semibold">Progress you can control</h2></div><span className="text-3xl" aria-hidden="true">🌱</span></div>
+            <div className="mt-4 flex items-center justify-between gap-3 text-xs text-slate-400"><span>{weeklyMomentum.total} meaningful moves this week</span><span>Goal: {weeklyMomentum.goal}</span></div>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/5"><div className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-lime-300 to-cyan-400 transition-all duration-700" style={{ width: `${weeklyMomentum.progress}%` }} /></div>
+            <div className="mt-4 grid grid-cols-3 gap-3 text-center"><div><strong className="block text-xl">{weeklyMomentum.recentApplications}</strong><span className="text-xs text-slate-400">thoughtful applications</span></div><div><strong className="block text-xl">{weeklyMomentum.recentConversations}</strong><span className="text-xs text-slate-400">recent conversations</span></div><div><strong className="block text-xl">{weeklyMomentum.plannedMoves}</strong><span className="text-xs text-slate-400">planned next moves</span></div></div>
+            <p className="mt-4 text-xs leading-5 text-slate-500">No score for rejection or offers. Momentum reflects only actions within your control.</p>
+          </div>
         </section>
 
         <section className="panel overflow-hidden border-cyan-400/20 bg-[radial-gradient(circle_at_top_right,_rgba(34,211,238,0.14),_transparent_38%),rgba(15,23,42,0.78)]">
@@ -1170,8 +1463,10 @@ export default function Home() {
                     </div>
                   )}
                   {application.notes && <p className="mt-3 text-sm text-slate-400">{application.notes}</p>}
-                  <div className="mt-4 flex gap-2 border-t border-white/10 pt-3">
+                  <div className="mt-4 flex flex-wrap gap-2 border-t border-white/10 pt-3">
                     <button className="text-button" onClick={() => openEditApplication(application)} type="button"><Pencil className="h-4 w-4" /> Edit</button>
+                    <button className="text-button text-cyan-300 hover:text-cyan-200" onClick={() => openOutreachForApplication(application)} type="button"><MessagesSquare className="h-4 w-4" /> Write outreach</button>
+                    <button className="text-button text-emerald-300 hover:text-emerald-200" onClick={() => navigateToSection("cv-lab")} type="button"><FileCheck2 className="h-4 w-4" /> {resumes.length ? "Choose CV" : "Add CV"}</button>
                     <button className="text-button text-violet-300 hover:text-violet-200" onClick={() => { if (application.eventDateTime) downloadICS(`${application.eventType}: ${application.role} at ${application.company}`, application.eventDateTime, application.notes || application.nextStep, application.location); else { openEditApplication(application); setNotice("Add an interview or meeting date, then save to enable calendar export."); } }} type="button"><CalendarPlus className="h-4 w-4" /> Calendar</button>
                     <button className="text-button text-rose-300 hover:text-rose-200" onClick={() => deleteApplication(application)} type="button"><Trash2 className="h-4 w-4" /> Delete</button>
                   </div>
@@ -1234,8 +1529,9 @@ export default function Home() {
           <div className="pointer-events-none absolute -right-8 -top-8 text-8xl opacity-10">💬</div>
           <div className="section-heading relative">
             <div><p className="eyebrow flex items-center gap-2 text-pink-300"><span className="emoji-bounce">✍️</span> Message Studio</p><h2 className="section-title">Write outreach people will actually want to answer</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">Choose who you’re contacting, the tone, and your goal. Carvio builds a thoughtful draft you can edit, copy, or send immediately.</p></div>
-            <div className="message-sparkle" aria-hidden="true">✨</div>
+            <div className="flex items-center gap-2"><div className="message-sparkle" aria-hidden="true">✨</div><button aria-expanded={expandedTools.studio} className="secondary-button" onClick={() => setExpandedTools((current) => ({ ...current, studio: !current.studio }))} type="button">{expandedTools.studio ? "Close studio" : "Open studio"}<ChevronDown className={`h-4 w-4 transition ${expandedTools.studio ? "rotate-180" : ""}`} /></button></div>
           </div>
+          {expandedTools.studio && (
           <div className="relative mt-6 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
             <div className="space-y-5">
               <fieldset><legend className="text-sm font-semibold text-slate-200">1. Who are you contacting?</legend><div className="mt-3 grid grid-cols-2 gap-2">{([{"label":"Recruiter","emoji":"🧲"},{"label":"Hiring manager","emoji":"🎯"},{"label":"Referral","emoji":"🤝"},{"label":"Networking contact","emoji":"☕"}] as { label: MessageProfile["recipientType"]; emoji: string }[]).map((item) => <button aria-pressed={messageProfile.recipientType === item.label} className={`choice-card ${messageProfile.recipientType === item.label ? "choice-card-active" : ""}`} key={item.label} onClick={() => setMessageProfile({ ...messageProfile, recipientType: item.label })} type="button"><span className="text-2xl">{item.emoji}</span><span>{item.label}</span></button>)}</div></fieldset>
@@ -1247,33 +1543,81 @@ export default function Home() {
             </div>
             <div className="message-preview">
               <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-3"><div className="rounded-xl bg-pink-400/10 p-2.5 text-pink-300"><MessagesSquare className="h-5 w-5" /></div><div><h3 className="font-semibold">Your outreach draft</h3><p className="text-xs text-slate-500">Fully editable before sending</p></div></div><span className="emoji-bounce text-2xl">💌</span></div>
-              {generatedMessage ? <><textarea aria-label="Generated outreach message" className="form-control mt-5 min-h-80 resize-y leading-7" onChange={(event) => setGeneratedMessage(event.target.value)} value={generatedMessage} /><div className="mt-4 flex flex-wrap gap-2"><button className="secondary-button" onClick={() => { void navigator.clipboard.writeText(generatedMessage); setNotice("Message copied 📋"); }} type="button"><Copy className="h-4 w-4" /> Copy</button><button className="primary-button bg-pink-500 hover:bg-pink-400" onClick={() => { const subject = `${messageProfile.intent}: ${messageProfile.role || "opportunity"} at ${messageProfile.company || "your company"}`; window.location.href = `mailto:${encodeURIComponent(messageProfile.recipientEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(generatedMessage)}`; }} type="button"><Send className="h-4 w-4" /> Send by email</button></div><p className="mt-3 text-xs leading-5 text-slate-500">Your device will open its default email application. You can choose the sending account there, review the message, and press Send.</p></> : <div className="mt-5 flex min-h-80 flex-col items-center justify-center rounded-2xl border border-dashed border-pink-400/20 bg-pink-400/5 p-8 text-center"><span className="emoji-bounce text-5xl">🪄</span><p className="mt-5 font-semibold">Your polished message will appear here</p><p className="mt-2 max-w-sm text-sm leading-6 text-slate-400">Complete the essentials, choose a style, and let Carvio shape a concise, credible outreach.</p></div>}
+              {generatedMessage ? <><textarea aria-label="Generated outreach message" className="form-control mt-5 min-h-80 resize-y leading-7" onChange={(event) => setGeneratedMessage(event.target.value)} value={generatedMessage} /><div className="mt-4 flex flex-wrap gap-2"><button className="secondary-button" onClick={() => { void navigator.clipboard.writeText(generatedMessage); setNotice("Message copied 📋"); }} type="button"><Copy className="h-4 w-4" /> Copy</button><button className="primary-button bg-pink-500 hover:bg-pink-400" onClick={() => { const subject = `${messageProfile.intent}: ${messageProfile.role || "opportunity"} at ${messageProfile.company || "your company"}`; window.location.href = `mailto:${encodeURIComponent(messageProfile.recipientEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(generatedMessage)}`; }} type="button"><Send className="h-4 w-4" /> Send by email</button><button className="secondary-button" onClick={planMessageFollowUp} type="button"><CalendarClock className="h-4 w-4" /> Plan follow-up</button></div><p className="mt-3 text-xs leading-5 text-slate-500">Your device will open its default email application. After sending, use Plan follow-up to connect this message back to the matching application.</p></> : <div className="mt-5 flex min-h-80 flex-col items-center justify-center rounded-2xl border border-dashed border-pink-400/20 bg-pink-400/5 p-8 text-center"><span className="emoji-bounce text-5xl">🪄</span><p className="mt-5 font-semibold">Your polished message will appear here</p><p className="mt-2 max-w-sm text-sm leading-6 text-slate-400">Complete the essentials, choose a style, and let Carvio shape a concise, credible outreach.</p></div>}
             </div>
           </div>
+          )}
+        </section>
+
+        <section className="social-studio-panel" id="social-studio">
+          <div aria-hidden="true" className="pointer-events-none absolute -right-8 -top-8 text-8xl opacity-10">📣</div>
+          <div className="section-heading relative">
+            <div>
+              <p className="eyebrow flex items-center gap-2 text-orange-300"><span className="emoji-bounce">✨</span> {language === "he" ? "סטודיו פוסטים חכם" : "Smart Post Studio"}</p>
+              <h2 className="section-title">{language === "he" ? "הפכו רעיון לפוסט שאנשים ירצו לקרוא" : "Turn an idea into a post people want to read"}</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">{language === "he" ? "בחרו פלטפורמה, קהל, מטרה וטון. Carvio תיצור טיוטה מותאמת שתוכלו לערוך, לשתף ולפרסם." : "Choose the platform, audience, purpose and tone. Carvio creates a platform-aware draft you can edit, share and publish."}</p>
+            </div>
+            <button aria-expanded={expandedTools.social} className="secondary-button" onClick={() => setExpandedTools((current) => ({ ...current, social: !current.social }))} type="button">{expandedTools.social ? (language === "he" ? "סגירת הסטודיו" : "Close studio") : (language === "he" ? "פתיחת הסטודיו" : "Open studio")}<ChevronDown className={`h-4 w-4 transition ${expandedTools.social ? "rotate-180" : ""}`} /></button>
+          </div>
+          {expandedTools.social && (
+            <div className="relative mt-6 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+              <div className="space-y-5">
+                <fieldset>
+                  <legend className="text-sm font-semibold text-slate-200">{language === "he" ? "1. איפה מפרסמים?" : "1. Where are you posting?"}</legend>
+                  <div className="mt-3 grid grid-cols-3 gap-2">{([["LinkedIn", "💼"], ["Instagram", "📸"], ["Facebook", "💬"]] as [SocialPlatform, string][]).map(([platform, emoji]) => <button aria-pressed={postProfile.platform === platform} className={`social-platform-card ${postProfile.platform === platform ? "social-platform-card-active" : ""}`} key={platform} onClick={() => setPostProfile({ ...postProfile, platform })} type="button"><span className="text-2xl">{emoji}</span><span>{platform}</span></button>)}</div>
+                </fieldset>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label={language === "he" ? "נושא הפוסט" : "Post topic"}><input className="form-control" onChange={(event) => setPostProfile({ ...postProfile, topic: event.target.value })} placeholder={language === "he" ? "למשל: מנהיגות בתקופה של שינוי" : "e.g. Leading through change"} value={postProfile.topic} /></Field>
+                  <Field label={language === "he" ? "למי הפוסט מיועד?" : "Who should this resonate with?"}><input className="form-control" onChange={(event) => setPostProfile({ ...postProfile, audience: event.target.value })} placeholder={language === "he" ? "מנהלים, אנשי HR, מחפשי עבודה..." : "Leaders, HR peers, job seekers…"} value={postProfile.audience} /></Field>
+                  <Field label={language === "he" ? "מטרת הפוסט" : "Post goal"}><select className="form-control" onChange={(event) => setPostProfile({ ...postProfile, goal: event.target.value as PostProfile["goal"] })} value={postProfile.goal}>{(["Share expertise", "Tell a story", "Start a conversation", "Celebrate a milestone", "Job-search visibility"] as PostProfile["goal"][]).map((goal) => <option key={goal} value={goal}>{language === "he" ? ({ "Share expertise": "שיתוף מומחיות", "Tell a story": "סיפור אישי", "Start a conversation": "פתיחת שיחה", "Celebrate a milestone": "ציון הישג", "Job-search visibility": "חשיפה בחיפוש עבודה" } as Record<PostProfile["goal"], string>)[goal] : goal}</option>)}</select></Field>
+                  <Field label={language === "he" ? "אורך" : "Length"}><select className="form-control" onChange={(event) => setPostProfile({ ...postProfile, length: event.target.value as PostProfile["length"] })} value={postProfile.length}><option value="Short">{language === "he" ? "קצר" : "Short"}</option><option value="Medium">{language === "he" ? "בינוני" : "Medium"}</option><option value="Long">{language === "he" ? "ארוך" : "Long"}</option></select></Field>
+                </div>
+                <fieldset><legend className="text-sm font-semibold text-slate-200">{language === "he" ? "2. בחירת סגנון" : "2. Choose the voice"}</legend><div className="mt-3 flex flex-wrap gap-2">{(["Thoughtful", "Bold", "Warm", "Practical", "Inspirational"] as PostProfile["tone"][]).map((tone) => <button aria-pressed={postProfile.tone === tone} className={`message-pill ${postProfile.tone === tone ? "message-pill-active" : ""}`} key={tone} onClick={() => setPostProfile({ ...postProfile, tone })} type="button">{language === "he" ? ({ Thoughtful: "מעורר מחשבה", Bold: "נועז", Warm: "חם ואישי", Practical: "מעשי", Inspirational: "מעורר השראה" } as Record<PostProfile["tone"], string>)[tone] : tone}</button>)}</div></fieldset>
+                <Field label={language === "he" ? "המסר המרכזי" : "The one point people should remember"}><textarea className="form-control min-h-24 resize-y" onChange={(event) => setPostProfile({ ...postProfile, keyPoint: event.target.value })} placeholder={language === "he" ? "כתבו במשפט אחד מה תרצו שהקורא ייקח מהפוסט" : "Write the core takeaway in one sentence"} value={postProfile.keyPoint} /></Field>
+                <Field label={language === "he" ? "קריאה לפעולה (אופציונלי)" : "Call to action (optional)"}><input className="form-control" onChange={(event) => setPostProfile({ ...postProfile, callToAction: event.target.value })} placeholder={language === "he" ? "למשל: מה דעתכם?" : "e.g. What do you think?"} value={postProfile.callToAction} /></Field>
+                <button className="primary-button social-generate-button w-full sm:w-auto" onClick={createPostDraft} type="button"><WandSparkles className="h-4 w-4" /> {language === "he" ? "יצירת פוסט" : "Create my post"}</button>
+              </div>
+              <div className="social-preview">
+                <div className="flex items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wider text-orange-300">{postProfile.platform} preview</p><h3 className="mt-1 font-semibold">{language === "he" ? "הפוסט שלך" : "Your post draft"}</h3><p className="mt-1 text-xs text-slate-500">{language === "he" ? "אפשר לערוך כל מילה לפני הפרסום" : "Edit every word before publishing"}</p></div><span className="text-3xl">{postProfile.platform === "LinkedIn" ? "💼" : postProfile.platform === "Instagram" ? "📸" : "💬"}</span></div>
+                <textarea aria-label="Social post draft" className="form-control mt-5 min-h-96 resize-y text-base leading-7" onChange={(event) => setGeneratedPost(event.target.value)} placeholder={language === "he" ? "אפשר לכתוב כאן פוסט באופן עצמאי, או להשתמש באשף ליצירת טיוטה." : "Write your own post here, or use the assistant to create a draft."} value={generatedPost} />
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button className="secondary-button" disabled={!generatedPost.trim()} onClick={() => { void navigator.clipboard.writeText(generatedPost); setNotice(language === "he" ? "הפוסט הועתק 📋" : "Post copied 📋"); }} type="button"><Copy className="h-4 w-4" /> {language === "he" ? "העתקה" : "Copy"}</button>
+                  <button className="primary-button bg-orange-500 hover:bg-orange-400" disabled={!generatedPost.trim()} onClick={() => { void sharePost(); }} type="button"><Send className="h-4 w-4" /> {language === "he" ? "שיתוף מהטלפון" : "Share from device"}</button>
+                  <button className="secondary-button" onClick={() => { void openSocialPlatform(); }} type="button"><ExternalLink className="h-4 w-4" /> {language === "he" ? `פתיחת ${postProfile.platform}` : `Open ${postProfile.platform}`}</button>
+                </div>
+                <div className="mt-4 rounded-xl border border-orange-400/15 bg-orange-400/5 p-3 text-xs leading-5 text-slate-400"><strong className="text-orange-200">{language === "he" ? "פרסום בשליטתך:" : "You stay in control:"}</strong> {language === "he" ? "Carvio תעתיק את הפוסט ותפתח את הפלטפורמה. מטעמי פרטיות ובטיחות, רק אתם מאשרים את הפרסום הסופי." : "Carvio copies the post and opens the platform. For privacy and safety, only you approve the final publication."}</div>
+              </div>
+            </div>
+          )}
         </section>
 
         <section className="panel overflow-hidden" id="cv-lab">
           <div className="section-heading">
             <div><p className="eyebrow flex items-center gap-2 text-emerald-300"><span className="emoji-bounce">📄</span> CV Lab</p><h2 className="section-title">Turn every CV version into a stronger story</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">Keep up to six versions, receive a private structure review, and build a grounded rewrite without inventing experience.</p></div>
-            <label className={`primary-button ${resumes.length >= 6 ? "pointer-events-none opacity-50" : ""}`}><UploadCloud className="h-4 w-4" /> Upload CV<input className="sr-only" disabled={resumes.length >= 6} multiple onChange={(event) => { void uploadResumes(event.target.files); event.target.value = ""; }} type="file" /></label>
+            <div className="flex flex-wrap items-center gap-2"><label className={`primary-button ${resumes.length >= 6 || resumeProcessing ? "pointer-events-none opacity-50" : ""}`}>{resumeProcessing ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />} {resumeProcessing ? "Reading CV…" : "Upload CV"}<input accept=".pdf,.docx,.txt,.md,.rtf,text/*,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="sr-only" disabled={resumes.length >= 6 || resumeProcessing} multiple onChange={(event) => { void uploadResumes(event.target.files); event.target.value = ""; }} type="file" /></label><button aria-expanded={expandedTools.cv} className="secondary-button" onClick={() => setExpandedTools((current) => ({ ...current, cv: !current.cv }))} type="button">{expandedTools.cv ? "Hide review" : "Explore CV Lab"}<ChevronDown className={`h-4 w-4 transition ${expandedTools.cv ? "rotate-180" : ""}`} /></button></div>
           </div>
+          {expandedTools.cv && (
           <div className="mt-6 grid gap-5 xl:grid-cols-[0.8fr_1.2fr]">
             <div className="space-y-3">
               <div className="flex items-center justify-between text-sm"><span className="text-slate-400">Saved versions</span><span className="rounded-full bg-emerald-400/10 px-2.5 py-1 text-xs text-emerald-300">{resumes.length}/6</span></div>
-              {resumes.length === 0 ? <div className="rounded-2xl border border-dashed border-emerald-400/20 bg-emerald-400/5 p-8 text-center"><FileText className="mx-auto h-9 w-9 text-emerald-300" /><p className="mt-3 font-medium">Upload your first CV</p><p className="mt-2 text-sm leading-6 text-slate-400">Any file type can be registered. Text-based files can be reviewed automatically in this private pilot.</p></div> : resumes.map((resume) => <button className={`content-card flex w-full items-center gap-3 text-left ${selectedResumeId === resume.id ? "border-emerald-400/35 bg-emerald-400/5" : ""}`} key={resume.id} onClick={() => selectResume(resume)} type="button"><div className="rounded-xl bg-emerald-400/10 p-2.5 text-emerald-300"><FileCheck2 className="h-5 w-5" /></div><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-100">{resume.name}</p><p className="mt-1 text-xs text-slate-500">{formatFileSize(resume.size)} · {resume.extractedText ? "Text ready" : "Text needed"}</p></div><span className="icon-button h-8 w-8" onClick={(event) => { event.stopPropagation(); removeResume(resume); }} role="button" tabIndex={0}><X className="h-4 w-4" /></span></button>)}
+              {resumes.length === 0 ? <div className="rounded-2xl border border-dashed border-emerald-400/20 bg-emerald-400/5 p-8 text-center"><FileText className="mx-auto h-9 w-9 text-emerald-300" /><p className="mt-3 font-medium">Upload your first CV</p><p className="mt-2 text-sm leading-6 text-slate-400">PDF, Word and text CVs are read privately on this device and reviewed automatically.</p></div> : resumes.map((resume) => <button className={`content-card flex w-full items-center gap-3 text-left ${selectedResumeId === resume.id ? "border-emerald-400/35 bg-emerald-400/5" : ""}`} key={resume.id} onClick={() => selectResume(resume)} type="button"><div className="rounded-xl bg-emerald-400/10 p-2.5 text-emerald-300"><FileCheck2 className="h-5 w-5" /></div><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-100">{resume.name}</p><p className="mt-1 text-xs text-slate-500">{formatFileSize(resume.size)} · {resume.extractedText ? "Review ready ✨" : "Needs editable text"}</p></div><span className="icon-button h-8 w-8" onClick={(event) => { event.stopPropagation(); removeResume(resume); }} role="button" tabIndex={0}><X className="h-4 w-4" /></span></button>)}
             </div>
             <div className="rounded-2xl border border-white/10 bg-slate-950/55 p-5">
               <div className="flex items-center gap-3"><div className="rounded-xl bg-violet-400/10 p-2.5 text-violet-300"><WandSparkles className="h-5 w-5" /></div><div><h3 className="font-semibold">Professional CV review ✨</h3><p className="text-xs text-slate-500">Private, rules-based pilot review on this device</p></div></div>
-              <Field label="CV text for review"><textarea className="form-control mt-1 min-h-44 resize-y" onChange={(event) => setResumeText(event.target.value)} placeholder="Text files fill this automatically. For PDF, DOCX, scans, or other formats, paste the CV text here for an accurate review." value={resumeText} /></Field>
+              {resumeText ? <div className="mt-5 rounded-2xl border border-emerald-400/20 bg-emerald-400/5 p-4"><p className="flex items-center gap-2 text-sm font-semibold text-emerald-200"><CheckCircle2 className="h-4 w-4" /> CV content read successfully</p><p className="mt-1 text-xs leading-5 text-slate-400">Your professional review below was created automatically from the uploaded file. The text stays on this device.</p></div> : <div className="mt-5 rounded-2xl border border-amber-400/20 bg-amber-400/5 p-4"><p className="text-sm font-semibold text-amber-200">This file does not contain readable text</p><p className="mt-1 text-xs leading-5 text-slate-400">This can happen with scanned PDFs or unsupported formats. Paste the text below to receive the same review.</p></div>}
+              <details className="mt-4"><summary className="cursor-pointer text-sm font-medium text-slate-400 hover:text-slate-200">View or edit extracted CV text</summary><Field label="CV text for review"><textarea className="form-control mt-1 min-h-44 resize-y" onChange={(event) => setResumeText(event.target.value)} placeholder="Paste CV text here if the file is scanned or could not be read." value={resumeText} /></Field></details>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">{reviewResumeText(resumeText).map((item, index) => <div className="insight-box" key={item}><p className="text-xs font-semibold text-cyan-300">{index === 0 ? "Top observation" : `Review point ${index + 1}`}</p><p className="mt-2 text-sm leading-6 text-slate-300">{item}</p></div>)}</div>
               <div className="mt-5 flex flex-wrap items-center gap-3"><button className="primary-button bg-violet-500 hover:bg-violet-400" onClick={createRewriteDraft} type="button"><WandSparkles className="h-4 w-4" /> Create rewrite workspace</button><span className="text-xs leading-5 text-slate-500">Generative AI is not claimed in this local pilot; a secure server connection is required before AI rewriting can be enabled.</span></div>
               {rewriteDraft && <div className="mt-5"><Field label="Improved working draft"><textarea className="form-control min-h-64 resize-y" onChange={(event) => setRewriteDraft(event.target.value)} value={rewriteDraft} /></Field><button className="secondary-button mt-3" onClick={() => { void navigator.clipboard.writeText(rewriteDraft); setNotice("Rewrite draft copied."); }} type="button">📋 Copy draft</button></div>}
             </div>
           </div>
+          )}
         </section>
 
         <section className="panel overflow-hidden" id="job-search">
-          <div className="section-heading"><div><p className="eyebrow flex items-center gap-2 text-sky-300"><span className="emoji-bounce">🚀</span> Precision Job Search</p><h2 className="section-title">Build one precise search. Run it across trusted sources.</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">Role and location are sent as separate filters, so “HRBP in Amsterdam” stays in Amsterdam—not a personalized location elsewhere.</p></div><div className="search-readiness"><span className="text-xs text-slate-400">Search quality</span><strong className="text-lg text-cyan-200">{Math.round(searchReadiness / 7 * 100)}%</strong><div className="h-1.5 w-28 overflow-hidden rounded-full bg-white/5"><div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400 transition-all" style={{ width: `${searchReadiness / 7 * 100}%` }} /></div></div></div>
+          <div className="section-heading"><div><p className="eyebrow flex items-center gap-2 text-sky-300"><span className="emoji-bounce">🚀</span> Precision Job Search</p><h2 className="section-title">Build one precise search. Run it across trusted sources.</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">Role and location are sent as separate filters, so “HRBP in Amsterdam” stays in Amsterdam—not a personalized location elsewhere.</p></div><div className="flex flex-wrap items-center gap-2"><div className="search-readiness"><span className="text-xs text-slate-400">Search quality</span><strong className="text-lg text-cyan-200">{Math.round(searchReadiness / 7 * 100)}%</strong><div className="h-1.5 w-28 overflow-hidden rounded-full bg-white/5"><div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400 transition-all" style={{ width: `${searchReadiness / 7 * 100}%` }} /></div></div><button aria-expanded={expandedTools.search} className="secondary-button" onClick={() => setExpandedTools((current) => ({ ...current, search: !current.search }))} type="button">{expandedTools.search ? "Hide search" : "Open search"}<ChevronDown className={`h-4 w-4 transition ${expandedTools.search ? "rotate-180" : ""}`} /></button></div></div>
+
+          {expandedTools.search && (<div className="advanced-section-body">
 
           <div className="mt-6 rounded-2xl border border-sky-400/15 bg-sky-400/5 p-4"><div className="flex items-start gap-3"><span className="text-2xl">📍</span><div><p className="font-semibold text-sky-100">Location lock</p><p className="mt-1 text-sm leading-6 text-slate-400">Carvio will search for <strong className="text-slate-200">{resolvedSearch.role || "your role"}</strong> in <strong className="text-slate-200">{resolvedSearch.location || "your selected location"}</strong>. City and country remain separate from keywords.</p>{searchProfile.role.match(/\s+in\s+/i) && !searchProfile.location && <p className="mt-2 text-xs text-amber-300">✓ We detected the location inside your role entry and separated it automatically.</p>}</div></div></div>
 
@@ -1291,17 +1635,19 @@ export default function Home() {
 
           <fieldset className="mt-5"><legend className="text-sm font-medium text-slate-200">Skills — select or type your own</legend><div className="mt-3 flex flex-wrap gap-2">{skillSuggestions.map((skill) => { const selected = searchProfile.skills.split(",").map((item) => item.trim().toLowerCase()).includes(skill.toLowerCase()); return <button aria-pressed={selected} className={`skill-chip ${selected ? "skill-chip-selected" : ""}`} key={skill} onClick={() => toggleSearchSkill(skill)} type="button">{selected ? "✓ " : "+ "}{skill}</button>; })}</div><input aria-label="Additional skills" className="form-control mt-3" onChange={(event) => setSearchProfile({ ...searchProfile, skills: event.target.value })} placeholder="Additional skills, separated by commas" value={searchProfile.skills} /></fieldset>
 
-          <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_auto]"><Field label="Exclude keywords"><input className="form-control" onChange={(event) => setSearchProfile({ ...searchProfile, exclude: event.target.value })} placeholder="sales, internship, junior…" value={searchProfile.exclude} /></Field><button className="primary-button self-end px-7" disabled={!resolvedSearch.role || !resolvedSearch.city || !resolvedSearch.country} onClick={() => { setShowSearchResults(true); window.setTimeout(() => document.getElementById("search-results")?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50); }} type="button"><Search className="h-4 w-4" /> Search {resolvedSearch.city || "location"}</button></div>
+          <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_auto_auto]"><Field label="Exclude keywords"><input className="form-control" onChange={(event) => setSearchProfile({ ...searchProfile, exclude: event.target.value })} placeholder="sales, internship, junior…" value={searchProfile.exclude} /></Field><button className="secondary-button self-end" disabled={!resolvedSearch.role || !resolvedSearch.city || !resolvedSearch.country} onClick={saveSearchAsApplication} type="button"><Plus className="h-4 w-4" /> Save to Applications</button><button className="primary-button self-end px-7" disabled={!resolvedSearch.role || !resolvedSearch.city || !resolvedSearch.country} onClick={() => { setShowSearchResults(true); window.setTimeout(() => document.getElementById("search-results")?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50); }} type="button"><Search className="h-4 w-4" /> Search {resolvedSearch.city || "location"}</button></div>
           {(!resolvedSearch.city || !resolvedSearch.country) && <p className="mt-2 text-xs text-amber-300">Choose both city and country to prevent broad or incorrect location results.</p>}
 
           {showSearchResults && <div className="mt-7" id="search-results"><div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-semibold text-slate-200">Live search routes for {resolvedSearch.role}</p><p className="text-sm text-slate-500">Location locked to {resolvedSearch.location} · {searchProfile.radius} km · {searchProfile.datePosted}</p></div><span className="rounded-full border border-emerald-400/15 bg-emerald-400/5 px-3 py-1 text-xs text-emerald-300">Original sources ↗</span></div><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">{jobSearchSources(searchProfile).map((source) => <a className={`search-source-card group ${source.featured ? "search-source-featured" : ""}`} href={source.url} key={source.name} rel="noreferrer" target="_blank"><div className="flex items-center justify-between"><span className="text-3xl transition group-hover:scale-110">{source.emoji}</span>{source.featured ? <span className="rounded-full bg-cyan-400 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-slate-950">Recommended</span> : <ExternalLink className="h-4 w-4 text-slate-600 transition group-hover:text-cyan-300" />}</div><p className="mt-4 font-semibold text-slate-100">{source.name}</p><span className="mt-2 inline-flex rounded-full bg-emerald-400/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-300">{source.accuracy}</span><p className="mt-3 text-sm leading-6 text-slate-400">{source.description}</p><span className="mt-4 flex items-center gap-1 text-xs font-semibold text-cyan-300">Open matching jobs <ChevronRight className="h-3.5 w-3.5" /></span></a>)}</div><p className="mt-4 rounded-xl border border-amber-400/15 bg-amber-400/5 p-3 text-xs leading-5 text-slate-400">Use LinkedIn Local first. Signed-in platforms may still insert sponsored or recommended jobs outside the selected area; treat those as provider recommendations, not Carvio matches. Always verify the location shown on the job itself.</p></div>}
+          </div>)}
         </section>
 
         <section className="panel" id="analytics">
           <div className="section-heading">
             <div><p className="eyebrow flex items-center gap-2 text-violet-300"><TrendingUp className="h-4 w-4" /> Career analytics</p><h2 className="section-title">See what your search is telling you</h2></div>
-            <span className="rounded-full border border-violet-400/20 bg-violet-400/10 px-3 py-1 text-xs text-violet-200">Live · based on this device</span>
+            <div className="flex flex-wrap items-center gap-2"><span className="rounded-full border border-violet-400/20 bg-violet-400/10 px-3 py-1 text-xs text-violet-200">Live · based on this device</span><button aria-expanded={expandedTools.analytics} className="secondary-button" onClick={() => setExpandedTools((current) => ({ ...current, analytics: !current.analytics }))} type="button">{expandedTools.analytics ? "Hide charts" : "Explore analytics"}<ChevronDown className={`h-4 w-4 transition ${expandedTools.analytics ? "rotate-180" : ""}`} /></button></div>
           </div>
+          {expandedTools.analytics && (
           <div className="mt-6 grid gap-5 lg:grid-cols-2">
             <AnalyticsCard title="Pipeline distribution" subtitle="Where every application currently sits" icon={<BarChart3 className="h-5 w-5" />} insight={applications.length ? `${analytics.pipeline.reduce((best, item) => item.value > best.value ? item : best, analytics.pipeline[0]).label} is currently your largest pipeline stage.` : "Add applications to reveal your pipeline shape."} recommendation={applications.some((item) => item.status === "Follow-up due") ? "Start with follow-ups before adding more applications." : "Focus on moving the strongest active applications one stage forward."}>
               <BarRows data={analytics.pipeline} colors={["#38bdf8", "#a78bfa", "#34d399", "#fbbf24", "#fb7185", "#94a3b8"]} />
@@ -1328,10 +1674,22 @@ export default function Home() {
               <BarRows data={analytics.networkingHealth} colors={["#34d399", "#fb7185", "#64748b"]} />
             </AnalyticsCard>
           </div>
+          )}
         </section>
       </div>
 
       {notice && <div aria-atomic="true" aria-live="polite" className="toast" role="status"><CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-300" /><span>{notice}</span><button aria-label="Dismiss notification" className="ml-1 rounded-full p-1 text-slate-400 transition hover:bg-white/10 hover:text-white" onClick={() => setNotice("")} type="button"><X className="h-4 w-4" /></button></div>}
+
+      {showTrustCenter && (
+        <Modal title="Your data & privacy 🔒" description="Carvio's pilot stores your information only in this browser. You stay in control." onClose={() => setShowTrustCenter(false)}>
+          <div className="space-y-4">
+            <div className="trust-status"><ShieldCheck className="h-7 w-7 shrink-0 text-emerald-300" /><div><p className="font-semibold">All changes are saved on this device</p><p className="mt-1 text-sm leading-6 text-slate-400">The founders cannot see your applications, contacts, salary expectations or CV content. This pilot does not synchronize between devices.</p></div></div>
+            <div className="grid gap-3 sm:grid-cols-2"><button className="secondary-button min-h-14" onClick={exportCarvioData} type="button"><Download className="h-5 w-5" /> Download backup</button><label className="secondary-button min-h-14"><UploadCloud className="h-5 w-5" /> Restore backup<input accept="application/json,.json" className="sr-only" onChange={(event) => { void importCarvioData(event); }} type="file" /></label></div>
+            <div className="rounded-2xl border border-amber-400/15 bg-amber-400/5 p-4 text-sm leading-6 text-slate-400"><strong className="text-amber-200">Important:</strong> clearing browser data, using private browsing, or switching devices can remove or hide your information. Download a backup regularly during the pilot.</div>
+            <div className="border-t border-white/10 pt-4"><button className="text-button text-rose-300 hover:text-rose-200" onClick={deleteAllLocalData} type="button"><Trash2 className="h-4 w-4" /> Delete all Carvio data from this browser</button></div>
+          </div>
+        </Modal>
+      )}
 
       {showApplicationModal && (
         <Modal title={editingApplicationId ? "Edit application" : "Add application"} description="Capture the opportunity, its signal, timing, and your next move." onClose={() => setShowApplicationModal(false)}>

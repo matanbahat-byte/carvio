@@ -25,6 +25,64 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+.carvio-shell {
+  background:
+    radial-gradient(ellipse at 9% -4%, rgba(22, 101, 52, 0.48), transparent 34rem),
+    radial-gradient(ellipse at 54% 4%, rgba(101, 112, 45, 0.34), transparent 31rem),
+    radial-gradient(ellipse at 94% 26%, rgba(13, 116, 108, 0.32), transparent 35rem),
+    radial-gradient(ellipse at 86% 72%, rgba(45, 65, 116, 0.30), transparent 38rem),
+    linear-gradient(145deg, #07110d 0%, #0b1c17 38%, #102428 69%, #111c34 100%);
+  transition: background-color 220ms ease, color 220ms ease;
+}
+
+.carvio-shell:not(.carvio-light) header,
+.carvio-shell:not(.carvio-light) .panel,
+.carvio-shell:not(.carvio-light) .metric-card,
+.carvio-shell:not(.carvio-light) .content-card,
+.carvio-shell:not(.carvio-light) .analytics-card,
+.carvio-shell:not(.carvio-light) .search-source-card,
+.carvio-shell:not(.carvio-light) .message-preview,
+.carvio-shell:not(.carvio-light) .reset-inner-card {
+  border-color: rgba(167, 243, 208, 0.10);
+  background: linear-gradient(145deg, rgba(8, 26, 20, 0.88), rgba(15, 35, 38, 0.82) 58%, rgba(20, 29, 52, 0.78));
+  box-shadow: 0 16px 42px rgba(2, 12, 9, 0.22);
+}
+
+.carvio-shell:not(.carvio-light) .section-nav {
+  border-color: rgba(110, 231, 183, 0.14);
+  background: linear-gradient(90deg, rgba(6, 24, 16, 0.94), rgba(13, 46, 37, 0.93), rgba(20, 35, 57, 0.94));
+  box-shadow: 0 14px 36px rgba(2, 12, 9, 0.32);
+}
+
+.carvio-shell:not(.carvio-light) .focus-card {
+  border-color: rgba(110, 231, 183, 0.24);
+  background:
+    radial-gradient(circle at 86% 10%, rgba(59, 130, 246, 0.14), transparent 42%),
+    linear-gradient(135deg, rgba(22, 101, 52, 0.24), rgba(63, 81, 36, 0.20), rgba(13, 116, 108, 0.18));
+}
+
+.carvio-shell:not(.carvio-light) .pilot-banner {
+  border-color: rgba(190, 242, 100, 0.17);
+  background:
+    radial-gradient(circle at 82% 15%, rgba(30, 125, 88, 0.22), transparent 38%),
+    linear-gradient(120deg, rgba(17, 40, 27, 0.90), rgba(45, 55, 30, 0.82), rgba(17, 43, 51, 0.86));
+}
+
+.carvio-shell:not(.carvio-light) .primary-button {
+  background: linear-gradient(100deg, #34d399, #2dd4bf);
+  box-shadow: 0 10px 24px rgba(16, 185, 129, 0.16);
+}
+
+.carvio-shell:not(.carvio-light) .primary-button:hover {
+  background: linear-gradient(100deg, #6ee7b7, #5eead4);
+}
+
+.carvio-shell:not(.carvio-light) .section-nav-link:hover,
+.carvio-shell:not(.carvio-light) .secondary-button:hover {
+  border-color: rgba(110, 231, 183, 0.18);
+  background-color: rgba(52, 211, 153, 0.09);
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -88,11 +146,31 @@ textarea:focus-visible {
 
 @layer components {
   .panel {
-    @apply rounded-3xl border border-white/10 bg-slate-900/70 p-5 shadow-2xl shadow-slate-950/20 backdrop-blur sm:p-6;
+    @apply rounded-3xl border border-white/10 bg-slate-900/80 p-5 shadow-lg shadow-slate-950/10 backdrop-blur sm:p-7;
   }
 
   .metric-card {
-    @apply rounded-2xl border border-white/10 bg-slate-900/70 p-4 shadow-lg shadow-slate-950/20 backdrop-blur transition duration-300 hover:-translate-y-0.5 hover:border-cyan-400/20 hover:shadow-cyan-950/30;
+    @apply rounded-2xl border border-white/[0.07] bg-slate-900/55 p-4 shadow-sm shadow-slate-950/10 backdrop-blur transition duration-300 hover:-translate-y-0.5 hover:border-cyan-400/20;
+  }
+
+  .momentum-card {
+    @apply rounded-3xl border border-emerald-400/15 bg-gradient-to-br from-emerald-400/[0.08] via-lime-300/[0.04] to-cyan-400/[0.06] p-5 shadow-sm shadow-emerald-950/10 sm:p-6;
+  }
+
+  .checkin-card {
+    @apply flex flex-col gap-4 rounded-3xl border border-emerald-400/15 bg-gradient-to-r from-emerald-400/[0.08] via-slate-900/70 to-cyan-400/[0.06] p-4 shadow-sm shadow-emerald-950/10 sm:flex-row sm:items-center sm:justify-between sm:p-5;
+  }
+
+  .checkin-choice {
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-300 transition duration-200 hover:-translate-y-0.5 hover:border-emerald-300/30 hover:bg-emerald-300/10 hover:text-white;
+  }
+
+  .checkin-choice-active {
+    @apply border-emerald-300/40 bg-emerald-300/15 text-emerald-100 shadow-sm shadow-emerald-950/20;
+  }
+
+  .trust-status {
+    @apply flex gap-3 rounded-2xl border border-emerald-400/20 bg-emerald-400/[0.07] p-4 text-slate-200;
   }
 
   .content-card {
@@ -101,7 +179,6 @@ textarea:focus-visible {
 
   .focus-card {
     @apply rounded-2xl border border-cyan-400/20 bg-gradient-to-br from-cyan-400/10 to-emerald-400/5 p-5 shadow-lg shadow-cyan-950/20 transition duration-300 hover:-translate-y-0.5 hover:border-cyan-400/35 hover:shadow-cyan-950/40;
-    animation: gentle-glow 4s ease-in-out infinite;
   }
 
   .section-heading {
@@ -166,7 +243,6 @@ textarea:focus-visible {
 
   .emoji-bounce {
     @apply inline-block text-lg;
-    animation: soft-float 2.8s ease-in-out infinite;
   }
 
   .search-source-card {
@@ -215,17 +291,35 @@ textarea:focus-visible {
 
   .message-generate-button {
     @apply bg-gradient-to-r from-pink-500 to-violet-500 text-white shadow-pink-950/30 hover:from-pink-400 hover:to-violet-400;
-    animation: pulse-ring 2.4s ease-in-out infinite;
   }
 
   .message-sparkle {
     @apply hidden text-5xl sm:block;
-    animation: soft-float 2.2s ease-in-out infinite;
+  }
+
+  .social-studio-panel {
+    @apply relative overflow-hidden rounded-3xl border border-orange-400/20 bg-[radial-gradient(circle_at_top_right,_rgba(251,146,60,0.16),_transparent_36%),linear-gradient(135deg,_rgba(30,41,59,0.92),_rgba(15,23,42,0.96))] p-5 shadow-2xl shadow-orange-950/20 backdrop-blur sm:p-6;
+    scroll-margin-top: 9rem;
+  }
+
+  .social-platform-card {
+    @apply flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl border border-white/10 bg-slate-950/45 px-2 py-3 text-sm font-semibold text-slate-400 transition duration-300 hover:-translate-y-1 hover:border-orange-400/30 hover:text-white;
+  }
+
+  .social-platform-card-active {
+    @apply border-orange-400/50 bg-orange-400/10 text-orange-100 shadow-lg shadow-orange-950/20;
+  }
+
+  .social-preview {
+    @apply rounded-3xl border border-orange-400/15 bg-slate-950/60 p-5 shadow-xl shadow-slate-950/30;
+  }
+
+  .social-generate-button {
+    @apply bg-gradient-to-r from-orange-500 to-pink-500 text-white shadow-orange-950/30 hover:from-orange-400 hover:to-pink-400;
   }
 
   .hero-orb {
     @apply pointer-events-none absolute select-none opacity-20 blur-[0.2px];
-    animation: drift 5s ease-in-out infinite;
   }
 
   .hero-orb-one {
@@ -239,7 +333,6 @@ textarea:focus-visible {
 
   .animate-wave {
     transform-origin: 70% 70%;
-    animation: wave 2.8s ease-in-out infinite;
   }
 
   .section-nav {
@@ -247,7 +340,7 @@ textarea:focus-visible {
   }
 
   .section-nav-scroll {
-    @apply flex gap-1 overflow-x-auto;
+    @apply grid grid-cols-4 gap-1 sm:flex sm:overflow-x-auto;
     scrollbar-width: none;
   }
 
@@ -256,7 +349,7 @@ textarea:focus-visible {
   }
 
   .section-nav-link {
-    @apply inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-slate-400 transition duration-200 hover:-translate-y-0.5 hover:bg-white/10 hover:text-white sm:text-sm;
+    @apply inline-flex min-h-12 min-w-0 shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1.5 text-[10px] font-medium text-slate-400 transition duration-200 hover:-translate-y-0.5 hover:bg-white/10 hover:text-white sm:min-h-10 sm:flex-row sm:gap-2 sm:px-3 sm:py-2 sm:text-sm;
   }
 
   .pilot-banner {
@@ -310,7 +403,7 @@ textarea:focus-visible {
 
   .panel[id],
   .message-studio-panel[id] {
-    scroll-margin-top: 6.5rem;
+    scroll-margin-top: 9rem;
   }
 
   .modal-actions {
@@ -319,10 +412,168 @@ textarea:focus-visible {
 
   .toast {
     @apply fixed bottom-4 left-1/2 z-[60] flex w-[calc(100%-2rem)] max-w-md -translate-x-1/2 items-center justify-center gap-2 rounded-2xl border border-emerald-400/25 bg-slate-900/95 px-4 py-3 text-sm font-medium text-slate-100 shadow-2xl shadow-slate-950/50 backdrop-blur;
-    animation: toast-in 180ms ease-out;
+    animation: toast-in 220ms ease-out;
   }
 
   .shortcut-key {
     @apply mx-0.5 inline-flex min-w-5 items-center justify-center rounded border border-white/10 bg-white/5 px-1 py-0.5 font-mono text-[10px] text-slate-400;
   }
+}
+
+@media (min-width: 640px) {
+  .panel[id],
+  .message-studio-panel[id],
+  .reset-panel[id] {
+    scroll-margin-top: 6.5rem;
+  }
+}
+
+/* Calm, high-contrast light theme. Kept under the app shell so it never
+   changes the rest of the browser or any future public marketing pages. */
+.carvio-light {
+  color: #172033;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(14, 165, 233, 0.08), transparent 30rem),
+    linear-gradient(145deg, #f8fafc 0%, #f1f5f9 55%, #eef2ff 100%);
+}
+
+.carvio-light header,
+.carvio-light .panel,
+.carvio-light .metric-card,
+.carvio-light .content-card,
+.carvio-light .analytics-card,
+.carvio-light .message-preview,
+.carvio-light .reset-inner-card,
+.carvio-light .feedback-question,
+.carvio-light .search-source-card {
+  border-color: rgba(15, 23, 42, 0.10);
+  background-color: rgba(255, 255, 255, 0.90);
+  color: #172033;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.07);
+}
+
+.carvio-light .message-studio-panel,
+.carvio-light .social-studio-panel,
+.carvio-light .reset-panel,
+.carvio-light .pilot-banner {
+  border-color: rgba(15, 23, 42, 0.10);
+  background: rgba(255, 255, 255, 0.90);
+  color: #172033;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.07);
+}
+
+.carvio-light .section-nav {
+  border-color: rgba(15, 23, 42, 0.10);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.10);
+}
+
+.carvio-light .section-nav-link:hover,
+.carvio-light .secondary-button:hover,
+.carvio-light .icon-button:hover,
+.carvio-light .text-button:hover {
+  background-color: rgba(14, 165, 233, 0.08);
+  color: #0f172a;
+}
+
+.carvio-light .secondary-button,
+.carvio-light .icon-button,
+.carvio-light .calendar-button,
+.carvio-light .data-chip,
+.carvio-light .choice-card,
+.carvio-light .message-pill,
+.carvio-light .traffic-option,
+.carvio-light .feedback-score,
+.carvio-light .recovery-choice,
+.carvio-light .skill-chip {
+  border-color: rgba(15, 23, 42, 0.12);
+  background-color: rgba(248, 250, 252, 0.88);
+  color: #334155;
+}
+
+.carvio-light .social-preview,
+.carvio-light .social-platform-card {
+  border-color: rgba(15, 23, 42, 0.12);
+  background-color: rgba(255, 255, 255, 0.88);
+  color: #334155;
+}
+
+.carvio-light .social-platform-card-active {
+  border-color: rgba(234, 88, 12, 0.30);
+  background-color: rgba(255, 237, 213, 0.92);
+  color: #9a3412;
+}
+
+.carvio-shell[dir="rtl"] {
+  text-align: right;
+}
+
+.carvio-shell[dir="rtl"] input,
+.carvio-shell[dir="rtl"] textarea,
+.carvio-shell[dir="rtl"] select {
+  text-align: right;
+}
+
+.carvio-light .form-control {
+  border-color: rgba(15, 23, 42, 0.14);
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+.carvio-light .form-control::placeholder {
+  color: #94a3b8;
+}
+
+.carvio-light .text-white,
+.carvio-light .text-slate-100,
+.carvio-light .text-slate-200 {
+  color: #0f172a;
+}
+
+.carvio-light .text-slate-300,
+.carvio-light .text-slate-400 {
+  color: #475569;
+}
+
+.carvio-light .text-slate-500,
+.carvio-light .text-slate-600 {
+  color: #64748b;
+}
+
+.carvio-light .focus-card {
+  border-color: rgba(8, 145, 178, 0.20);
+  background: linear-gradient(135deg, rgba(207, 250, 254, 0.74), rgba(236, 253, 245, 0.84));
+  box-shadow: 0 10px 28px rgba(8, 145, 178, 0.08);
+}
+
+.carvio-light .checkin-card {
+  border-color: rgba(16, 185, 129, 0.18);
+  background: linear-gradient(135deg, rgba(236, 253, 245, 0.92), rgba(240, 249, 255, 0.92));
+  color: #172033;
+}
+
+.carvio-light .checkin-choice {
+  border-color: rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.84);
+  color: #475569;
+}
+
+.carvio-light .checkin-choice:hover,
+.carvio-light .checkin-choice-active {
+  border-color: rgba(5, 150, 105, 0.28);
+  background: rgba(209, 250, 229, 0.9);
+  color: #065f46;
+}
+
+.carvio-light .trust-status {
+  border-color: rgba(5, 150, 105, 0.20);
+  background: rgba(236, 253, 245, 0.88);
+  color: #172033;
+}
+
+.carvio-light .toast {
+  border-color: rgba(16, 185, 129, 0.22);
+  background: rgba(255, 255, 255, 0.97);
+  color: #0f172a;
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.14);
 }
