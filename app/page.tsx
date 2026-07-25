@@ -73,6 +73,16 @@ const applicationStatuses = [
 ] as const;
 
 type ApplicationStatus = (typeof applicationStatuses)[number];
+type ApplicationMeetingFilter = "all" | "upcoming" | "past" | "unscheduled";
+type ApplicationSort =
+  | "meeting-soonest"
+  | "meeting-latest"
+  | "applied-newest"
+  | "applied-oldest"
+  | "company-az"
+  | "role-az"
+  | "stage"
+  | "priority";
 
 const trafficLights = ["none", "green", "yellow", "red"] as const;
 type TrafficLight = (typeof trafficLights)[number];
@@ -815,6 +825,10 @@ export default function Home() {
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [showApplicationDetails, setShowApplicationDetails] = useState(false);
   const [showContactDetails, setShowContactDetails] = useState(false);
+  const [applicationQuery, setApplicationQuery] = useState("");
+  const [applicationStageFilter, setApplicationStageFilter] = useState<"all" | ApplicationStatus>("all");
+  const [applicationMeetingFilter, setApplicationMeetingFilter] = useState<ApplicationMeetingFilter>("all");
+  const [applicationSort, setApplicationSort] = useState<ApplicationSort>("meeting-soonest");
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -857,8 +871,20 @@ export default function Home() {
   useEffect(() => {
     if (!hydrated) return;
     window.localStorage.setItem(THEME_KEY, JSON.stringify(theme));
-    document.documentElement.style.colorScheme = theme === "light" ? "light" : "dark";
+    const isLight = theme === "light";
+    const background = isLight ? "#ffffff" : "#08261f";
+    document.documentElement.style.colorScheme = isLight ? "only light" : "dark";
+    document.documentElement.style.backgroundColor = background;
+    document.body.style.backgroundColor = background;
     document.documentElement.dataset.carvioTheme = theme;
+    document.body.dataset.carvioTheme = theme;
+    let themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    if (!themeColor) {
+      themeColor = document.createElement("meta");
+      themeColor.name = "theme-color";
+      document.head.appendChild(themeColor);
+    }
+    themeColor.content = background;
   }, [theme, hydrated]);
 
   useEffect(() => {
@@ -903,13 +929,13 @@ export default function Home() {
   const metrics = useMemo(() => {
     const activeStatuses: ApplicationStatus[] = ["Applied", "Interview", "Follow-up due"];
     return [
-      { label: "Active applications", value: applications.filter((item) => activeStatuses.includes(item.status)).length, icon: BriefcaseBusiness },
-      { label: "Interview stage", value: applications.filter((item) => item.status === "Interview").length, icon: CalendarClock },
-      { label: "Offers", value: applications.filter((item) => item.status === "Offer").length, icon: CheckCircle2 },
-      { label: "Networking contacts", value: contacts.length, icon: Users2 },
-      { label: "Follow-ups due", value: applications.filter((item) => item.status === "Follow-up due" || isPast(item.nextStepDue)).length + contacts.filter((item) => isPast(item.nextActionDue)).length, icon: CircleAlert },
+      { label: language === "he" ? "מועמדויות פעילות" : "Active applications", value: applications.filter((item) => activeStatuses.includes(item.status)).length, icon: BriefcaseBusiness },
+      { label: language === "he" ? "בשלב ראיון" : "Interview stage", value: applications.filter((item) => item.status === "Interview").length, icon: CalendarClock },
+      { label: language === "he" ? "הצעות עבודה" : "Offers", value: applications.filter((item) => item.status === "Offer").length, icon: CheckCircle2 },
+      { label: language === "he" ? "אנשי קשר" : "Networking contacts", value: contacts.length, icon: Users2 },
+      { label: language === "he" ? "פעולות המשך לביצוע" : "Follow-ups due", value: applications.filter((item) => item.status === "Follow-up due" || isPast(item.nextStepDue)).length + contacts.filter((item) => isPast(item.nextActionDue)).length, icon: CircleAlert },
     ];
-  }, [applications, contacts]);
+  }, [applications, contacts, language]);
 
   const weeklyMomentum = useMemo(() => {
     const now = Date.now();
@@ -944,15 +970,15 @@ export default function Home() {
     const statusCounts = applicationStatuses.map((status) => ({ status, count: applications.filter((item) => item.status === status).length }));
     const largestGroup = statusCounts.sort((a, b) => b.count - a.count)[0];
 
-    if (followUps > 0) result.push({ title: "Follow-ups need attention", text: `${followUps} ${followUps === 1 ? "application is" : "applications are"} ready for follow-up. Start there to keep momentum moving.`, tone: "bg-amber-400" });
-    if (missingNextSteps > 0) result.push({ title: "Clarify next steps", text: `${missingNextSteps} active ${missingNextSteps === 1 ? "application has" : "applications have"} no next step. Add one so nothing slips through.`, tone: "bg-sky-400" });
-    if (interviews > 0) result.push({ title: "Prepare for interviews", text: `${interviews} ${interviews === 1 ? "opportunity is" : "opportunities are"} at interview stage. Keep preparation notes in each application.`, tone: "bg-violet-400" });
-    if (applications.some((item) => item.status === "Offer")) result.push({ title: "Offer on the table", text: "Your pipeline includes an offer. Capture any decision points in its notes before your next conversation.", tone: "bg-emerald-400" });
-    if (contacts.length < 3) result.push({ title: "Grow your active network", text: `You have ${contacts.length} saved ${contacts.length === 1 ? "contact" : "contacts"}. Add people connected to your most important opportunities.`, tone: "bg-fuchsia-400" });
-    if (applications.length >= 4 && largestGroup.count / applications.length >= 0.6) result.push({ title: "Pipeline is concentrated", text: `${largestGroup.count} of ${applications.length} applications share the “${largestGroup.status}” status. Consider what could move the strongest ones forward.`, tone: "bg-rose-400" });
-    if (result.length === 0) result.push({ title: "You’re in good shape", text: "Every active application has a next step, and no follow-ups are currently marked due.", tone: "bg-emerald-400" });
+    if (followUps > 0) result.push({ title: language === "he" ? "פעולות ההמשך דורשות תשומת לב" : "Follow-ups need attention", text: language === "he" ? `${followUps} מועמדויות ממתינות לפעולת המשך. התחילו בהן כדי לשמור על התנופה.` : `${followUps} ${followUps === 1 ? "application is" : "applications are"} ready for follow-up. Start there to keep momentum moving.`, tone: "bg-amber-400" });
+    if (missingNextSteps > 0) result.push({ title: language === "he" ? "כדאי להגדיר את הצעד הבא" : "Clarify next steps", text: language === "he" ? `ל־${missingNextSteps} מועמדויות פעילות עדיין אין צעד הבא. הוסיפו פעולה ברורה כדי ששום דבר לא יתפספס.` : `${missingNextSteps} active ${missingNextSteps === 1 ? "application has" : "applications have"} no next step. Add one so nothing slips through.`, tone: "bg-sky-400" });
+    if (interviews > 0) result.push({ title: language === "he" ? "הגיע הזמן להתכונן לראיונות" : "Prepare for interviews", text: language === "he" ? `${interviews} הזדמנויות נמצאות בשלב ראיון. שמרו בכל מועמדות נקודות הכנה ושאלות חשובות.` : `${interviews} ${interviews === 1 ? "opportunity is" : "opportunities are"} at interview stage. Keep preparation notes in each application.`, tone: "bg-violet-400" });
+    if (applications.some((item) => item.status === "Offer")) result.push({ title: language === "he" ? "יש הצעה על הפרק" : "Offer on the table", text: language === "he" ? "קיימת הצעה פעילה. תעדו את שיקולי ההחלטה והנושאים לבירור לפני השיחה הבאה." : "Your pipeline includes an offer. Capture any decision points in its notes before your next conversation.", tone: "bg-emerald-400" });
+    if (contacts.length < 3) result.push({ title: language === "he" ? "חזקו את רשת הקשרים הפעילה" : "Grow your active network", text: language === "he" ? `שמורים כרגע ${contacts.length} אנשי קשר. הוסיפו אנשים שיכולים לספק הקשר או חיבור להזדמנויות החשובות ביותר.` : `You have ${contacts.length} saved ${contacts.length === 1 ? "contact" : "contacts"}. Add people connected to your most important opportunities.`, tone: "bg-fuchsia-400" });
+    if (applications.length >= 4 && largestGroup.count / applications.length >= 0.6) result.push({ title: language === "he" ? "רוב התהליכים מרוכזים באותו שלב" : "Pipeline is concentrated", text: language === "he" ? `${largestGroup.count} מתוך ${applications.length} מועמדויות נמצאות באותו שלב. בדקו מה יכול לקדם את ההזדמנויות החזקות ביותר.` : `${largestGroup.count} of ${applications.length} applications share the “${largestGroup.status}” status. Consider what could move the strongest ones forward.`, tone: "bg-rose-400" });
+    if (result.length === 0) result.push({ title: language === "he" ? "התהליך שלך מסודר היטב" : "You’re in good shape", text: language === "he" ? "לכל מועמדות פעילה יש צעד הבא, ואין כרגע פעולות המשך שממתינות לביצוע." : "Every active application has a next step, and no follow-ups are currently marked due.", tone: "bg-emerald-400" });
     return result.slice(0, 4);
-  }, [applications, contacts]);
+  }, [applications, contacts, language]);
 
   const todayFocus = useMemo(() => {
     if (dailyMood === "difficult") {
@@ -1017,6 +1043,59 @@ export default function Home() {
   const activeRecoveryEntry = recoveryApplication ? recoveryEntries.find((entry) => entry.applicationId === recoveryApplication.id) : undefined;
   const resolvedSearch = useMemo(() => normalizedSearchProfile(searchProfile), [searchProfile]);
   const searchReadiness = useMemo(() => [resolvedSearch.role, resolvedSearch.city, resolvedSearch.country, searchProfile.skills, searchProfile.seniority, searchProfile.employmentType, searchProfile.datePosted].filter((value) => value.trim()).length, [resolvedSearch, searchProfile]);
+  const visibleApplications = useMemo(() => {
+    const query = applicationQuery.trim().toLocaleLowerCase();
+    const now = Date.now();
+    const stageOrder = new Map(applicationStatuses.map((status, index) => [status, index]));
+    const eventTime = (application: Application) => {
+      const timestamp = application.eventDateTime ? Date.parse(application.eventDateTime) : Number.NaN;
+      return Number.isNaN(timestamp) ? null : timestamp;
+    };
+
+    const filtered = applications.filter((application) => {
+      const timestamp = eventTime(application);
+      const matchesQuery = !query || [
+        application.role,
+        application.company,
+        application.location,
+        application.eventType,
+        application.nextStep,
+      ].some((value) => value.toLocaleLowerCase().includes(query));
+      const matchesStage = applicationStageFilter === "all" || application.status === applicationStageFilter;
+      const matchesMeeting =
+        applicationMeetingFilter === "all" ||
+        (applicationMeetingFilter === "upcoming" && timestamp !== null && timestamp >= now) ||
+        (applicationMeetingFilter === "past" && timestamp !== null && timestamp < now) ||
+        (applicationMeetingFilter === "unscheduled" && timestamp === null);
+      return matchesQuery && matchesStage && matchesMeeting;
+    });
+
+    return [...filtered].sort((a, b) => {
+      if (applicationSort === "company-az") return a.company.localeCompare(b.company);
+      if (applicationSort === "role-az") return a.role.localeCompare(b.role);
+      if (applicationSort === "stage") return (stageOrder.get(a.status) ?? 99) - (stageOrder.get(b.status) ?? 99);
+      if (applicationSort === "priority") {
+        const priorityOrder = { High: 0, Medium: 1, Low: 2 };
+        return priorityOrder[a.priority] - priorityOrder[b.priority];
+      }
+      if (applicationSort === "applied-newest") {
+        return (Date.parse(b.appliedDate) || 0) - (Date.parse(a.appliedDate) || 0);
+      }
+      if (applicationSort === "applied-oldest") {
+        return (Date.parse(a.appliedDate) || Number.MAX_SAFE_INTEGER) - (Date.parse(b.appliedDate) || Number.MAX_SAFE_INTEGER);
+      }
+      const first = eventTime(a);
+      const second = eventTime(b);
+      if (applicationSort === "meeting-latest") {
+        const firstRank = first ?? Number.MIN_SAFE_INTEGER;
+        const secondRank = second ?? Number.MIN_SAFE_INTEGER;
+        return secondRank - firstRank || a.company.localeCompare(b.company);
+      }
+      const firstRank = first !== null && first >= now ? first : Number.MAX_SAFE_INTEGER;
+      const secondRank = second !== null && second >= now ? second : Number.MAX_SAFE_INTEGER;
+      return firstRank - secondRank || a.company.localeCompare(b.company);
+    });
+  }, [applicationMeetingFilter, applicationQuery, applicationSort, applicationStageFilter, applications]);
 
   function uploadProfilePhoto(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -1376,6 +1455,14 @@ export default function Home() {
   }
 
   const copy = uiCopy[language];
+  const statusLabel = (status: ApplicationStatus) => language === "he" ? ({
+    Applied: "הוגשה מועמדות",
+    Interview: "ראיון",
+    Offer: "הצעה",
+    "Follow-up due": "נדרשת פעולת המשך",
+    Rejected: "נדחתה",
+    Withdrawn: "הוסרה",
+  } as Record<ApplicationStatus, string>)[status] : status;
 
   if (!hydrated) {
     return <main className="min-h-screen bg-slate-950" aria-label="Loading Carvio" />;
@@ -1408,17 +1495,21 @@ export default function Home() {
           </div>
           <div className="carvio-hero-main">
             <div>
-              <p className="eyebrow text-emerald-300">{language === "he" ? "ההזדמנות הבאה מתחילה כאן" : "Your next opportunity starts here"}</p>
-              <h1 className="mt-2 max-w-3xl text-3xl font-semibold tracking-tight sm:text-4xl">{language === "he" ? "מצאו עבודה שמתאימה באמת לכיוון שלכם." : "Find work that fits where you’re going."}</h1>
-              <p className="mt-3 max-w-2xl text-base leading-7 text-slate-300">{language === "he" ? "הגדירו תפקיד ומיקום. Carvio יבנה חיפוש מדויק במקורות מובילים." : "Set a role and location. Carvio builds a precise search across trusted sources."}</p>
-              <div className="hero-search-composer">
+              <p className="eyebrow text-emerald-300">{language === "he" ? "מרכז השליטה בחיפוש העבודה" : "Your job-search command center"}</p>
+              <h1 className="mt-2 max-w-3xl text-3xl font-semibold tracking-tight sm:text-4xl">{language === "he" ? "נהלו כל מועמדות והתקדמו בצעד ברור." : "Move every application forward with one clear next step."}</h1>
+              <p className="mt-3 max-w-2xl text-base leading-7 text-slate-300">{language === "he" ? "כל התהליכים, הפגישות, המשימות וההחלטות במקום אחד רגוע ומסודר." : "Keep every process, meeting, follow-up and decision in one calm, organized place."}</p>
+              <div className="hero-application-actions">
+                <button className="hero-applications-primary" onClick={() => switchView("applications")} type="button"><BriefcaseBusiness className="h-5 w-5" /><span><strong>{language === "he" ? "לניהול המועמדויות" : "Manage applications"}</strong><small>{language === "he" ? `${applications.length} תהליכים שמורים` : `${applications.length} tracked opportunities`}</small></span><ArrowUpRight className="h-4 w-4" /></button>
+                <button className="hero-add-application" onClick={openNewApplication} type="button"><Plus className="h-4 w-4" /> {copy.addApplication}</button>
+              </div>
+              <div className="hero-search-secondary"><span><Search className="h-3.5 w-3.5" /> {language === "he" ? "חיפוש משרה חדשה" : "Find a new opportunity"}</span></div>
+              <div className="hero-search-composer hero-search-composer-secondary">
                 <label><BriefcaseBusiness className="h-4 w-4" /><span className="sr-only">{language === "he" ? "תפקיד יעד" : "Target role"}</span><input list="hero-role-options" onChange={(event) => setSearchProfile({ ...searchProfile, role: event.target.value })} placeholder={language === "he" ? "תפקיד יעד" : "Target role"} value={searchProfile.role} /></label>
                 <datalist id="hero-role-options">{roleSuggestions.map((role) => <option key={role} value={role} />)}</datalist>
                 <label><MapPin className="h-4 w-4" /><span className="sr-only">{language === "he" ? "עיר או אזור" : "City or area"}</span><input list="hero-city-options" onChange={(event) => setSearchProfile({ ...searchProfile, location: event.target.value })} placeholder={language === "he" ? "עיר או אזור" : "City or area"} value={searchProfile.location} /></label>
                 <datalist id="hero-city-options">{(citySuggestions[searchProfile.country] || []).map((city) => <option key={city} value={city} />)}</datalist>
-                <button onClick={() => { setExpandedTools((current) => ({ ...current, search: true })); switchView("search"); }} type="button"><Search className="h-5 w-5" /><span>{language === "he" ? "חיפוש" : "Search jobs"}</span><ArrowUpRight className="h-4 w-4" /></button>
+                <button onClick={() => { setExpandedTools((current) => ({ ...current, search: true })); switchView("search"); }} type="button"><Search className="h-5 w-5" /><span>{language === "he" ? "חיפוש" : "Search"}</span><ArrowUpRight className="h-4 w-4" /></button>
               </div>
-              <div className="hero-secondary-action"><button onClick={openNewApplication} type="button"><Plus className="h-4 w-4" /> {copy.addApplication}</button><span>{language === "he" ? "או תעדו תהליך שכבר התחיל" : "or track an opportunity already in progress"}</span></div>
             </div>
             <div className="hero-action-stack">
               <button className="focus-card group w-full text-left" onClick={() => navigateToSection(todayFocus.target)} type="button">
@@ -1439,12 +1530,12 @@ export default function Home() {
         <nav aria-label="Carvio main navigation" className="calm-desktop-nav">
           {([
             ["home", House, copy.overview],
-            ["search", Search, copy.search],
             ["applications", BriefcaseBusiness, copy.applications],
+            ["search", Search, copy.search],
             ["networking", Users2, copy.networking],
             ["tools", Wrench, copy.tools],
             ["more", BarChart3, copy.insights],
-          ] as [AppView, typeof House, string][]).map(([view, Icon, label]) => <button aria-current={activeView === view ? "page" : undefined} className={`calm-nav-button ${view === "search" ? "calm-nav-search" : ""} ${activeView === view ? "calm-nav-button-active" : ""}`} key={view} onClick={() => switchView(view)} type="button"><Icon className="h-4 w-4" /><span>{label}</span></button>)}
+          ] as [AppView, typeof House, string][]).map(([view, Icon, label]) => <button aria-current={activeView === view ? "page" : undefined} className={`calm-nav-button ${view === "applications" ? "calm-nav-applications" : ""} ${activeView === view ? "calm-nav-button-active" : ""}`} key={view} onClick={() => switchView(view)} type="button"><Icon className="h-4 w-4" /><span>{label}</span>{view === "applications" && <small>{applications.length}</small>}</button>)}
         </nav>
 
         {activeView !== "home" && <section className="calm-page-header"><div><p className="eyebrow text-cyan-300">Carvio</p><h1 className="text-2xl font-semibold">{activeView === "search" ? copy.search : activeView === "applications" ? copy.applications : activeView === "networking" ? copy.networking : activeView === "tools" ? copy.careerTools : copy.support}</h1><p className="mt-1 text-sm text-slate-400">{activeView === "search" ? (language === "he" ? "חיפוש ממוקד לפי תפקיד, מיקום וכישורים." : "Search by role, location and skills across trusted sources.") : activeView === "applications" ? copy.applicationIntro : activeView === "networking" ? copy.networkingIntro : activeView === "tools" ? copy.toolsIntro : copy.supportIntro}</p></div><button className="icon-button" onClick={() => setShowQuickAdd(true)} type="button" aria-label={language === "he" ? "הוספה מהירה" : "Quick add"}><Plus className="h-5 w-5" /></button></section>}
@@ -1542,11 +1633,55 @@ export default function Home() {
               <div><p className="eyebrow text-emerald-300">{copy.applicationsEyebrow}</p><h2 className="section-title">{copy.activeOpportunities}</h2></div>
               <button className="primary-button" onClick={openNewApplication} type="button"><Plus className="h-4 w-4" /> {copy.addApplication}</button>
             </div>
+            {applications.length > 0 && (
+              <div className="application-toolbar" aria-label={language === "he" ? "סינון ומיון מועמדויות" : "Filter and sort applications"}>
+                <label className="application-search">
+                  <Search aria-hidden="true" className="h-4 w-4" />
+                  <span className="sr-only">{language === "he" ? "חיפוש מועמדות" : "Search applications"}</span>
+                  <input
+                    onChange={(event) => setApplicationQuery(event.target.value)}
+                    placeholder={language === "he" ? "חיפוש חברה, תפקיד או מיקום…" : "Search company, role or location…"}
+                    type="search"
+                    value={applicationQuery}
+                  />
+                </label>
+                <select aria-label={language === "he" ? "סינון לפי שלב" : "Filter by stage"} className="application-filter" onChange={(event) => setApplicationStageFilter(event.target.value as "all" | ApplicationStatus)} value={applicationStageFilter}>
+                  <option value="all">{language === "he" ? "כל השלבים" : "All stages"}</option>
+                  {applicationStatuses.map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}
+                </select>
+                <select aria-label={language === "he" ? "סינון לפי פגישה" : "Filter by meeting"} className="application-filter" onChange={(event) => setApplicationMeetingFilter(event.target.value as ApplicationMeetingFilter)} value={applicationMeetingFilter}>
+                  <option value="all">{language === "he" ? "כל הפגישות" : "All meetings"}</option>
+                  <option value="upcoming">{language === "he" ? "פגישות קרובות" : "Upcoming"}</option>
+                  <option value="past">{language === "he" ? "פגישות שהסתיימו" : "Past meetings"}</option>
+                  <option value="unscheduled">{language === "he" ? "ללא מועד" : "No meeting date"}</option>
+                </select>
+                <label className="application-sort-control">
+                  <span>{language === "he" ? "מיון לפי" : "Sort by"}</span>
+                  <select aria-label={language === "he" ? "מיון מועמדויות" : "Sort applications"} className="application-filter" onChange={(event) => setApplicationSort(event.target.value as ApplicationSort)} value={applicationSort}>
+                    <option value="meeting-soonest">{language === "he" ? "הפגישה הקרובה ביותר" : "Meeting: soonest first"}</option>
+                    <option value="meeting-latest">{language === "he" ? "הפגישה הרחוקה ביותר" : "Meeting: latest first"}</option>
+                    <option value="applied-newest">{language === "he" ? "הגשה חדשה תחילה" : "Applied: newest first"}</option>
+                    <option value="applied-oldest">{language === "he" ? "הגשה ישנה תחילה" : "Applied: oldest first"}</option>
+                    <option value="company-az">{language === "he" ? "שם חברה א׳–ת׳" : "Company A–Z"}</option>
+                    <option value="role-az">{language === "he" ? "שם תפקיד א׳–ת׳" : "Role A–Z"}</option>
+                    <option value="stage">{language === "he" ? "שלב בתהליך" : "Pipeline stage"}</option>
+                    <option value="priority">{language === "he" ? "עדיפות גבוהה תחילה" : "Priority: high first"}</option>
+                  </select>
+                </label>
+                <span className="application-results-count">{language === "he" ? `${visibleApplications.length} מתוך ${applications.length}` : `${visibleApplications.length} of ${applications.length}`}</span>
+              </div>
+            )}
             <div className="mt-5 space-y-3">
               {applications.length === 0 ? (
-                <EmptyState icon={<BriefcaseBusiness className="h-6 w-6" />} title="No applications yet" text="Add your first opportunity to start tracking your pipeline." action="Add application" onAction={openNewApplication} />
-              ) : applications.map((application) => (
-                <article className={`content-card ${trafficLightMeta[application.trafficLight].card}`} key={application.id}>
+                <EmptyState icon={<BriefcaseBusiness className="h-6 w-6" />} title={language === "he" ? "עדיין אין מועמדויות" : "No applications yet"} text={language === "he" ? "הוסיפו את ההזדמנות הראשונה והתחילו לנהל את התהליך במקום אחד." : "Add your first opportunity to start tracking your pipeline."} action={copy.addApplication} onAction={openNewApplication} />
+              ) : visibleApplications.length === 0 ? (
+                <div className="application-no-results">
+                  <Search className="h-5 w-5" />
+                  <div><p className="font-semibold">{language === "he" ? "לא נמצאו תוצאות" : "No matching applications"}</p><p>{language === "he" ? "נסו לשנות את החיפוש או את הסינון." : "Try changing the search or filters."}</p></div>
+                  <button className="text-button" onClick={() => { setApplicationQuery(""); setApplicationStageFilter("all"); setApplicationMeetingFilter("all"); }} type="button">{language === "he" ? "ניקוי סינון" : "Clear filters"}</button>
+                </div>
+              ) : visibleApplications.map((application) => (
+                <article className={`content-card application-card ${trafficLightMeta[application.trafficLight].card}`} key={application.id}>
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2"><span aria-label={trafficLightMeta[application.trafficLight].label} className={`h-2.5 w-2.5 rounded-full ring-4 ring-white/5 ${trafficLightMeta[application.trafficLight].dot}`} /><h3 className="font-semibold text-slate-100">{application.role}</h3></div>
@@ -1558,34 +1693,34 @@ export default function Home() {
                       onChange={(event) => updateApplicationStatus(application, event.target.value as ApplicationStatus)}
                       value={application.status}
                     >
-                      {applicationStatuses.map((status) => <option key={status}>{status}</option>)}
+                      {applicationStatuses.map((status) => <option key={status}>{statusLabel(status)}</option>)}
                     </select>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-400">
-                    {application.priority && <span className="data-chip">{application.priority} priority</span>}
-                    {application.source && <span className="data-chip">Source: {application.source}</span>}
-                    {application.appliedDate && <span className="data-chip">Applied {formatDate(application.appliedDate)}</span>}
-                    {application.salary && <span className="data-chip">💰 Expected: {application.salaryCurrency} {application.salary}</span>}
+                    {application.priority && <span className="data-chip">{language === "he" ? `עדיפות ${application.priority === "High" ? "גבוהה" : application.priority === "Medium" ? "בינונית" : "נמוכה"}` : `${application.priority} priority`}</span>}
+                    {application.source && <span className="data-chip">{language === "he" ? "מקור" : "Source"}: {application.source}</span>}
+                    {application.appliedDate && <span className="data-chip">{language === "he" ? "הוגשה בתאריך" : "Applied"} {formatDate(application.appliedDate)}</span>}
+                    {application.salary && <span className="data-chip">💰 {language === "he" ? "ציפיות שכר" : "Expected"}: {application.salaryCurrency} {application.salary}</span>}
                   </div>
-                  <div className="mt-4 rounded-xl bg-white/[0.04] p-3">
-                    <p className="text-xs font-medium uppercase tracking-wider text-slate-500">Current stage / next step</p>
-                    <p className="mt-1 text-sm text-slate-300">{application.nextStep || "No next step added"}{application.nextStepDue ? ` · ${isPast(application.nextStepDue) ? "Overdue " : "Due "}${formatDate(application.nextStepDue)}` : ""}</p>
+                  <div className="application-stage-summary mt-4 rounded-xl bg-white/[0.04] p-3">
+                    <p className="text-xs font-medium uppercase tracking-wider text-slate-500">{language === "he" ? "השלב הנוכחי והצעד הבא" : "Current stage / next step"}</p>
+                    <p className="mt-1 text-sm text-slate-300">{application.nextStep || (language === "he" ? "לא הוגדר צעד הבא" : "No next step added")}{application.nextStepDue ? ` · ${isPast(application.nextStepDue) ? (language === "he" ? "באיחור " : "Overdue ") : (language === "he" ? "לביצוע עד " : "Due ")}${formatDate(application.nextStepDue)}` : ""}</p>
                   </div>
                   {application.eventDateTime && (
-                    <div className="mt-3 rounded-xl border border-violet-400/15 bg-violet-400/5 p-3">
+                    <div className="application-event-summary mt-3 rounded-xl border border-violet-400/15 bg-violet-400/5 p-3">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div><p className="text-xs font-medium uppercase tracking-wider text-violet-300">{application.eventType || "Interview / meeting"}</p><p className="mt-1 text-sm text-slate-200">{formatDate(application.eventDateTime, true)}</p></div>
-                        <div className="flex flex-wrap gap-2"><button className="calendar-button" onClick={() => openGoogleCalendar(`${application.eventType}: ${application.role} at ${application.company}`, application.eventDateTime, application.notes || application.nextStep, application.location)} type="button"><CalendarPlus className="h-4 w-4" /> Google</button><button className="calendar-button" onClick={() => downloadICS(`${application.eventType}: ${application.role} at ${application.company}`, application.eventDateTime, application.notes || application.nextStep, application.location)} type="button"><Download className="h-4 w-4" /> Calendar file</button></div>
+                        <div><p className="text-xs font-medium uppercase tracking-wider text-violet-300">{application.eventType || (language === "he" ? "ראיון או פגישה" : "Interview / meeting")}</p><p className="mt-1 text-sm text-slate-200">{formatDate(application.eventDateTime, true)}</p></div>
+                        <div className="flex flex-wrap gap-2"><button className="calendar-button" onClick={() => openGoogleCalendar(`${application.eventType}: ${application.role} at ${application.company}`, application.eventDateTime, application.notes || application.nextStep, application.location)} type="button"><CalendarPlus className="h-4 w-4" /> Google</button><button className="calendar-button" onClick={() => downloadICS(`${application.eventType}: ${application.role} at ${application.company}`, application.eventDateTime, application.notes || application.nextStep, application.location)} type="button"><Download className="h-4 w-4" /> {language === "he" ? "קובץ ליומן" : "Calendar file"}</button></div>
                       </div>
                     </div>
                   )}
-                  {application.notes && <p className="mt-3 text-sm text-slate-400">{application.notes}</p>}
-                  <div className="mt-4 flex flex-wrap gap-2 border-t border-white/10 pt-3">
-                    <button className="text-button" onClick={() => openEditApplication(application)} type="button"><Pencil className="h-4 w-4" /> Edit</button>
-                    <button className="text-button text-cyan-300 hover:text-cyan-200" onClick={() => openOutreachForApplication(application)} type="button"><MessagesSquare className="h-4 w-4" /> Write outreach</button>
-                    <button className="text-button text-emerald-300 hover:text-emerald-200" onClick={() => navigateToSection("cv-lab")} type="button"><FileCheck2 className="h-4 w-4" /> {resumes.length ? "Choose CV" : "Add CV"}</button>
-                    <button className="text-button text-violet-300 hover:text-violet-200" onClick={() => { if (application.eventDateTime) downloadICS(`${application.eventType}: ${application.role} at ${application.company}`, application.eventDateTime, application.notes || application.nextStep, application.location); else { openEditApplication(application); setNotice("Add an interview or meeting date, then save to enable calendar export."); } }} type="button"><CalendarPlus className="h-4 w-4" /> Calendar</button>
-                    <button className="text-button text-rose-300 hover:text-rose-200" onClick={() => deleteApplication(application)} type="button"><Trash2 className="h-4 w-4" /> Delete</button>
+                  {application.notes && <p className="application-notes mt-3 text-sm text-slate-400">{application.notes}</p>}
+                  <div className="application-card-actions mt-4 flex flex-wrap gap-2 border-t border-white/10 pt-3">
+                    <button className="text-button" onClick={() => openEditApplication(application)} type="button"><Pencil className="h-4 w-4" /> {language === "he" ? "עריכה" : "Edit"}</button>
+                    <button className="text-button text-cyan-300 hover:text-cyan-200" onClick={() => openOutreachForApplication(application)} type="button"><MessagesSquare className="h-4 w-4" /> {language === "he" ? "כתיבת פנייה" : "Write outreach"}</button>
+                    <button className="text-button text-emerald-300 hover:text-emerald-200" onClick={() => navigateToSection("cv-lab")} type="button"><FileCheck2 className="h-4 w-4" /> {language === "he" ? (resumes.length ? "בחירת קורות חיים" : "הוספת קורות חיים") : (resumes.length ? "Choose CV" : "Add CV")}</button>
+                    <button className="text-button text-violet-300 hover:text-violet-200" onClick={() => { if (application.eventDateTime) downloadICS(`${application.eventType}: ${application.role} at ${application.company}`, application.eventDateTime, application.notes || application.nextStep, application.location); else { openEditApplication(application); setNotice(language === "he" ? "הוסיפו תאריך ושעה ושמרו כדי להפעיל את ההוספה ליומן." : "Add an interview or meeting date, then save to enable calendar export."); } }} type="button"><CalendarPlus className="h-4 w-4" /> {language === "he" ? "יומן" : "Calendar"}</button>
+                    <button className="text-button text-rose-300 hover:text-rose-200" onClick={() => deleteApplication(application)} type="button"><Trash2 className="h-4 w-4" /> {language === "he" ? "מחיקה" : "Delete"}</button>
                   </div>
                 </article>
               ))}
@@ -1594,7 +1729,7 @@ export default function Home() {
 
           <div className="panel">
             <div className="section-heading">
-              <div><p className="eyebrow text-amber-300">Smart insights</p><h2 className="section-title">Your next moves</h2></div>
+              <div><p className="eyebrow text-amber-300">{language === "he" ? "תובנות חכמות" : "Smart insights"}</p><h2 className="section-title">{language === "he" ? "הצעדים הבאים שלך" : "Your next moves"}</h2></div>
               <div className="rounded-full border border-amber-400/20 bg-amber-400/10 p-2 text-amber-200"><Sparkles className="h-4 w-4" /></div>
             </div>
             <div className="mt-5 space-y-3">
@@ -1606,7 +1741,7 @@ export default function Home() {
               ))}
             </div>
             <div className="mt-5 flex items-center gap-2 rounded-xl border border-cyan-400/10 bg-cyan-400/5 p-3 text-xs text-slate-400">
-              <BarChart3 className="h-4 w-4 shrink-0 text-cyan-300" /> Insights are calculated only from the applications and contacts saved on this device.
+              <BarChart3 className="h-4 w-4 shrink-0 text-cyan-300" /> {language === "he" ? "התובנות מחושבות רק מהנתונים ששמורים במכשיר הזה." : "Insights are calculated only from the applications and contacts saved on this device."}
             </div>
           </div>
         </section>
@@ -1617,24 +1752,24 @@ export default function Home() {
             <button className="primary-button bg-fuchsia-500 hover:bg-fuchsia-400" onClick={openNewContact} type="button"><Plus className="h-4 w-4" /> {copy.addContact}</button>
           </div>
           {contacts.length === 0 ? (
-            <div className="mt-5"><EmptyState icon={<Users2 className="h-6 w-6" />} title="No contacts yet" text="Add someone you want to keep in touch with." action="Add contact" onAction={openNewContact} /></div>
+            <div className="mt-5"><EmptyState icon={<Users2 className="h-6 w-6" />} title={language === "he" ? "עדיין אין אנשי קשר" : "No contacts yet"} text={language === "he" ? "הוסיפו אדם שחשוב לכם לשמור איתו על קשר מקצועי." : "Add someone you want to keep in touch with."} action={copy.addContact} onAction={openNewContact} /></div>
           ) : (
             <div className="mt-5 grid gap-3 md:grid-cols-2">
               {contacts.map((contact) => (
                 <article className={`content-card ${trafficLightMeta[contact.trafficLight].card}`} key={contact.id}>
                   <div className="flex items-start justify-between gap-3">
-                    <div><div className="flex items-center gap-2"><span aria-label={trafficLightMeta[contact.trafficLight].label} className={`h-2.5 w-2.5 rounded-full ring-4 ring-white/5 ${trafficLightMeta[contact.trafficLight].dot}`} /><h3 className="font-semibold text-slate-100">{contact.name}</h3></div><p className="mt-1 text-sm text-slate-400">{contact.role}{contact.company ? ` at ${contact.company}` : ""}</p></div>
+                    <div><div className="flex items-center gap-2"><span aria-label={trafficLightMeta[contact.trafficLight].label} className={`h-2.5 w-2.5 rounded-full ring-4 ring-white/5 ${trafficLightMeta[contact.trafficLight].dot}`} /><h3 className="font-semibold text-slate-100">{contact.name}</h3></div><p className="mt-1 text-sm text-slate-400">{contact.role}{contact.company ? ` ${language === "he" ? "ב־" : "at "}${contact.company}` : ""}</p></div>
                     <ChevronRight className="h-4 w-4 shrink-0 text-fuchsia-300" />
                   </div>
                   <p className="mt-3 text-xs font-medium uppercase tracking-wider text-slate-500">{contact.relationship}</p>
-                  <div className="mt-3 rounded-xl bg-white/[0.04] p-3"><p className="text-xs text-slate-500">Next action</p><p className="mt-1 text-sm text-slate-300">{contact.nextAction || "No next action added"}{contact.nextActionDue ? ` · ${isPast(contact.nextActionDue) ? "Overdue " : "Due "}${formatDate(contact.nextActionDue)}` : ""}</p></div>
-                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-400">{contact.lastContactDate && <span className="data-chip">Last contact {formatDate(contact.lastContactDate)}</span>}{contact.email && <a className="data-chip hover:text-white" href={`mailto:${contact.email}`}><Mail className="h-3.5 w-3.5" /> Email</a>}{contact.phone && <a className="data-chip hover:text-white" href={`tel:${contact.phone}`}><Phone className="h-3.5 w-3.5" /> Call</a>}{contact.linkedInUrl && <a className="data-chip hover:text-white" href={contact.linkedInUrl} rel="noreferrer" target="_blank"><LinkIcon className="h-3.5 w-3.5" /> LinkedIn</a>}</div>
+                  <div className="mt-3 rounded-xl bg-white/[0.04] p-3"><p className="text-xs text-slate-500">{language === "he" ? "הפעולה הבאה" : "Next action"}</p><p className="mt-1 text-sm text-slate-300">{contact.nextAction || (language === "he" ? "לא הוגדרה פעולה הבאה" : "No next action added")}{contact.nextActionDue ? ` · ${isPast(contact.nextActionDue) ? (language === "he" ? "באיחור " : "Overdue ") : (language === "he" ? "לביצוע עד " : "Due ")}${formatDate(contact.nextActionDue)}` : ""}</p></div>
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-400">{contact.lastContactDate && <span className="data-chip">{language === "he" ? "קשר אחרון" : "Last contact"} {formatDate(contact.lastContactDate)}</span>}{contact.email && <a className="data-chip hover:text-white" href={`mailto:${contact.email}`}><Mail className="h-3.5 w-3.5" /> {language === "he" ? "מייל" : "Email"}</a>}{contact.phone && <a className="data-chip hover:text-white" href={`tel:${contact.phone}`}><Phone className="h-3.5 w-3.5" /> {language === "he" ? "שיחה" : "Call"}</a>}{contact.linkedInUrl && <a className="data-chip hover:text-white" href={contact.linkedInUrl} rel="noreferrer" target="_blank"><LinkIcon className="h-3.5 w-3.5" /> LinkedIn</a>}</div>
                   {contact.eventDateTime && <div className="mt-3 rounded-xl border border-fuchsia-400/15 bg-fuchsia-400/5 p-3"><p className="text-xs font-medium uppercase tracking-wider text-fuchsia-300">{contact.eventType || "Networking meeting"}</p><p className="mt-1 text-sm text-slate-200">{formatDate(contact.eventDateTime, true)}</p><div className="mt-3 flex flex-wrap gap-2"><button className="calendar-button" onClick={() => openGoogleCalendar(`${contact.eventType} with ${contact.name}`, contact.eventDateTime, contact.notes || contact.nextAction, contact.company)} type="button"><CalendarPlus className="h-4 w-4" /> Google</button><button className="calendar-button" onClick={() => downloadICS(`${contact.eventType} with ${contact.name}`, contact.eventDateTime, contact.notes || contact.nextAction, contact.company)} type="button"><Download className="h-4 w-4" /> Calendar file</button></div></div>}
                   {contact.notes && <p className="mt-3 text-sm text-slate-400">{contact.notes}</p>}
                   <div className="mt-4 flex gap-2 border-t border-white/10 pt-3">
-                    <button className="text-button" onClick={() => openEditContact(contact)} type="button"><Pencil className="h-4 w-4" /> Edit</button>
-                    <button className="text-button text-fuchsia-300 hover:text-fuchsia-200" onClick={() => { if (contact.eventDateTime) downloadICS(`${contact.eventType} with ${contact.name}`, contact.eventDateTime, contact.notes || contact.nextAction, contact.company); else { openEditContact(contact); setNotice("Add a networking date and time, then save to enable calendar export."); } }} type="button"><CalendarPlus className="h-4 w-4" /> Calendar</button>
-                    <button className="text-button text-rose-300 hover:text-rose-200" onClick={() => deleteContact(contact)} type="button"><Trash2 className="h-4 w-4" /> Delete</button>
+                    <button className="text-button" onClick={() => openEditContact(contact)} type="button"><Pencil className="h-4 w-4" /> {language === "he" ? "עריכה" : "Edit"}</button>
+                    <button className="text-button text-fuchsia-300 hover:text-fuchsia-200" onClick={() => { if (contact.eventDateTime) downloadICS(`${contact.eventType} with ${contact.name}`, contact.eventDateTime, contact.notes || contact.nextAction, contact.company); else { openEditContact(contact); setNotice(language === "he" ? "הוסיפו תאריך ושעה ושמרו כדי להפעיל את ההוספה ליומן." : "Add a networking date and time, then save to enable calendar export."); } }} type="button"><CalendarPlus className="h-4 w-4" /> {language === "he" ? "יומן" : "Calendar"}</button>
+                    <button className="text-button text-rose-300 hover:text-rose-200" onClick={() => deleteContact(contact)} type="button"><Trash2 className="h-4 w-4" /> {language === "he" ? "מחיקה" : "Delete"}</button>
                   </div>
                 </article>
               ))}
@@ -1646,21 +1781,21 @@ export default function Home() {
           <div className="pointer-events-none absolute -right-8 -top-8 text-8xl opacity-10">💬</div>
           <div className="section-heading relative">
             <div><p className="eyebrow flex items-center gap-2 text-pink-300"><span className="emoji-bounce">✍️</span> {copy.studio}</p><h2 className="section-title">{language === "he" ? "כתבו פנייה שאנשים באמת ירצו לענות עליה" : "Write outreach people will actually want to answer"}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">{language === "he" ? "בחרו למי פונים, את הטון ואת המטרה. Carvio יכין טיוטה מתחשבת שאפשר לערוך, להעתיק או לשלוח מיד." : "Choose who you’re contacting, the tone, and your goal. Carvio builds a thoughtful draft you can edit, copy, or send immediately."}</p></div>
-            <div className="flex items-center gap-2"><div className="message-sparkle" aria-hidden="true">✨</div><button aria-expanded={expandedTools.studio} className="secondary-button" onClick={() => setExpandedTools((current) => ({ ...current, studio: !current.studio }))} type="button">{expandedTools.studio ? "Close studio" : "Open studio"}<ChevronDown className={`h-4 w-4 transition ${expandedTools.studio ? "rotate-180" : ""}`} /></button></div>
+            <div className="flex items-center gap-2"><div className="message-sparkle" aria-hidden="true">✨</div><button aria-expanded={expandedTools.studio} className="secondary-button" onClick={() => setExpandedTools((current) => ({ ...current, studio: !current.studio }))} type="button">{language === "he" ? (expandedTools.studio ? "סגירת הסטודיו" : "פתיחת הסטודיו") : (expandedTools.studio ? "Close studio" : "Open studio")}<ChevronDown className={`h-4 w-4 transition ${expandedTools.studio ? "rotate-180" : ""}`} /></button></div>
           </div>
           {expandedTools.studio && (
           <div className="relative mt-6 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
             <div className="space-y-5">
-              <fieldset><legend className="text-sm font-semibold text-slate-200">1. Who are you contacting?</legend><div className="mt-3 grid grid-cols-2 gap-2">{([{"label":"Recruiter","emoji":"🧲"},{"label":"Hiring manager","emoji":"🎯"},{"label":"Referral","emoji":"🤝"},{"label":"Networking contact","emoji":"☕"}] as { label: MessageProfile["recipientType"]; emoji: string }[]).map((item) => <button aria-pressed={messageProfile.recipientType === item.label} className={`choice-card ${messageProfile.recipientType === item.label ? "choice-card-active" : ""}`} key={item.label} onClick={() => setMessageProfile({ ...messageProfile, recipientType: item.label })} type="button"><span className="text-2xl">{item.emoji}</span><span>{item.label}</span></button>)}</div></fieldset>
-              <fieldset><legend className="text-sm font-semibold text-slate-200">2. What do you want?</legend><div className="mt-3 flex flex-wrap gap-2">{(["Introduce myself", "Ask for a referral", "Follow up after applying", "Request a conversation", "Thank them"] as MessageProfile["intent"][]).map((intent) => <button aria-pressed={messageProfile.intent === intent} className={`message-pill ${messageProfile.intent === intent ? "message-pill-active" : ""}`} key={intent} onClick={() => setMessageProfile({ ...messageProfile, intent })} type="button">{intent}</button>)}</div></fieldset>
-              <fieldset><legend className="text-sm font-semibold text-slate-200">3. Choose your tone</legend><div className="mt-3 flex flex-wrap gap-2">{(["Warm & professional", "Direct & confident", "Friendly & concise", "Senior & strategic"] as MessageProfile["tone"][]).map((tone) => <button aria-pressed={messageProfile.tone === tone} className={`message-pill ${messageProfile.tone === tone ? "message-pill-active" : ""}`} key={tone} onClick={() => setMessageProfile({ ...messageProfile, tone })} type="button">{tone}</button>)}</div></fieldset>
-              <div className="grid gap-4 sm:grid-cols-2"><Field label="Recipient name"><input className="form-control" onChange={(event) => setMessageProfile({ ...messageProfile, recipientName: event.target.value })} placeholder="Dana" value={messageProfile.recipientName} /></Field><Field label="Recipient email"><input className="form-control" onChange={(event) => setMessageProfile({ ...messageProfile, recipientEmail: event.target.value })} placeholder="dana@company.com" type="email" value={messageProfile.recipientEmail} /></Field><Field label="Company"><input className="form-control" onChange={(event) => setMessageProfile({ ...messageProfile, company: event.target.value })} placeholder="Company name" value={messageProfile.company} /></Field><Field label="Target role"><input className="form-control" onChange={(event) => setMessageProfile({ ...messageProfile, role: event.target.value })} placeholder="Role title" value={messageProfile.role} /></Field><Field label="Your name"><input className="form-control" onChange={(event) => setMessageProfile({ ...messageProfile, senderName: event.target.value })} placeholder="Your name" value={messageProfile.senderName} /></Field><Field label="Your strongest relevant value"><input className="form-control" onChange={(event) => setMessageProfile({ ...messageProfile, value: event.target.value })} placeholder="e.g. global HR leadership" value={messageProfile.value} /></Field></div>
-              <Field label="Personal context (optional)"><textarea className="form-control min-h-20 resize-y" onChange={(event) => setMessageProfile({ ...messageProfile, context: event.target.value })} placeholder="A shared connection, recent conversation, or specific reason for reaching out…" value={messageProfile.context} /></Field>
-              <button className="primary-button message-generate-button w-full sm:w-auto" onClick={() => { setGeneratedMessage(generateOutreachMessage(messageProfile)); setNotice("Your outreach draft is ready ✨"); }} type="button"><WandSparkles className="h-4 w-4" /> Create my message</button>
+              <fieldset><legend className="text-sm font-semibold text-slate-200">{language === "he" ? "1. למי פונים?" : "1. Who are you contacting?"}</legend><div className="mt-3 grid grid-cols-2 gap-2">{([{"label":"Recruiter","emoji":"🧲"},{"label":"Hiring manager","emoji":"🎯"},{"label":"Referral","emoji":"🤝"},{"label":"Networking contact","emoji":"☕"}] as { label: MessageProfile["recipientType"]; emoji: string }[]).map((item) => <button aria-pressed={messageProfile.recipientType === item.label} className={`choice-card ${messageProfile.recipientType === item.label ? "choice-card-active" : ""}`} key={item.label} onClick={() => setMessageProfile({ ...messageProfile, recipientType: item.label })} type="button"><span className="text-2xl">{item.emoji}</span><span>{language === "he" ? ({ Recruiter: "מגייס או מגייסת", "Hiring manager": "מנהל או מנהלת מגייסת", Referral: "בקשת הפניה", "Networking contact": "איש קשר מקצועי" } as Record<MessageProfile["recipientType"], string>)[item.label] : item.label}</span></button>)}</div></fieldset>
+              <fieldset><legend className="text-sm font-semibold text-slate-200">{language === "he" ? "2. מה מטרת הפנייה?" : "2. What do you want?"}</legend><div className="mt-3 flex flex-wrap gap-2">{(["Introduce myself", "Ask for a referral", "Follow up after applying", "Request a conversation", "Thank them"] as MessageProfile["intent"][]).map((intent) => <button aria-pressed={messageProfile.intent === intent} className={`message-pill ${messageProfile.intent === intent ? "message-pill-active" : ""}`} key={intent} onClick={() => setMessageProfile({ ...messageProfile, intent })} type="button">{language === "he" ? ({ "Introduce myself": "להציג את עצמי", "Ask for a referral": "לבקש הפניה", "Follow up after applying": "פעולת המשך לאחר הגשה", "Request a conversation": "לבקש שיחה", "Thank them": "להודות" } as Record<MessageProfile["intent"], string>)[intent] : intent}</button>)}</div></fieldset>
+              <fieldset><legend className="text-sm font-semibold text-slate-200">{language === "he" ? "3. בחירת הטון" : "3. Choose your tone"}</legend><div className="mt-3 flex flex-wrap gap-2">{(["Warm & professional", "Direct & confident", "Friendly & concise", "Senior & strategic"] as MessageProfile["tone"][]).map((tone) => <button aria-pressed={messageProfile.tone === tone} className={`message-pill ${messageProfile.tone === tone ? "message-pill-active" : ""}`} key={tone} onClick={() => setMessageProfile({ ...messageProfile, tone })} type="button">{language === "he" ? ({ "Warm & professional": "חם ומקצועי", "Direct & confident": "ישיר ובטוח", "Friendly & concise": "ידידותי ותמציתי", "Senior & strategic": "בכיר ואסטרטגי" } as Record<MessageProfile["tone"], string>)[tone] : tone}</button>)}</div></fieldset>
+              <div className="grid gap-4 sm:grid-cols-2"><Field label={language === "he" ? "שם הנמען" : "Recipient name"}><input className="form-control" onChange={(event) => setMessageProfile({ ...messageProfile, recipientName: event.target.value })} placeholder="Dana" value={messageProfile.recipientName} /></Field><Field label={language === "he" ? "כתובת המייל של הנמען" : "Recipient email"}><input className="form-control" onChange={(event) => setMessageProfile({ ...messageProfile, recipientEmail: event.target.value })} placeholder="dana@company.com" type="email" value={messageProfile.recipientEmail} /></Field><Field label={language === "he" ? "חברה" : "Company"}><input className="form-control" onChange={(event) => setMessageProfile({ ...messageProfile, company: event.target.value })} placeholder={language === "he" ? "שם החברה" : "Company name"} value={messageProfile.company} /></Field><Field label={language === "he" ? "תפקיד היעד" : "Target role"}><input className="form-control" onChange={(event) => setMessageProfile({ ...messageProfile, role: event.target.value })} placeholder={language === "he" ? "שם התפקיד" : "Role title"} value={messageProfile.role} /></Field><Field label={language === "he" ? "השם שלך" : "Your name"}><input className="form-control" onChange={(event) => setMessageProfile({ ...messageProfile, senderName: event.target.value })} placeholder={language === "he" ? "השם שלך" : "Your name"} value={messageProfile.senderName} /></Field><Field label={language === "he" ? "הערך המקצועי הרלוונטי ביותר" : "Your strongest relevant value"}><input className="form-control" onChange={(event) => setMessageProfile({ ...messageProfile, value: event.target.value })} placeholder={language === "he" ? "לדוגמה: הובלת משאבי אנוש גלובלית" : "e.g. global HR leadership"} value={messageProfile.value} /></Field></div>
+              <Field label={language === "he" ? "הקשר אישי (אופציונלי)" : "Personal context (optional)"}><textarea className="form-control min-h-20 resize-y" onChange={(event) => setMessageProfile({ ...messageProfile, context: event.target.value })} placeholder={language === "he" ? "קשר משותף, שיחה קודמת או סיבה ממוקדת לפנייה…" : "A shared connection, recent conversation, or specific reason for reaching out…"} value={messageProfile.context} /></Field>
+              <button className="primary-button message-generate-button w-full sm:w-auto" onClick={() => { setGeneratedMessage(generateOutreachMessage(messageProfile)); setNotice(language === "he" ? "טיוטת הפנייה מוכנה ✨" : "Your outreach draft is ready ✨"); }} type="button"><WandSparkles className="h-4 w-4" /> {language === "he" ? "יצירת הפנייה" : "Create my message"}</button>
             </div>
             <div className="message-preview">
-              <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-3"><div className="rounded-xl bg-pink-400/10 p-2.5 text-pink-300"><MessagesSquare className="h-5 w-5" /></div><div><h3 className="font-semibold">Your outreach draft</h3><p className="text-xs text-slate-500">Fully editable before sending</p></div></div><span className="emoji-bounce text-2xl">💌</span></div>
-              {generatedMessage ? <><textarea aria-label="Generated outreach message" className="form-control mt-5 min-h-80 resize-y leading-7" onChange={(event) => setGeneratedMessage(event.target.value)} value={generatedMessage} /><div className="mt-4 flex flex-wrap gap-2"><button className="secondary-button" onClick={() => { void navigator.clipboard.writeText(generatedMessage); setNotice("Message copied 📋"); }} type="button"><Copy className="h-4 w-4" /> Copy</button><button className="primary-button bg-pink-500 hover:bg-pink-400" onClick={() => { const subject = `${messageProfile.intent}: ${messageProfile.role || "opportunity"} at ${messageProfile.company || "your company"}`; window.location.href = `mailto:${encodeURIComponent(messageProfile.recipientEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(generatedMessage)}`; }} type="button"><Send className="h-4 w-4" /> Send by email</button><button className="secondary-button" onClick={planMessageFollowUp} type="button"><CalendarClock className="h-4 w-4" /> Plan follow-up</button></div><p className="mt-3 text-xs leading-5 text-slate-500">Your device will open its default email application. After sending, use Plan follow-up to connect this message back to the matching application.</p></> : <div className="mt-5 flex min-h-80 flex-col items-center justify-center rounded-2xl border border-dashed border-pink-400/20 bg-pink-400/5 p-8 text-center"><span className="emoji-bounce text-5xl">🪄</span><p className="mt-5 font-semibold">Your polished message will appear here</p><p className="mt-2 max-w-sm text-sm leading-6 text-slate-400">Complete the essentials, choose a style, and let Carvio shape a concise, credible outreach.</p></div>}
+              <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-3"><div className="rounded-xl bg-pink-400/10 p-2.5 text-pink-300"><MessagesSquare className="h-5 w-5" /></div><div><h3 className="font-semibold">{language === "he" ? "טיוטת הפנייה שלך" : "Your outreach draft"}</h3><p className="text-xs text-slate-500">{language === "he" ? "אפשר לערוך הכול לפני השליחה" : "Fully editable before sending"}</p></div></div><span className="emoji-bounce text-2xl">💌</span></div>
+              {generatedMessage ? <><textarea aria-label={language === "he" ? "טיוטת פנייה" : "Generated outreach message"} className="form-control mt-5 min-h-80 resize-y leading-7" onChange={(event) => setGeneratedMessage(event.target.value)} value={generatedMessage} /><div className="mt-4 flex flex-wrap gap-2"><button className="secondary-button" onClick={() => { void navigator.clipboard.writeText(generatedMessage); setNotice(language === "he" ? "ההודעה הועתקה 📋" : "Message copied 📋"); }} type="button"><Copy className="h-4 w-4" /> {language === "he" ? "העתקה" : "Copy"}</button><button className="primary-button bg-pink-500 hover:bg-pink-400" onClick={() => { const subject = `${messageProfile.intent}: ${messageProfile.role || "opportunity"} at ${messageProfile.company || "your company"}`; window.location.href = `mailto:${encodeURIComponent(messageProfile.recipientEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(generatedMessage)}`; }} type="button"><Send className="h-4 w-4" /> {language === "he" ? "שליחה במייל" : "Send by email"}</button><button className="secondary-button" onClick={planMessageFollowUp} type="button"><CalendarClock className="h-4 w-4" /> {language === "he" ? "תכנון פעולת המשך" : "Plan follow-up"}</button></div><p className="mt-3 text-xs leading-5 text-slate-500">{language === "he" ? "אפליקציית המייל המוגדרת במכשיר תיפתח. לאחר השליחה אפשר לקשר פעולת המשך למועמדות המתאימה." : "Your device will open its default email application. After sending, use Plan follow-up to connect this message back to the matching application."}</p></> : <div className="mt-5 flex min-h-80 flex-col items-center justify-center rounded-2xl border border-dashed border-pink-400/20 bg-pink-400/5 p-8 text-center"><span className="emoji-bounce text-5xl">🪄</span><p className="mt-5 font-semibold">{language === "he" ? "הפנייה המלוטשת תופיע כאן" : "Your polished message will appear here"}</p><p className="mt-2 max-w-sm text-sm leading-6 text-slate-400">{language === "he" ? "השלימו את הפרטים החשובים, בחרו סגנון ו־Carvio תבנה פנייה קצרה, אמינה ומקצועית." : "Complete the essentials, choose a style, and let Carvio shape a concise, credible outreach."}</p></div>}
             </div>
           </div>
           )}
@@ -1711,16 +1846,16 @@ export default function Home() {
         <section className={`calm-view panel overflow-hidden ${activeView !== "tools" ? "calm-view-hidden" : ""}`} id="cv-lab">
           <div className="section-heading">
             <div><p className="eyebrow flex items-center gap-2 text-emerald-300"><span className="emoji-bounce">📄</span> {copy.cv}</p><h2 className="section-title">{language === "he" ? "הפכו כל גרסה של קורות החיים לסיפור מקצועי חזק יותר" : "Turn every CV version into a stronger story"}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">{language === "he" ? "שמרו עד שש גרסאות, קבלו בדיקת מבנה פרטית ובנו שכתוב אמין בלי להמציא ניסיון." : "Keep up to six versions, receive a private structure review, and build a grounded rewrite without inventing experience."}</p></div>
-            <div className="flex flex-wrap items-center gap-2"><label className={`primary-button ${resumes.length >= 6 || resumeProcessing ? "pointer-events-none opacity-50" : ""}`}>{resumeProcessing ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />} {resumeProcessing ? "Reading CV…" : "Upload CV"}<input accept=".pdf,.docx,.txt,.md,.rtf,text/*,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="sr-only" disabled={resumes.length >= 6 || resumeProcessing} multiple onChange={(event) => { void uploadResumes(event.target.files); event.target.value = ""; }} type="file" /></label><button aria-expanded={expandedTools.cv} className="secondary-button" onClick={() => setExpandedTools((current) => ({ ...current, cv: !current.cv }))} type="button">{expandedTools.cv ? "Hide review" : "Explore CV Lab"}<ChevronDown className={`h-4 w-4 transition ${expandedTools.cv ? "rotate-180" : ""}`} /></button></div>
+            <div className="flex flex-wrap items-center gap-2"><label className={`primary-button ${resumes.length >= 6 || resumeProcessing ? "pointer-events-none opacity-50" : ""}`}>{resumeProcessing ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />} {language === "he" ? (resumeProcessing ? "קורא את קורות החיים…" : "העלאת קורות חיים") : (resumeProcessing ? "Reading CV…" : "Upload CV")}<input accept=".pdf,.docx,.txt,.md,.rtf,text/*,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="sr-only" disabled={resumes.length >= 6 || resumeProcessing} multiple onChange={(event) => { void uploadResumes(event.target.files); event.target.value = ""; }} type="file" /></label><button aria-expanded={expandedTools.cv} className="secondary-button" onClick={() => setExpandedTools((current) => ({ ...current, cv: !current.cv }))} type="button">{language === "he" ? (expandedTools.cv ? "הסתרת הבדיקה" : "פתיחת מעבדת קורות החיים") : (expandedTools.cv ? "Hide review" : "Explore CV Lab")}<ChevronDown className={`h-4 w-4 transition ${expandedTools.cv ? "rotate-180" : ""}`} /></button></div>
           </div>
           {expandedTools.cv && (
           <div className="mt-6 grid gap-5 xl:grid-cols-[0.8fr_1.2fr]">
             <div className="space-y-3">
-              <div className="flex items-center justify-between text-sm"><span className="text-slate-400">Saved versions</span><span className="rounded-full bg-emerald-400/10 px-2.5 py-1 text-xs text-emerald-300">{resumes.length}/6</span></div>
-              {resumes.length === 0 ? <div className="rounded-2xl border border-dashed border-emerald-400/20 bg-emerald-400/5 p-8 text-center"><FileText className="mx-auto h-9 w-9 text-emerald-300" /><p className="mt-3 font-medium">Upload your first CV</p><p className="mt-2 text-sm leading-6 text-slate-400">PDF, Word and text CVs are read privately on this device and reviewed automatically.</p></div> : resumes.map((resume) => <button className={`content-card flex w-full items-center gap-3 text-left ${selectedResumeId === resume.id ? "border-emerald-400/35 bg-emerald-400/5" : ""}`} key={resume.id} onClick={() => selectResume(resume)} type="button"><div className="rounded-xl bg-emerald-400/10 p-2.5 text-emerald-300"><FileCheck2 className="h-5 w-5" /></div><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-100">{resume.name}</p><p className="mt-1 text-xs text-slate-500">{formatFileSize(resume.size)} · {resume.extractedText ? "Review ready ✨" : "Needs editable text"}</p></div><span className="icon-button h-8 w-8" onClick={(event) => { event.stopPropagation(); removeResume(resume); }} role="button" tabIndex={0}><X className="h-4 w-4" /></span></button>)}
+              <div className="flex items-center justify-between text-sm"><span className="text-slate-400">{language === "he" ? "גרסאות שמורות" : "Saved versions"}</span><span className="rounded-full bg-emerald-400/10 px-2.5 py-1 text-xs text-emerald-300">{resumes.length}/6</span></div>
+              {resumes.length === 0 ? <div className="rounded-2xl border border-dashed border-emerald-400/20 bg-emerald-400/5 p-8 text-center"><FileText className="mx-auto h-9 w-9 text-emerald-300" /><p className="mt-3 font-medium">{language === "he" ? "העלאת קורות החיים הראשונים" : "Upload your first CV"}</p><p className="mt-2 text-sm leading-6 text-slate-400">{language === "he" ? "קובצי PDF, Word וטקסט נקראים באופן פרטי במכשיר ומנותחים אוטומטית." : "PDF, Word and text CVs are read privately on this device and reviewed automatically."}</p></div> : resumes.map((resume) => <button className={`content-card flex w-full items-center gap-3 text-left ${selectedResumeId === resume.id ? "border-emerald-400/35 bg-emerald-400/5" : ""}`} key={resume.id} onClick={() => selectResume(resume)} type="button"><div className="rounded-xl bg-emerald-400/10 p-2.5 text-emerald-300"><FileCheck2 className="h-5 w-5" /></div><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-100">{resume.name}</p><p className="mt-1 text-xs text-slate-500">{formatFileSize(resume.size)} · {language === "he" ? (resume.extractedText ? "מוכן לבדיקה ✨" : "נדרש טקסט לעריכה") : (resume.extractedText ? "Review ready ✨" : "Needs editable text")}</p></div><span className="icon-button h-8 w-8" onClick={(event) => { event.stopPropagation(); removeResume(resume); }} role="button" tabIndex={0}><X className="h-4 w-4" /></span></button>)}
             </div>
             <div className="rounded-2xl border border-white/10 bg-slate-950/55 p-5">
-              <div className="flex items-center gap-3"><div className="rounded-xl bg-violet-400/10 p-2.5 text-violet-300"><WandSparkles className="h-5 w-5" /></div><div><h3 className="font-semibold">Professional CV review ✨</h3><p className="text-xs text-slate-500">Private, rules-based pilot review on this device</p></div></div>
+              <div className="flex items-center gap-3"><div className="rounded-xl bg-violet-400/10 p-2.5 text-violet-300"><WandSparkles className="h-5 w-5" /></div><div><h3 className="font-semibold">{language === "he" ? "בדיקה מקצועית של קורות החיים ✨" : "Professional CV review ✨"}</h3><p className="text-xs text-slate-500">{language === "he" ? "בדיקת פיילוט פרטית, מבוססת כללים, במכשיר הזה" : "Private, rules-based pilot review on this device"}</p></div></div>
               {resumeText ? <div className="mt-5 rounded-2xl border border-emerald-400/20 bg-emerald-400/5 p-4"><p className="flex items-center gap-2 text-sm font-semibold text-emerald-200"><CheckCircle2 className="h-4 w-4" /> CV content read successfully</p><p className="mt-1 text-xs leading-5 text-slate-400">Your professional review below was created automatically from the uploaded file. The text stays on this device.</p></div> : <div className="mt-5 rounded-2xl border border-amber-400/20 bg-amber-400/5 p-4"><p className="text-sm font-semibold text-amber-200">This file does not contain readable text</p><p className="mt-1 text-xs leading-5 text-slate-400">This can happen with scanned PDFs or unsupported formats. Paste the text below to receive the same review.</p></div>}
               <details className="mt-4"><summary className="cursor-pointer text-sm font-medium text-slate-400 hover:text-slate-200">View or edit extracted CV text</summary><Field label="CV text for review"><textarea className="form-control mt-1 min-h-44 resize-y" onChange={(event) => setResumeText(event.target.value)} placeholder="Paste CV text here if the file is scanned or could not be read." value={resumeText} /></Field></details>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">{reviewResumeText(resumeText).map((item, index) => <div className="insight-box" key={item}><p className="text-xs font-semibold text-cyan-300">{index === 0 ? "Top observation" : `Review point ${index + 1}`}</p><p className="mt-2 text-sm leading-6 text-slate-300">{item}</p></div>)}</div>
@@ -1820,13 +1955,13 @@ export default function Home() {
       <nav aria-label="Mobile navigation" className="calm-mobile-nav">
         {([
           ["home", House, copy.overview],
-          ["search", Search, copy.search],
           ["applications", BriefcaseBusiness, copy.applications],
+          ["search", Search, copy.search],
           ["networking", Users2, copy.networking],
           ["tools", Wrench, copy.tools],
           ["more", BarChart3, copy.insights],
-        ] as [AppView, typeof House, string][]).map(([view, Icon, label]) => <button aria-current={activeView === view ? "page" : undefined} className={`${view === "search" ? "calm-mobile-search" : ""} ${activeView === view ? "calm-mobile-tab-active" : ""}`} key={view} onClick={() => switchView(view)} type="button"><Icon className="h-5 w-5" /><span>{label}</span></button>)}
-        <button aria-label="Quick add" className="calm-quick-add" onClick={() => setShowQuickAdd(true)} type="button"><Plus className="h-6 w-6" /></button>
+        ] as [AppView, typeof House, string][]).map(([view, Icon, label]) => <button aria-current={activeView === view ? "page" : undefined} className={`${view === "applications" ? "calm-mobile-applications" : ""} ${activeView === view ? "calm-mobile-tab-active" : ""}`} key={view} onClick={() => switchView(view)} type="button"><Icon className="h-5 w-5" /><span>{label}</span></button>)}
+        <button aria-label={language === "he" ? "הוספה מהירה" : "Quick add"} className="calm-quick-add" onClick={() => setShowQuickAdd(true)} type="button"><Plus className="h-6 w-6" /></button>
       </nav>
 
       {notice && <div aria-atomic="true" aria-live="polite" className="toast" role="status"><CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-300" /><span>{notice}</span><button aria-label="Dismiss notification" className="ml-1 rounded-full p-1 text-slate-400 transition hover:bg-white/10 hover:text-white" onClick={() => setNotice("")} type="button"><X className="h-4 w-4" /></button></div>}
@@ -1845,27 +1980,27 @@ export default function Home() {
       )}
 
       {showQuickAdd && (
-        <Modal title="What would you like to add? ✨" description="Choose one quick action. You can add more details later." onClose={() => setShowQuickAdd(false)}>
+        <Modal title={language === "he" ? "מה תרצו להוסיף? ✨" : "What would you like to add? ✨"} description={language === "he" ? "בחרו פעולה מהירה אחת. תמיד אפשר להשלים פרטים בהמשך." : "Choose one quick action. You can add more details later."} onClose={() => setShowQuickAdd(false)}>
           <div className="grid gap-3 sm:grid-cols-2">
-            <button className="quick-add-card" onClick={() => { setShowQuickAdd(false); openNewApplication(); }} type="button"><span>💼</span><strong>Application</strong><small>Track a new opportunity</small></button>
-            <button className="quick-add-card" onClick={() => { setShowQuickAdd(false); openNewContact(); }} type="button"><span>🤝</span><strong>Contact</strong><small>Save a warm connection</small></button>
-            <button className="quick-add-card" onClick={() => { setShowQuickAdd(false); setEditingApplicationId(null); setApplicationDraft({ ...emptyApplication, status: "Interview", eventType: "Interview", nextStep: "Prepare for interview" }); setShowApplicationDetails(true); setShowApplicationModal(true); }} type="button"><span>📅</span><strong>Interview</strong><small>Add it and prepare calmly</small></button>
-            <button className="quick-add-card" onClick={() => { setShowQuickAdd(false); setEditingApplicationId(null); setApplicationDraft({ ...emptyApplication, status: "Follow-up due", nextStep: "Send a thoughtful follow-up" }); setShowApplicationDetails(false); setShowApplicationModal(true); }} type="button"><span>✉️</span><strong>Follow-up</strong><small>Capture the next move</small></button>
+            <button className="quick-add-card" onClick={() => { setShowQuickAdd(false); openNewApplication(); }} type="button"><span>💼</span><strong>{language === "he" ? "מועמדות" : "Application"}</strong><small>{language === "he" ? "תיעוד הזדמנות חדשה" : "Track a new opportunity"}</small></button>
+            <button className="quick-add-card" onClick={() => { setShowQuickAdd(false); openNewContact(); }} type="button"><span>🤝</span><strong>{language === "he" ? "איש קשר" : "Contact"}</strong><small>{language === "he" ? "שמירת קשר מקצועי חשוב" : "Save a warm connection"}</small></button>
+            <button className="quick-add-card" onClick={() => { setShowQuickAdd(false); setEditingApplicationId(null); setApplicationDraft({ ...emptyApplication, status: "Interview", eventType: "Interview", nextStep: "Prepare for interview" }); setShowApplicationDetails(true); setShowApplicationModal(true); }} type="button"><span>📅</span><strong>{language === "he" ? "ראיון" : "Interview"}</strong><small>{language === "he" ? "הוספה והכנה רגועה" : "Add it and prepare calmly"}</small></button>
+            <button className="quick-add-card" onClick={() => { setShowQuickAdd(false); setEditingApplicationId(null); setApplicationDraft({ ...emptyApplication, status: "Follow-up due", nextStep: "Send a thoughtful follow-up" }); setShowApplicationDetails(false); setShowApplicationModal(true); }} type="button"><span>✉️</span><strong>{language === "he" ? "פעולת המשך" : "Follow-up"}</strong><small>{language === "he" ? "תיעוד הצעד הבא" : "Capture the next move"}</small></button>
           </div>
         </Modal>
       )}
 
       {showApplicationModal && (
-        <Modal title={editingApplicationId ? "Edit application" : "Add application"} description="Capture the opportunity, its signal, timing, and your next move." onClose={() => setShowApplicationModal(false)}>
+        <Modal title={language === "he" ? (editingApplicationId ? "עריכת מועמדות" : "הוספת מועמדות") : (editingApplicationId ? "Edit application" : "Add application")} description={language === "he" ? "תעדו את ההזדמנות, מצב התהליך, לוחות הזמנים והצעד הבא." : "Capture the opportunity, its signal, timing, and your next move."} onClose={() => setShowApplicationModal(false)}>
           <form className="space-y-5" onSubmit={saveApplication}>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Company"><input autoFocus className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, company: e.target.value })} required value={applicationDraft.company} /></Field>
-              <Field label="Role"><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, role: e.target.value })} required value={applicationDraft.role} /></Field>
+              <Field label={language === "he" ? "חברה" : "Company"}><input autoFocus className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, company: e.target.value })} required value={applicationDraft.company} /></Field>
+              <Field label={language === "he" ? "תפקיד" : "Role"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, role: e.target.value })} required value={applicationDraft.role} /></Field>
             </div>
-            <Field label="Pipeline stage"><select className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, status: e.target.value as ApplicationStatus })} value={applicationDraft.status}>{applicationStatuses.map((status) => <option key={status}>{status}</option>)}</select></Field>
-            <TrafficLightPicker label="Process signal" onChange={(trafficLight) => setApplicationDraft({ ...applicationDraft, trafficLight })} value={applicationDraft.trafficLight} />
-            <div className="grid gap-4 sm:grid-cols-[1fr_190px]"><Field label="Current stage / next step"><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, nextStep: e.target.value })} placeholder="e.g. Prepare for recruiter screen" required value={applicationDraft.nextStep} /></Field><Field label="Due date"><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, nextStepDue: e.target.value })} type="date" value={applicationDraft.nextStepDue} /></Field></div>
-            <button aria-expanded={showApplicationDetails} className="progressive-toggle" onClick={() => setShowApplicationDetails((current) => !current)} type="button"><span><Sparkles className="h-4 w-4" /><strong>{showApplicationDetails ? "Hide optional details" : "Add more details"}</strong><small>Salary, source, event, notes and job link</small></span><ChevronDown className={`h-5 w-5 transition ${showApplicationDetails ? "rotate-180" : ""}`} /></button>
+            <Field label={language === "he" ? "שלב בתהליך" : "Pipeline stage"}><select className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, status: e.target.value as ApplicationStatus })} value={applicationDraft.status}>{applicationStatuses.map((status) => <option key={status}>{statusLabel(status)}</option>)}</select></Field>
+            <TrafficLightPicker label={language === "he" ? "רמזור התהליך" : "Process signal"} language={language} onChange={(trafficLight) => setApplicationDraft({ ...applicationDraft, trafficLight })} value={applicationDraft.trafficLight} />
+            <div className="grid gap-4 sm:grid-cols-[1fr_190px]"><Field label={language === "he" ? "השלב הנוכחי או הצעד הבא" : "Current stage / next step"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, nextStep: e.target.value })} placeholder={language === "he" ? "לדוגמה: הכנה לשיחת מגייסת" : "e.g. Prepare for recruiter screen"} required value={applicationDraft.nextStep} /></Field><Field label={language === "he" ? "תאריך יעד" : "Due date"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, nextStepDue: e.target.value })} type="date" value={applicationDraft.nextStepDue} /></Field></div>
+            <button aria-expanded={showApplicationDetails} className="progressive-toggle" onClick={() => setShowApplicationDetails((current) => !current)} type="button"><span><Sparkles className="h-4 w-4" /><strong>{language === "he" ? (showApplicationDetails ? "הסתרת פרטים נוספים" : "הוספת פרטים נוספים") : (showApplicationDetails ? "Hide optional details" : "Add more details")}</strong><small>{language === "he" ? "שכר, מקור, פגישה, הערות וקישור למשרה" : "Salary, source, event, notes and job link"}</small></span><ChevronDown className={`h-5 w-5 transition ${showApplicationDetails ? "rotate-180" : ""}`} /></button>
             {showApplicationDetails && <div className="progressive-content space-y-5">
             <Field label="Priority"><select className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, priority: e.target.value as ApplicationDraft["priority"] })} value={applicationDraft.priority}>{priorities.map((priority) => <option key={priority}>{priority}</option>)}</select></Field>
             <div className="grid gap-4 sm:grid-cols-2"><Field label="Source"><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, source: e.target.value })} placeholder="Referral, LinkedIn, careers page…" value={applicationDraft.source} /></Field><Field label="Applied date"><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, appliedDate: e.target.value })} type="date" value={applicationDraft.appliedDate} /></Field></div>
@@ -1875,13 +2010,13 @@ export default function Home() {
             <div className="rounded-2xl border border-violet-400/15 bg-violet-400/5 p-4"><p className="mb-4 flex items-center gap-2 text-sm font-semibold text-violet-200"><CalendarPlus className="h-4 w-4" /> Interview or meeting</p><div className="grid gap-4 sm:grid-cols-2"><Field label="Event type"><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, eventType: e.target.value })} placeholder="Interview, recruiter call…" value={applicationDraft.eventType} /></Field><Field label="Date & time"><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, eventDateTime: e.target.value })} type="datetime-local" value={applicationDraft.eventDateTime} /></Field></div><p className="mt-3 text-xs leading-5 text-slate-400">After saving, use Google Calendar or download a universal .ics file for Apple, Outlook, Samsung, and other calendars.</p></div>
             <Field label="Notes (optional)"><textarea className="form-control min-h-24 resize-y" onChange={(e) => setApplicationDraft({ ...applicationDraft, notes: e.target.value })} value={applicationDraft.notes} /></Field>
             </div>}
-            <div className="modal-actions"><button className="secondary-button" onClick={() => setShowApplicationModal(false)} type="button">Cancel</button><button className="primary-button" type="submit">{editingApplicationId ? "Save changes" : "Add application"}</button></div>
+            <div className="modal-actions"><button className="secondary-button" onClick={() => setShowApplicationModal(false)} type="button">{language === "he" ? "ביטול" : "Cancel"}</button><button className="primary-button" type="submit">{language === "he" ? (editingApplicationId ? "שמירת השינויים" : "הוספת המועמדות") : (editingApplicationId ? "Save changes" : "Add application")}</button></div>
           </form>
         </Modal>
       )}
 
       {showContactModal && (
-        <Modal title={editingContactId ? "Edit contact" : "Add contact"} description="Build a useful relationship history and never miss the next touchpoint." onClose={() => setShowContactModal(false)}>
+        <Modal title={language === "he" ? (editingContactId ? "עריכת איש קשר" : "הוספת איש קשר") : (editingContactId ? "Edit contact" : "Add contact")} description={language === "he" ? "בנו היסטוריית קשר שימושית ואל תפספסו את נקודת המגע הבאה." : "Build a useful relationship history and never miss the next touchpoint."} onClose={() => setShowContactModal(false)}>
           <form className="space-y-5" onSubmit={saveContact}>
             <Field label="Name"><input autoFocus className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, name: e.target.value })} required value={contactDraft.name} /></Field>
             <div className="grid gap-4 sm:grid-cols-2"><Field label="Company"><input className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, company: e.target.value })} value={contactDraft.company} /></Field><Field label="Role"><input className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, role: e.target.value })} required value={contactDraft.role} /></Field></div>
@@ -1889,14 +2024,14 @@ export default function Home() {
             <div className="grid gap-4 sm:grid-cols-[1fr_190px]"><Field label="Next action"><input className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, nextAction: e.target.value })} placeholder="Send a thank-you, ask for a call…" required value={contactDraft.nextAction} /></Field><Field label="Due date"><input className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, nextActionDue: e.target.value })} type="date" value={contactDraft.nextActionDue} /></Field></div>
             <button aria-expanded={showContactDetails} className="progressive-toggle" onClick={() => setShowContactDetails((current) => !current)} type="button"><span><Sparkles className="h-4 w-4" /><strong>{showContactDetails ? "Hide optional details" : "Add more details"}</strong><small>Signal, contact details, meeting and notes</small></span><ChevronDown className={`h-5 w-5 transition ${showContactDetails ? "rotate-180" : ""}`} /></button>
             {showContactDetails && <div className="progressive-content space-y-5">
-            <TrafficLightPicker label="Relationship signal" onChange={(trafficLight) => setContactDraft({ ...contactDraft, trafficLight })} value={contactDraft.trafficLight} />
+            <TrafficLightPicker label={language === "he" ? "רמזור הקשר" : "Relationship signal"} language={language} onChange={(trafficLight) => setContactDraft({ ...contactDraft, trafficLight })} value={contactDraft.trafficLight} />
             <div className="grid gap-4 sm:grid-cols-2"><Field label="Email"><input className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, email: e.target.value })} type="email" value={contactDraft.email} /></Field><Field label="Phone"><input className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, phone: e.target.value })} type="tel" value={contactDraft.phone} /></Field></div>
             <Field label="LinkedIn profile"><input className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, linkedInUrl: e.target.value })} placeholder="https://linkedin.com/in/…" type="url" value={contactDraft.linkedInUrl} /></Field>
             <Field label="Last contact date"><input className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, lastContactDate: e.target.value })} type="date" value={contactDraft.lastContactDate} /></Field>
             <div className="rounded-2xl border border-fuchsia-400/15 bg-fuchsia-400/5 p-4"><p className="mb-4 flex items-center gap-2 text-sm font-semibold text-fuchsia-200"><CalendarPlus className="h-4 w-4" /> Networking event</p><div className="grid gap-4 sm:grid-cols-2"><Field label="Event type"><input className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, eventType: e.target.value })} placeholder="Coffee chat, call…" value={contactDraft.eventType} /></Field><Field label="Date & time"><input className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, eventDateTime: e.target.value })} type="datetime-local" value={contactDraft.eventDateTime} /></Field></div><p className="mt-3 text-xs leading-5 text-slate-400">Save first, then add the event to Google, Apple, Outlook, Samsung, or another device calendar.</p></div>
             <Field label="Notes (optional)"><textarea className="form-control min-h-24 resize-y" onChange={(e) => setContactDraft({ ...contactDraft, notes: e.target.value })} value={contactDraft.notes} /></Field>
             </div>}
-            <div className="modal-actions"><button className="secondary-button" onClick={() => setShowContactModal(false)} type="button">Cancel</button><button className="primary-button" type="submit">{editingContactId ? "Save changes" : "Add contact"}</button></div>
+            <div className="modal-actions"><button className="secondary-button" onClick={() => setShowContactModal(false)} type="button">{language === "he" ? "ביטול" : "Cancel"}</button><button className="primary-button" type="submit">{language === "he" ? (editingContactId ? "שמירת השינויים" : "הוספת איש הקשר") : (editingContactId ? "Save changes" : "Add contact")}</button></div>
           </form>
         </Modal>
       )}
@@ -1950,14 +2085,15 @@ function EmptyState({ icon, title, text, action, onAction }: { icon: ReactNode; 
   );
 }
 
-function TrafficLightPicker({ label, value, onChange }: { label: string; value: TrafficLight; onChange: (value: TrafficLight) => void }) {
+function TrafficLightPicker({ label, value, language, onChange }: { label: string; value: TrafficLight; language: Language; onChange: (value: TrafficLight) => void }) {
   return (
     <fieldset>
       <legend className="text-sm font-medium text-slate-200">{label}</legend>
       <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
         {trafficLights.map((trafficLight) => {
           const meta = trafficLightMeta[trafficLight];
-          return <button aria-pressed={value === trafficLight} className={`traffic-option ${value === trafficLight ? "border-cyan-400/50 bg-cyan-400/10 text-white" : "border-white/10 bg-slate-950/50 text-slate-400"}`} key={trafficLight} onClick={() => onChange(trafficLight)} type="button"><span className={`h-3 w-3 rounded-full ring-2 ring-white/10 ${meta.dot}`} />{meta.label}</button>;
+          const translatedLabel = language === "he" ? ({ none: "ללא סטטוס", green: "מתקדם", yellow: "ממתין", red: "חסום או נסגר" } as Record<TrafficLight, string>)[trafficLight] : meta.label;
+          return <button aria-pressed={value === trafficLight} className={`traffic-option ${value === trafficLight ? "border-cyan-400/50 bg-cyan-400/10 text-white" : "border-white/10 bg-slate-950/50 text-slate-400"}`} key={trafficLight} onClick={() => onChange(trafficLight)} type="button"><span className={`h-3 w-3 rounded-full ring-2 ring-white/10 ${meta.dot}`} />{translatedLabel}</button>;
         })}
       </div>
     </fieldset>
