@@ -63,6 +63,7 @@ const PROFILE_KEY = "carvio.profile.v1";
 const CHECKIN_KEY = "carvio.checkin.v1";
 const LANGUAGE_KEY = "carvio.language.v1";
 const LANDING_KEY = "carvio.landing-seen.v1";
+const ANALYTICS_SAMPLE_PACK_KEY = "carvio.analytics-sample-pack.v1";
 
 const applicationStatuses = [
   "Applied",
@@ -90,6 +91,7 @@ type ContactSort = "next-action" | "meeting-soonest" | "recent-contact" | "name-
 const trafficLights = ["none", "green", "yellow", "red"] as const;
 type TrafficLight = (typeof trafficLights)[number];
 type AppView = "home" | "search" | "applications" | "networking" | "tools" | "more";
+type ProcessStage = { id: string; name: string; date: string; trafficLight: TrafficLight };
 
 const workModels = ["", "Remote", "Hybrid", "On-site"] as const;
 const priorities = ["Low", "Medium", "High"] as const;
@@ -104,17 +106,20 @@ type Application = {
   trafficLight: TrafficLight;
   source: string;
   location: string;
+  country: string;
   workModel: (typeof workModels)[number];
   priority: (typeof priorities)[number];
   appliedDate: string;
   contactName: string;
   jobUrl: string;
   salary: string;
+  budgetRange: string;
   salaryCurrency: "ILS" | "USD" | "EUR" | "GBP" | "Other";
   nextStep: string;
   nextStepDue: string;
   eventType: string;
   eventDateTime: string;
+  processStages: ProcessStage[];
   notes: string;
 };
 
@@ -306,17 +311,20 @@ const emptyApplication: ApplicationDraft = {
   trafficLight: "none",
   source: "",
   location: "",
+  country: "",
   workModel: "",
   priority: "Medium",
   appliedDate: "",
   contactName: "",
   jobUrl: "",
   salary: "",
+  budgetRange: "",
   salaryCurrency: "ILS",
   nextStep: "",
   nextStepDue: "",
   eventType: "Interview",
   eventDateTime: "",
+  processStages: [],
   notes: "",
 };
 
@@ -337,7 +345,7 @@ const emptyContact: ContactDraft = {
   notes: "",
 };
 
-const demoApplications: Application[] = [
+const demoApplications: Partial<Application>[] = [
   {
     id: "demo-app-1",
     company: "Northstar Labs",
@@ -407,6 +415,185 @@ const demoApplications: Application[] = [
     eventDateTime: "",
     notes: "Recruiter requested two relevant case studies.",
   },
+  {
+    id: "demo-app-4",
+    company: "Canva",
+    companyWebsite: "https://www.canva.com",
+    logoUrl: "",
+    role: "Lead Product Designer",
+    status: "Interview",
+    trafficLight: "green",
+    source: "Recruiter",
+    location: "Amsterdam",
+    country: "Netherlands",
+    workModel: "Hybrid",
+    priority: "High",
+    appliedDate: "2026-07-21",
+    contactName: "Sophie van Dijk",
+    jobUrl: "https://www.canva.com/careers/",
+    salary: "85000",
+    budgetRange: "€80,000–€92,000 annually",
+    salaryCurrency: "EUR",
+    nextStep: "Prepare a product strategy case study",
+    nextStepDue: "2026-07-29",
+    eventType: "Hiring manager interview",
+    eventDateTime: "2026-07-30T11:00",
+    processStages: [
+      { id: "demo-app-4-stage-1", name: "Application submitted", date: "2026-07-21", trafficLight: "green" },
+      { id: "demo-app-4-stage-2", name: "Recruiter call", date: "2026-07-24", trafficLight: "green" },
+      { id: "demo-app-4-stage-3", name: "Hiring manager interview", date: "2026-07-30", trafficLight: "yellow" },
+    ],
+    notes: "Strong culture fit. Prepare examples of design leadership across distributed teams.",
+  },
+  {
+    id: "demo-app-5",
+    company: "Booking.com",
+    companyWebsite: "https://www.booking.com",
+    logoUrl: "",
+    role: "Design Manager",
+    status: "Follow-up due",
+    trafficLight: "yellow",
+    source: "LinkedIn",
+    location: "Amsterdam",
+    country: "Netherlands",
+    workModel: "Hybrid",
+    priority: "High",
+    appliedDate: "2026-07-12",
+    contactName: "Daniel Rossi",
+    jobUrl: "https://jobs.booking.com/",
+    salary: "98000",
+    budgetRange: "€95,000–€110,000 annually",
+    salaryCurrency: "EUR",
+    nextStep: "Send a concise follow-up to the recruiter",
+    nextStepDue: "2026-07-27",
+    eventType: "Recruiter screen",
+    eventDateTime: "2026-07-20T09:30",
+    processStages: [
+      { id: "demo-app-5-stage-1", name: "Application submitted", date: "2026-07-12", trafficLight: "green" },
+      { id: "demo-app-5-stage-2", name: "Recruiter screen", date: "2026-07-20", trafficLight: "green" },
+      { id: "demo-app-5-stage-3", name: "Hiring manager review", date: "2026-07-24", trafficLight: "yellow" },
+    ],
+    notes: "Recruiter said the team would respond within five business days.",
+  },
+  {
+    id: "demo-app-6",
+    company: "Miro",
+    companyWebsite: "https://miro.com",
+    logoUrl: "",
+    role: "Principal UX Designer",
+    status: "Offer",
+    trafficLight: "green",
+    source: "Referral",
+    location: "Berlin",
+    country: "Germany",
+    workModel: "Remote",
+    priority: "High",
+    appliedDate: "2026-06-18",
+    contactName: "Lea Schneider",
+    jobUrl: "https://miro.com/careers/",
+    salary: "105000",
+    budgetRange: "€100,000–€112,000 annually plus equity",
+    salaryCurrency: "EUR",
+    nextStep: "Review the offer and prepare negotiation questions",
+    nextStepDue: "2026-07-28",
+    eventType: "Offer conversation",
+    eventDateTime: "2026-07-28T15:00",
+    processStages: [
+      { id: "demo-app-6-stage-1", name: "Recruiter call", date: "2026-06-23", trafficLight: "green" },
+      { id: "demo-app-6-stage-2", name: "Portfolio interview", date: "2026-07-02", trafficLight: "green" },
+      { id: "demo-app-6-stage-3", name: "Panel interview", date: "2026-07-14", trafficLight: "green" },
+      { id: "demo-app-6-stage-4", name: "Offer", date: "2026-07-26", trafficLight: "green" },
+    ],
+    notes: "Offer is compelling. Clarify equity terms, learning budget, and travel expectations.",
+  },
+  {
+    id: "demo-app-7",
+    company: "Spotify",
+    companyWebsite: "https://www.spotify.com",
+    logoUrl: "",
+    role: "Senior Product Designer",
+    status: "Rejected",
+    trafficLight: "red",
+    source: "Company careers page",
+    location: "Stockholm",
+    country: "Sweden",
+    workModel: "Hybrid",
+    priority: "Medium",
+    appliedDate: "2026-06-05",
+    contactName: "Emma Lind",
+    jobUrl: "https://www.lifeatspotify.com/jobs",
+    salary: "90000",
+    budgetRange: "SEK 900,000–1,050,000 annually",
+    salaryCurrency: "Other",
+    nextStep: "Capture interview learning and close the loop",
+    nextStepDue: "2026-07-22",
+    eventType: "Final interview",
+    eventDateTime: "2026-07-15T13:00",
+    processStages: [
+      { id: "demo-app-7-stage-1", name: "Initial screen", date: "2026-06-12", trafficLight: "green" },
+      { id: "demo-app-7-stage-2", name: "Portfolio review", date: "2026-06-25", trafficLight: "green" },
+      { id: "demo-app-7-stage-3", name: "Final interview", date: "2026-07-15", trafficLight: "red" },
+    ],
+    notes: "Positive feedback on craft; the selected candidate had deeper marketplace experience.",
+  },
+  {
+    id: "demo-app-8",
+    company: "Adyen",
+    companyWebsite: "https://www.adyen.com",
+    logoUrl: "",
+    role: "Product Design Lead",
+    status: "Applied",
+    trafficLight: "none",
+    source: "Networking",
+    location: "Amsterdam",
+    country: "Netherlands",
+    workModel: "On-site",
+    priority: "Medium",
+    appliedDate: "2026-07-26",
+    contactName: "Noah de Boer",
+    jobUrl: "https://careers.adyen.com/",
+    salary: "92000",
+    budgetRange: "Not shared",
+    salaryCurrency: "EUR",
+    nextStep: "Ask Noah for context about the design organization",
+    nextStepDue: "2026-07-31",
+    eventType: "Informational interview",
+    eventDateTime: "2026-08-01T10:30",
+    processStages: [
+      { id: "demo-app-8-stage-1", name: "Application submitted", date: "2026-07-26", trafficLight: "none" },
+    ],
+    notes: "Warm introduction through a former colleague. Role emphasizes complex B2B workflows.",
+  },
+  {
+    id: "demo-app-9",
+    company: "Personio",
+    companyWebsite: "https://www.personio.com",
+    logoUrl: "",
+    role: "Staff Product Designer",
+    status: "Withdrawn",
+    trafficLight: "red",
+    source: "Indeed",
+    location: "Munich",
+    country: "Germany",
+    workModel: "Hybrid",
+    priority: "Low",
+    appliedDate: "2026-05-19",
+    contactName: "Lukas Weber",
+    jobUrl: "https://www.personio.com/about-personio/careers/",
+    salary: "88000",
+    budgetRange: "€82,000–€90,000 annually",
+    salaryCurrency: "EUR",
+    nextStep: "Archive the opportunity",
+    nextStepDue: "2026-06-30",
+    eventType: "Hiring manager interview",
+    eventDateTime: "2026-06-10T16:00",
+    processStages: [
+      { id: "demo-app-9-stage-1", name: "Recruiter call", date: "2026-05-27", trafficLight: "green" },
+      { id: "demo-app-9-stage-2", name: "Hiring manager interview", date: "2026-06-10", trafficLight: "yellow" },
+      { id: "demo-app-9-stage-3", name: "Candidate withdrew", date: "2026-06-18", trafficLight: "red" },
+    ],
+    notes: "Withdrew after learning that the required office schedule was not flexible enough.",
+  },
 ];
 
 const demoContacts: Contact[] = [
@@ -466,6 +653,12 @@ function normalizeApplication(value: Partial<Application>): Application {
     id: value.id || makeId("app"),
     status: applicationStatuses.includes(value.status as ApplicationStatus) ? value.status as ApplicationStatus : "Applied",
     trafficLight: trafficLights.includes(value.trafficLight as TrafficLight) ? value.trafficLight as TrafficLight : "none",
+    processStages: Array.isArray(value.processStages) ? value.processStages.map((stage) => ({
+      id: stage.id || makeId("stage"),
+      name: stage.name || "",
+      date: stage.date || "",
+      trafficLight: trafficLights.includes(stage.trafficLight as TrafficLight) ? stage.trafficLight : "none",
+    })) : [],
   };
 }
 
@@ -780,7 +973,7 @@ function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/80 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      className="modal-overlay fixed inset-0 z-50 flex items-end justify-center bg-slate-950/80 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
@@ -790,11 +983,11 @@ function Modal({
         aria-describedby={description ? descriptionId : undefined}
         aria-labelledby={titleId}
         aria-modal="true"
-        className={`max-h-[92vh] w-full overflow-y-auto rounded-t-3xl border border-white/10 bg-slate-900 p-5 shadow-2xl sm:rounded-3xl sm:p-6 ${wide ? "sm:max-w-4xl" : "sm:max-w-xl"}`}
+        className={`modal-dialog-shell w-full rounded-t-3xl border border-white/10 bg-slate-900 shadow-2xl sm:rounded-3xl ${wide ? "sm:max-w-4xl" : "sm:max-w-xl"}`}
         role="dialog"
         ref={modalRef}
       >
-        <div className="flex items-start justify-between gap-4">
+        <div className="modal-dialog-header flex items-start justify-between gap-4">
           <div>
             <h2 className="text-xl font-semibold" id={titleId}>{title}</h2>
             {description && <p className="mt-1 text-sm text-slate-400" id={descriptionId}>{description}</p>}
@@ -803,7 +996,7 @@ function Modal({
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="mt-6">{children}</div>
+        <div className="modal-dialog-body">{children}</div>
       </section>
     </div>
   );
@@ -871,7 +1064,25 @@ export default function Home() {
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      setApplications(readStored<Partial<Application>[]>(APPLICATIONS_KEY, demoApplications).map(normalizeApplication));
+      const storedApplications = readStored<Partial<Application>[]>(APPLICATIONS_KEY, demoApplications);
+      const samplePackAlreadyAdded = window.localStorage.getItem(ANALYTICS_SAMPLE_PACK_KEY) === "added";
+      const analyticsSamples = demoApplications.filter((application) =>
+        ["demo-app-4", "demo-app-5", "demo-app-6", "demo-app-7", "demo-app-8", "demo-app-9"].includes(application.id ?? ""),
+      );
+      const existingApplicationIds = new Set(storedApplications.map((application) => application.id));
+      const mergedApplications = samplePackAlreadyAdded
+        ? storedApplications
+        : [
+            ...storedApplications,
+            ...analyticsSamples.filter((application) => !existingApplicationIds.has(application.id)),
+          ];
+
+      if (!samplePackAlreadyAdded) {
+        window.localStorage.setItem(APPLICATIONS_KEY, JSON.stringify(mergedApplications));
+        window.localStorage.setItem(ANALYTICS_SAMPLE_PACK_KEY, "added");
+      }
+
+      setApplications(mergedApplications.map(normalizeApplication));
       setContacts(readStored<(Partial<Contact> & { companyRole?: string })[]>(CONTACTS_KEY, demoContacts).map(normalizeContact));
       setResumes(readStored<ResumeFile[]>(RESUMES_KEY, []));
       setSearchProfile({ ...emptySearchProfile, ...readStored<Partial<SearchProfile>>(SEARCH_PROFILE_KEY, emptySearchProfile) });
@@ -1023,7 +1234,7 @@ export default function Home() {
   }
 
   const insights = useMemo(() => {
-    const result: { title: string; text: string; tone: string }[] = [];
+    const result: { title: string; text: string; tone: string; metric: string; target: AppView; action: string }[] = [];
     const active = applications.filter((item) => !["Rejected", "Withdrawn"].includes(item.status));
     const missingNextSteps = active.filter((item) => !item.nextStep.trim()).length;
     const interviews = applications.filter((item) => item.status === "Interview").length;
@@ -1031,13 +1242,14 @@ export default function Home() {
     const statusCounts = applicationStatuses.map((status) => ({ status, count: applications.filter((item) => item.status === status).length }));
     const largestGroup = statusCounts.sort((a, b) => b.count - a.count)[0];
 
-    if (followUps > 0) result.push({ title: language === "he" ? "פעולות ההמשך דורשות תשומת לב" : "Follow-ups need attention", text: language === "he" ? `${followUps} מועמדויות ממתינות לפעולת המשך. התחילו בהן כדי לשמור על התנופה.` : `${followUps} ${followUps === 1 ? "application is" : "applications are"} ready for follow-up. Start there to keep momentum moving.`, tone: "bg-amber-400" });
-    if (missingNextSteps > 0) result.push({ title: language === "he" ? "כדאי להגדיר את הצעד הבא" : "Clarify next steps", text: language === "he" ? `ל־${missingNextSteps} מועמדויות פעילות עדיין אין צעד הבא. הוסיפו פעולה ברורה כדי ששום דבר לא יתפספס.` : `${missingNextSteps} active ${missingNextSteps === 1 ? "application has" : "applications have"} no next step. Add one so nothing slips through.`, tone: "bg-sky-400" });
-    if (interviews > 0) result.push({ title: language === "he" ? "הגיע הזמן להתכונן לראיונות" : "Prepare for interviews", text: language === "he" ? `${interviews} הזדמנויות נמצאות בשלב ראיון. שמרו בכל מועמדות נקודות הכנה ושאלות חשובות.` : `${interviews} ${interviews === 1 ? "opportunity is" : "opportunities are"} at interview stage. Keep preparation notes in each application.`, tone: "bg-violet-400" });
-    if (applications.some((item) => item.status === "Offer")) result.push({ title: language === "he" ? "יש הצעה על הפרק" : "Offer on the table", text: language === "he" ? "קיימת הצעה פעילה. תעדו את שיקולי ההחלטה והנושאים לבירור לפני השיחה הבאה." : "Your pipeline includes an offer. Capture any decision points in its notes before your next conversation.", tone: "bg-emerald-400" });
-    if (contacts.length < 3) result.push({ title: language === "he" ? "חזקו את רשת הקשרים הפעילה" : "Grow your active network", text: language === "he" ? `שמורים כרגע ${contacts.length} אנשי קשר. הוסיפו אנשים שיכולים לספק הקשר או חיבור להזדמנויות החשובות ביותר.` : `You have ${contacts.length} saved ${contacts.length === 1 ? "contact" : "contacts"}. Add people connected to your most important opportunities.`, tone: "bg-fuchsia-400" });
-    if (applications.length >= 4 && largestGroup.count / applications.length >= 0.6) result.push({ title: language === "he" ? "רוב התהליכים מרוכזים באותו שלב" : "Pipeline is concentrated", text: language === "he" ? `${largestGroup.count} מתוך ${applications.length} מועמדויות נמצאות באותו שלב. בדקו מה יכול לקדם את ההזדמנויות החזקות ביותר.` : `${largestGroup.count} of ${applications.length} applications share the “${largestGroup.status}” status. Consider what could move the strongest ones forward.`, tone: "bg-rose-400" });
-    if (result.length === 0) result.push({ title: language === "he" ? "התהליך שלך מסודר היטב" : "You’re in good shape", text: language === "he" ? "לכל מועמדות פעילה יש צעד הבא, ואין כרגע פעולות המשך שממתינות לביצוע." : "Every active application has a next step, and no follow-ups are currently marked due.", tone: "bg-emerald-400" });
+    if (followUps > 0) result.push({ title: language === "he" ? "טפלו תחילה בפעולות ההמשך" : "Start with your follow-ups", text: language === "he" ? `${followUps} מועמדויות ממתינות לפעולה. הודעה קצרה ומדויקת יכולה להחזיר הזדמנות לתנועה.` : `${followUps} ${followUps === 1 ? "application is" : "applications are"} ready for action. A short, thoughtful message can restart momentum.`, tone: "bg-amber-400", metric: String(followUps), target: "applications", action: language === "he" ? "למועמדויות" : "Open applications" });
+    if (missingNextSteps > 0) result.push({ title: language === "he" ? "הגדירו את הצעד הבא" : "Clarify the next step", text: language === "he" ? `ל־${missingNextSteps} מועמדויות פעילות אין פעולה ברורה. הגדירו אחת כדי שלא יישארו תהליכים באוויר.` : `${missingNextSteps} active ${missingNextSteps === 1 ? "application has" : "applications have"} no clear action. Add one so nothing stays in limbo.`, tone: "bg-sky-400", metric: String(missingNextSteps), target: "applications", action: language === "he" ? "הגדרת צעדים" : "Set next steps" });
+    if (interviews > 0) result.push({ title: language === "he" ? "הכינו את הראיונות הקרובים" : "Prepare your interviews", text: language === "he" ? `${interviews} הזדמנויות נמצאות בשלב ראיון. רכזו סיפורים, שאלות ומחקר בכל מועמדות.` : `${interviews} ${interviews === 1 ? "opportunity is" : "opportunities are"} at interview stage. Keep stories, questions, and research with each role.`, tone: "bg-violet-400", metric: String(interviews), target: "applications", action: language === "he" ? "להכנה" : "Review interviews" });
+    const offerCount = applications.filter((item) => item.status === "Offer").length;
+    if (offerCount > 0) result.push({ title: language === "he" ? "יש הצעה שמחכה להחלטה" : "An offer needs a decision", text: language === "he" ? "רכזו תנאים, שאלות וסדרי עדיפויות לפני השיחה הבאה כדי לקבל החלטה בביטחון." : "Capture terms, questions, and priorities before the next conversation so you can decide with confidence.", tone: "bg-emerald-400", metric: String(offerCount), target: "applications", action: language === "he" ? "לצפייה בהצעה" : "Review the offer" });
+    if (contacts.length < 3) result.push({ title: language === "he" ? "הרחיבו קשר אחד משמעותי" : "Add one meaningful connection", text: language === "he" ? `שמורים כרגע ${contacts.length} אנשי קשר. התחילו מאדם שקשור להזדמנות החשובה ביותר שלכם.` : `You have ${contacts.length} saved ${contacts.length === 1 ? "contact" : "contacts"}. Start with someone connected to your most important role.`, tone: "bg-fuchsia-400", metric: String(contacts.length), target: "networking", action: language === "he" ? "לנטוורקינג" : "Open networking" });
+    if (applications.length >= 4 && largestGroup.count / applications.length >= 0.6) result.push({ title: language === "he" ? "שחררו את צוואר הבקבוק" : "Unblock the pipeline", text: language === "he" ? `${largestGroup.count} מתוך ${applications.length} מועמדויות נמצאות באותו שלב. בחרו את החזקה ביותר וקדמו אותה בפעולה אחת.` : `${largestGroup.count} of ${applications.length} applications share the “${largestGroup.status}” status. Choose the strongest and move it with one action.`, tone: "bg-rose-400", metric: `${largestGroup.count}/${applications.length}`, target: "applications", action: language === "he" ? "לבדיקת התהליך" : "Review pipeline" });
+    if (result.length === 0) result.push({ title: language === "he" ? "התהליך בשליטה" : "Your search is under control", text: language === "he" ? "לכל מועמדות פעילה יש צעד הבא ואין כרגע פעולות המשך פתוחות. זה זמן טוב להתמקד באיכות." : "Every active application has a next step and no follow-ups are due. This is a good moment to focus on quality.", tone: "bg-emerald-400", metric: "✓", target: "applications", action: language === "he" ? "לצפייה בתהליך" : "View pipeline" });
     return result.slice(0, 4);
   }, [applications, contacts, language]);
 
@@ -1098,8 +1310,70 @@ export default function Home() {
       const values = applications.filter((item) => item.salaryCurrency === currency).map((item) => parseSalaryExpectation(item.salary)).filter((value): value is number => value !== null);
       return { label: currency, value: values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length) : 0, count: values.length };
     });
-    return { pipeline, signals, sources, priorities: prioritiesData, workModels: workModelsData, networkingHealth, salaryGroups, followUps: [{ label: "Overdue", value: appOverdue + contactOverdue }, { label: "Upcoming", value: upcoming }, { label: "No date", value: noDate }] };
-  }, [applications, contacts]);
+    const stageSignals = (["green", "yellow", "red", "none"] as TrafficLight[]).map((signal) => ({
+      label: signal === "none" ? "No signal" : trafficLightMeta[signal].label,
+      value: applications.flatMap((item) => item.processStages || []).filter((stage) => stage.trafficLight === signal).length,
+    }));
+    const now = Date.now();
+    const applicationAge = [
+      { label: "Added in the last 7 days", value: applications.filter((item) => item.appliedDate && now - new Date(item.appliedDate).getTime() <= 7 * 86400000).length },
+      { label: "8–30 days", value: applications.filter((item) => item.appliedDate && now - new Date(item.appliedDate).getTime() > 7 * 86400000 && now - new Date(item.appliedDate).getTime() <= 30 * 86400000).length },
+      { label: "More than 30 days", value: applications.filter((item) => item.appliedDate && now - new Date(item.appliedDate).getTime() > 30 * 86400000).length },
+      { label: "Date not recorded", value: applications.filter((item) => !item.appliedDate).length },
+    ];
+    const eventReadiness = [
+      { label: "Upcoming event", value: applications.filter((item) => item.eventDateTime && new Date(item.eventDateTime).getTime() >= now).length },
+      { label: "Past event", value: applications.filter((item) => item.eventDateTime && new Date(item.eventDateTime).getTime() < now).length },
+      { label: "No event scheduled", value: applications.filter((item) => !item.eventDateTime && !["Rejected", "Withdrawn"].includes(item.status)).length },
+    ];
+    const opportunityMatrix = applications.map((item) => {
+      const reachedInterview = item.processStages.some((stage) => /interview|ראיון|screen|portfolio|panel/i.test(stage.name));
+      const progression = item.status === "Offer"
+        ? 4
+        : item.status === "Interview" || reachedInterview
+          ? 3
+          : item.status === "Follow-up due"
+            ? 2
+            : 1;
+      return {
+        id: item.id,
+        company: item.company,
+        role: item.role,
+        fit: item.priority === "High" ? 3 : item.priority === "Medium" ? 2 : 1,
+        progression,
+        priority: item.priority,
+        trafficLight: item.trafficLight,
+        status: item.status,
+        overdue: isPast(item.nextStepDue),
+      };
+    });
+    const highFitOpportunities = opportunityMatrix
+      .filter((item) => item.fit === 3 && !["Rejected", "Withdrawn"].includes(item.status))
+      .sort((a, b) => b.progression - a.progression);
+    const highFitWaiting = highFitOpportunities.find((item) => item.trafficLight === "yellow" || item.overdue);
+    const conversionFunnel = [
+      { label: language === "he" ? "מועמדויות שתועדו" : "Tracked applications", value: applications.length },
+      { label: language === "he" ? "הגיעו לראיון" : "Reached interview", value: applications.filter((item) => item.status === "Interview" || item.status === "Offer" || item.processStages.some((stage) => /interview|ראיון/i.test(stage.name))).length },
+      { label: language === "he" ? "הצעות עבודה" : "Offers", value: applications.filter((item) => item.status === "Offer").length },
+    ];
+    return {
+      pipeline,
+      signals,
+      sources,
+      priorities: prioritiesData,
+      workModels: workModelsData,
+      networkingHealth,
+      salaryGroups,
+      stageSignals,
+      applicationAge,
+      eventReadiness,
+      opportunityMatrix,
+      highFitOpportunities,
+      highFitWaiting,
+      conversionFunnel,
+      followUps: [{ label: "Overdue", value: appOverdue + contactOverdue }, { label: "Upcoming", value: upcoming }, { label: "No date", value: noDate }],
+    };
+  }, [applications, contacts, language]);
 
   const activeRecoveryEntry = recoveryApplication ? recoveryEntries.find((entry) => entry.applicationId === recoveryApplication.id) : undefined;
   const resolvedSearch = useMemo(() => normalizedSearchProfile(searchProfile), [searchProfile]);
@@ -1517,14 +1791,14 @@ export default function Home() {
 
   function deleteAllLocalData() {
     if (!window.confirm("Permanently delete all Carvio data stored in this browser? Download a backup first if you may need it later.")) return;
-    [APPLICATIONS_KEY, CONTACTS_KEY, FEEDBACK_KEY, RESUMES_KEY, SEARCH_PROFILE_KEY, RECOVERY_KEY, PROFILE_KEY, CHECKIN_KEY].forEach((key) => window.localStorage.removeItem(key));
+    [APPLICATIONS_KEY, CONTACTS_KEY, FEEDBACK_KEY, RESUMES_KEY, SEARCH_PROFILE_KEY, RECOVERY_KEY, PROFILE_KEY, CHECKIN_KEY, ANALYTICS_SAMPLE_PACK_KEY].forEach((key) => window.localStorage.removeItem(key));
     setApplications([]); setContacts([]); setResumes([]); setRecoveryEntries([]); setSearchProfile(emptySearchProfile); setUserProfile(emptyUserProfile); setDailyMood(""); setShowTrustCenter(false);
     setNotice("All local Carvio data was deleted.");
   }
 
   function resetDemoData() {
     if (window.confirm("Reset applications and contacts to the original demo data? Your current entries will be replaced.")) {
-      setApplications(demoApplications);
+      setApplications(demoApplications.map(normalizeApplication));
       setContacts(demoContacts);
       setNotice("Demo data restored.");
     }
@@ -1693,9 +1967,9 @@ export default function Home() {
 
         {activeView !== "home" && <section className="calm-page-header"><div><p className="eyebrow text-cyan-300">Carvio</p><h1 className="text-2xl font-semibold">{activeView === "search" ? copy.search : activeView === "applications" ? copy.applications : activeView === "networking" ? copy.networking : activeView === "tools" ? copy.careerTools : copy.support}</h1><p className="mt-1 text-sm text-slate-400">{activeView === "search" ? (language === "he" ? "בחרו תפקיד ומיקום, הפעילו חיפוש ופתחו את התוצאות במקור." : "Choose a role and location, run the search, then open results at the source.") : activeView === "applications" ? copy.applicationIntro : activeView === "networking" ? copy.networkingIntro : activeView === "tools" ? copy.toolsIntro : copy.supportIntro}</p></div>{activeView === "search" ? <button className="primary-button" onClick={() => document.getElementById("search-form-fields")?.scrollIntoView({ behavior: "smooth", block: "start" })} type="button"><Search className="h-4 w-4" />{language === "he" ? "התחלת חיפוש" : "Start searching"}</button> : <button className="icon-button" onClick={() => setShowQuickAdd(true)} type="button" aria-label={language === "he" ? "הוספה מהירה" : "Quick add"}><Plus className="h-5 w-5" /></button>}</section>}
 
-        <section className={`calm-view checkin-card ${activeView !== "home" ? "calm-view-hidden" : ""}`} aria-label="Daily check-in">
-          <div><p className="eyebrow text-emerald-300">{copy.checkin}</p><h2 className="mt-2 text-xl font-semibold">{copy.arriving}</h2><p className="mt-1 text-sm text-slate-400">{copy.adapt}</p></div>
-          <div className="grid grid-cols-3 gap-2">{([{"value":"ready","emoji":"🙂","label":copy.ready},{"value":"low","emoji":"😐","label":copy.low},{"value":"difficult","emoji":"😔","label":copy.difficult}] as { value: Exclude<DailyMood, "">; emoji: string; label: string }[]).map((item) => <button aria-pressed={dailyMood === item.value} className={`checkin-choice ${dailyMood === item.value ? "checkin-choice-active" : ""}`} key={item.value} onClick={() => { setDailyMood(item.value); setNotice(item.value === "ready" ? (language === "he" ? "בואו נבחר צעד משמעותי אחד 🎯" : "Let’s choose one meaningful move 🎯") : item.value === "low" ? (language === "he" ? "צעד קטן אחד מספיק להיום 🌿" : "One small action is enough today 🌿") : (language === "he" ? "Carvio ישמור על קצב עדין היום. התוצאות אינן מגדירות אותך 🫶" : "Carvio will keep today gentle. You are not your outcomes 🫶")); }} type="button"><span className="text-2xl">{item.emoji}</span><span>{item.label}</span></button>)}</div>
+        <section className={`calm-view checkin-card checkin-card-compact ${dailyMood ? "checkin-card-complete" : ""} ${activeView !== "home" ? "calm-view-hidden" : ""}`} aria-label="Daily check-in">
+          <div className="checkin-compact-copy"><span aria-hidden="true">{dailyMood === "ready" ? "🙂" : dailyMood === "low" ? "😐" : dailyMood === "difficult" ? "😔" : "🌿"}</span><div><p className="eyebrow text-emerald-300">{copy.checkin}</p><h2>{dailyMood ? (language === "he" ? "Carvio יתאים את הצעד הבא לקצב שלכם." : "Carvio will match the next step to your pace.") : copy.arriving}</h2></div></div>
+          <div className="checkin-compact-options">{([{"value":"ready","emoji":"🙂","label":copy.ready},{"value":"low","emoji":"😐","label":copy.low},{"value":"difficult","emoji":"😔","label":copy.difficult}] as { value: Exclude<DailyMood, "">; emoji: string; label: string }[]).map((item) => <button aria-pressed={dailyMood === item.value} className={`checkin-choice ${dailyMood === item.value ? "checkin-choice-active" : ""}`} key={item.value} onClick={() => { setDailyMood(item.value); setNotice(item.value === "ready" ? (language === "he" ? "בואו נבחר צעד משמעותי אחד 🎯" : "Let’s choose one meaningful move 🎯") : item.value === "low" ? (language === "he" ? "צעד קטן אחד מספיק להיום 🌿" : "One small action is enough today 🌿") : (language === "he" ? "Carvio ישמור על קצב עדין היום. התוצאות אינן מגדירות אותך 🫶" : "Carvio will keep today gentle. You are not your outcomes 🫶")); }} type="button"><span>{item.emoji}</span><span>{dailyMood && dailyMood !== item.value ? "" : item.label}</span></button>)}</div>
         </section>
 
         <section aria-label="Dashboard overview" className={`calm-view dashboard-overview ${activeView !== "home" ? "calm-view-hidden" : ""}`}>
@@ -1922,21 +2196,49 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="panel xl:col-span-2">
-            <div className="section-heading">
-              <div><p className="eyebrow text-amber-300">{language === "he" ? "תובנות חכמות" : "Smart insights"}</p><h2 className="section-title">{language === "he" ? "הצעדים הבאים שלך" : "Your next moves"}</h2></div>
-              <div className="rounded-full border border-amber-400/20 bg-amber-400/10 p-2 text-amber-200"><Sparkles className="h-4 w-4" /></div>
+          <div className="panel smart-action-brief xl:col-span-2">
+            <div className="smart-action-header">
+              <div>
+                <p className="eyebrow text-amber-300">{language === "he" ? "תדריך הפעולה שלך" : "Your action brief"}</p>
+                <h2 className="section-title">{language === "he" ? "מה הכי כדאי לקדם עכשיו?" : "What should move next?"}</h2>
+                <p className="mt-2 max-w-2xl text-sm text-slate-400">{language === "he" ? "Carvio מתרגם את התהליך לפעולה אחת מרכזית ועוד כמה צעדים קצרים." : "Carvio translates your pipeline into one priority and a few supporting moves."}</p>
+              </div>
+              <span className="smart-action-live"><span />{language === "he" ? "מתעדכן מהנתונים שלך" : "Live from your data"}</span>
             </div>
-            <div className="mt-5 space-y-3">
-              {insights.map((insight) => (
-                <div className="content-card flex gap-3" key={insight.title}>
-                  <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${insight.tone}`} />
-                  <div><p className="font-semibold text-slate-100">{insight.title}</p><p className="mt-1 text-sm leading-6 text-slate-400">{insight.text}</p></div>
-                </div>
-              ))}
+
+            <div className="smart-primary-action">
+              <div className="smart-primary-icon"><Zap className="h-6 w-6" /></div>
+              <div className="min-w-0 flex-1">
+                <p className="smart-action-kicker">{language === "he" ? "להתחיל כאן" : "Start here"}</p>
+                <h3>{insights[0].title}</h3>
+                <p>{insights[0].text}</p>
+              </div>
+              <div className="smart-primary-result">
+                <strong>{insights[0].metric}</strong>
+                <button onClick={() => switchView(insights[0].target)} type="button">{insights[0].action}<ArrowUpRight className="h-4 w-4" /></button>
+              </div>
             </div>
-            <div className="mt-5 flex items-center gap-2 rounded-xl border border-cyan-400/10 bg-cyan-400/5 p-3 text-xs text-slate-400">
-              <BarChart3 className="h-4 w-4 shrink-0 text-cyan-300" /> {language === "he" ? "התובנות מחושבות רק מהנתונים ששמורים במכשיר הזה." : "Insights are calculated only from the applications and contacts saved on this device."}
+
+            {insights.length > 1 && (
+              <div className="smart-secondary-grid">
+                {insights.slice(1).map((insight, index) => (
+                  <button className="smart-secondary-action" key={insight.title} onClick={() => switchView(insight.target)} type="button">
+                    <span className={`smart-secondary-dot ${insight.tone}`} />
+                    <span className="min-w-0 flex-1">
+                      <span className="smart-secondary-number">0{index + 2}</span>
+                      <strong>{insight.title}</strong>
+                      <small>{insight.text}</small>
+                    </span>
+                    <span className="smart-secondary-metric">{insight.metric}</span>
+                    <ChevronRight className="smart-secondary-arrow h-4 w-4" />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="smart-action-privacy">
+              <ShieldCheck className="h-4 w-4 shrink-0" />
+              <span>{language === "he" ? "הניתוח נוצר רק מהמידע השמור במכשיר הזה." : "This brief is calculated only from data stored on this device."}</span>
             </div>
           </div>
         </section>
@@ -1969,6 +2271,7 @@ export default function Home() {
               <option value="company-az">{language === "he" ? "מיון: חברה א–ת" : "Sort: Company A–Z"}</option>
               <option value="health">{language === "he" ? "מיון: דורש טיפול" : "Sort: Needs attention"}</option>
             </select></label>
+            <span className="application-results-count">{language === "he" ? `${visibleContacts.length} מתוך ${contacts.length}` : `${visibleContacts.length} of ${contacts.length}`}</span>
           </div>
           {contacts.length === 0 ? (
             <div className="mt-5"><EmptyState icon={<Users2 className="h-6 w-6" />} title={language === "he" ? "עדיין אין אנשי קשר" : "No contacts yet"} text={language === "he" ? "הוסיפו אדם שחשוב לכם לשמור איתו על קשר מקצועי." : "Add someone you want to keep in touch with."} action={copy.addContact} onAction={openNewContact} /></div>
@@ -2242,6 +2545,59 @@ export default function Home() {
             <AnalyticsCard title="Networking health" subtitle="Whether warm relationships have a clear next move" icon={<Users2 className="h-5 w-5" />} insight={`${analytics.networkingHealth[0].value} active · ${analytics.networkingHealth[1].value} overdue · ${analytics.networkingHealth[2].value} needing a plan.`} recommendation={analytics.networkingHealth[1].value ? "Reconnect with overdue contacts using a specific, low-pressure reason to speak." : analytics.networkingHealth[2].value ? "Give every important relationship a respectful next action and date." : "Your networking rhythm is strong—keep conversations useful and human."}>
               <BarRows data={analytics.networkingHealth} colors={["#34d399", "#fb7185", "#64748b"]} />
             </AnalyticsCard>
+            <AnalyticsCard
+              title={language === "he" ? "בריאות שלבי התהליך" : "Process-stage health"}
+              subtitle={language === "he" ? "מה קורה בתוך כל ראיון ושלב" : "What is happening inside every interview and stage"}
+              icon={<span className="text-lg">🚦</span>}
+              insight={analytics.stageSignals.reduce((sum, item) => sum + item.value, 0)
+                ? (language === "he"
+                  ? `${analytics.stageSignals.find((item) => item.value === Math.max(...analytics.stageSignals.map((signal) => signal.value)))?.label} הוא הסימון הנפוץ ביותר בשלבים שתועדו.`
+                  : `${analytics.stageSignals.find((item) => item.value === Math.max(...analytics.stageSignals.map((signal) => signal.value)))?.label} is the most common signal across recorded stages.`)
+                : (language === "he" ? "עדיין לא תועדו שלבי תהליך. הם יופיעו כאן מיד לאחר ההוספה." : "No process stages have been recorded yet. They will appear here as soon as you add them.")}
+              recommendation={analytics.stageSignals.find((item) => item.label === "Waiting")?.value
+                ? (language === "he" ? "עברו על השלבים הצהובים והגדירו לכל אחד מועד ברור לבדיקת סטטוס." : "Review waiting stages and give each one a clear date for checking the status.")
+                : (language === "he" ? "סמנו כל שלב מיד לאחר שיחה כדי לקבל תמונה אמינה של התהליך." : "Mark every stage after each conversation to keep the journey accurate.")}
+            >
+              <RadarChart data={analytics.stageSignals} />
+            </AnalyticsCard>
+            <AnalyticsCard
+              title={language === "he" ? "מטריצת איכות הזדמנויות" : "Opportunity quality matrix"}
+              subtitle={language === "he" ? "התאמה מול התקדמות — כדי לדעת היכן להשקיע" : "Fit versus progress—so you know where to invest"}
+              icon={<span className="text-lg">🎯</span>}
+              insight={analytics.highFitOpportunities.length
+                ? (language === "he"
+                  ? `${analytics.highFitOpportunities[0].company} היא כרגע ההזדמנות החזקה ביותר: התאמה גבוהה והתקדמות של ממש.`
+                  : `${analytics.highFitOpportunities[0].company} is currently your strongest opportunity: high fit with meaningful progress.`)
+                : (language === "he" ? "עדיין אין הזדמנות פעילה שסומנה כהתאמה גבוהה." : "No active opportunity is marked as high fit yet.")}
+              recommendation={analytics.highFitWaiting
+                ? (language === "he"
+                  ? `תנו עדיפות ל־${analytics.highFitWaiting.company}: זו משרה בהתאמה גבוהה שממתינה לפעולה או לעדכון.`
+                  : `Prioritize ${analytics.highFitWaiting.company}: it is a high-fit role waiting for an action or update.`)
+                : analytics.highFitOpportunities.length
+                  ? (language === "he"
+                    ? `הקדישו את זמן ההכנה הבא ל־${analytics.highFitOpportunities[0].company} לפני הוספת מועמדויות חדשות.`
+                    : `Use your next preparation block for ${analytics.highFitOpportunities[0].company} before adding more applications.`)
+                  : (language === "he" ? "סמנו רמת התאמה בכל משרה כדי שהמערכת תוכל לתעדף עבורכם." : "Set a fit level on each role so Carvio can prioritize your effort.")}
+            >
+              <OpportunityMatrix data={analytics.opportunityMatrix} language={language} />
+            </AnalyticsCard>
+            <AnalyticsCard
+              title={language === "he" ? "משפך ההתקדמות" : "Progression funnel"}
+              subtitle={language === "he" ? "ממועמדות לראיון ולהצעת עבודה" : "From application to interview and offer"}
+              icon={<TrendingUp className="h-5 w-5" />}
+              insight={applications.length
+                ? (language === "he"
+                  ? `${analytics.conversionFunnel[1].value} מתוך ${analytics.conversionFunnel[0].value} מועמדויות הגיעו לראיון, ו־${analytics.conversionFunnel[2].value} להצעה.`
+                  : `${analytics.conversionFunnel[1].value} of ${analytics.conversionFunnel[0].value} applications reached interview, and ${analytics.conversionFunnel[2].value} reached offer.`)
+                : (language === "he" ? "המשפך ייבנה אוטומטית כאשר תוסיפו מועמדויות." : "Your funnel will form automatically as you add applications.")}
+              recommendation={analytics.conversionFunnel[0].value >= 5 && analytics.conversionFunnel[1].value === 0
+                ? (language === "he" ? "כדאי לעצור הגשות בכמות ולחדד התאמה, קורות חיים ופנייה ישירה לפני הסבב הבא." : "Pause volume applications and sharpen fit, résumé positioning, and direct outreach before the next batch.")
+                : analytics.conversionFunnel[1].value > 0 && analytics.conversionFunnel[2].value === 0
+                  ? (language === "he" ? "המשפך מגיע לראיונות. התמקדו בהכנת סיפורי STAR, מחקר חברה וסיכום למידה אחרי כל שיחה." : "Your funnel reaches interviews. Focus on STAR stories, company research, and a short learning review after each conversation.")
+                  : (language === "he" ? "בדקו את המשפך אחת לשבוע וחפשו את המעבר שבו נדרשת פעולה ממוקדת." : "Review the funnel weekly and focus on the transition that needs the most support.")}
+            >
+              <FunnelChart data={analytics.conversionFunnel} />
+            </AnalyticsCard>
           </div>
           )}
         </section>
@@ -2309,35 +2665,45 @@ export default function Home() {
 
       {showApplicationModal && (
         <Modal title={language === "he" ? (editingApplicationId ? "עריכת מועמדות" : "הוספת מועמדות") : (editingApplicationId ? "Edit application" : "Add application")} description={language === "he" ? "תעדו את ההזדמנות, מצב התהליך, לוחות הזמנים והצעד הבא." : "Capture the opportunity, its signal, timing, and your next move."} onClose={() => setShowApplicationModal(false)}>
-          <form className="space-y-5" onSubmit={saveApplication}>
+          <form className="application-form-compact space-y-4" onSubmit={saveApplication}>
+            <datalist id="application-source-options">{["LinkedIn", "Company careers page", "Referral", "Recruiter", "Indeed", "Google Jobs", "Networking", "Job board", "Other"].map((option) => <option key={option} value={option} />)}</datalist>
+            <datalist id="application-action-options">{["Prepare for interview", "Send follow-up", "Complete assignment", "Research company", "Contact recruiter", "Contact hiring manager", "Ask for referral", "Wait for response", "Review offer"].map((option) => <option key={option} value={option} />)}</datalist>
+            <datalist id="application-event-options">{["Recruiter screen", "Hiring manager interview", "Professional interview", "HR interview", "Panel interview", "Assignment", "Presentation", "Offer conversation", "Follow-up call"].map((option) => <option key={option} value={option} />)}</datalist>
+            <datalist id="process-stage-options">{["Application submitted", "Initial screen", "Recruiter call", "Hiring manager interview", "Professional interview", "Assignment", "Panel interview", "References", "Offer", "Closed"].map((option) => <option key={option} value={option} />)}</datalist>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label={language === "he" ? "חברה" : "Company"}><input autoFocus className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, company: e.target.value })} required value={applicationDraft.company} /></Field>
               <Field label={language === "he" ? "תפקיד" : "Role"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, role: e.target.value })} required value={applicationDraft.role} /></Field>
             </div>
-            <div className="company-logo-picker">
+            <div className="application-stage-signal">
+              <Field label={language === "he" ? "שלב בתהליך" : "Pipeline stage"}><select className="form-control" onChange={(e) => setApplicationDraft((current) => ({ ...current, status: e.target.value as ApplicationStatus }))} value={applicationDraft.status}>{applicationStatuses.map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}</select></Field>
+              <TrafficLightPicker label={language === "he" ? "צבע הרמזור בשלב הזה" : "Traffic light for this stage"} language={language} onChange={(trafficLight) => setApplicationDraft((current) => ({ ...current, trafficLight }))} value={applicationDraft.trafficLight} />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-[1fr_190px]"><Field label={language === "he" ? "השלב הנוכחי או הצעד הבא" : "Current stage / next step"}><input className="form-control" list="application-action-options" onChange={(e) => setApplicationDraft({ ...applicationDraft, nextStep: e.target.value })} placeholder={language === "he" ? "בחרו הצעה או כתבו פעולה" : "Choose a suggestion or type an action"} required value={applicationDraft.nextStep} /></Field><Field label={language === "he" ? "תאריך יעד" : "Due date"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, nextStepDue: e.target.value })} type="date" value={applicationDraft.nextStepDue} /></Field></div>
+            <button aria-expanded={showApplicationDetails} className="progressive-toggle" onClick={() => setShowApplicationDetails((current) => !current)} type="button"><span><Sparkles className="h-4 w-4" /><strong>{language === "he" ? (showApplicationDetails ? "הסתרת פרטים נוספים" : "הוספת פרטים נוספים") : (showApplicationDetails ? "Hide optional details" : "Add more details")}</strong><small>{language === "he" ? "שכר, מקור, פגישה, הערות וקישור למשרה" : "Salary, source, event, notes and job link"}</small></span><ChevronDown className={`h-5 w-5 transition ${showApplicationDetails ? "rotate-180" : ""}`} /></button>
+            {showApplicationDetails && <div className="progressive-content space-y-5">
+            <div className="company-logo-picker company-logo-picker-compact">
               <div aria-hidden="true" className={`company-logo-preview ${applicationDraft.logoUrl ? "company-logo-preview-image" : ""}`} style={applicationDraft.logoUrl ? { backgroundImage: `url("${applicationDraft.logoUrl}")` } : undefined}>{applicationDraft.logoUrl ? "" : applicationDraft.company.slice(0, 1).toUpperCase() || "🏢"}</div>
               <div className="min-w-0 flex-1">
-                <Field label={language === "he" ? "אתר החברה — למציאת לוגו מדויק" : "Company website — for an accurate logo"}><input className="form-control" onChange={(event) => { const companyWebsite = event.target.value; const existingIsAutomatic = !applicationDraft.logoUrl || applicationDraft.logoUrl.includes("google.com/s2/favicons"); setApplicationDraft({ ...applicationDraft, companyWebsite, logoUrl: existingIsAutomatic ? companyLogoFromWebsite(companyWebsite) : applicationDraft.logoUrl }); }} onBlur={() => { if (applicationDraft.companyWebsite && !applicationDraft.logoUrl) setApplicationDraft((current) => ({ ...current, logoUrl: companyLogoFromWebsite(current.companyWebsite) })); }} placeholder="company.com" value={applicationDraft.companyWebsite} /></Field>
-                <p className="mt-1 text-xs leading-5 text-slate-500">{language === "he" ? "כאשר קיימות כמה חברות עם אותו שם, הזינו את האתר הנכון, העלו לוגו משלכם או השאירו ללא לוגו." : "If companies share the same name, enter the correct website, upload your own logo, or leave it blank."}</p>
+                <Field label={language === "he" ? "אתר החברה או לוגו" : "Company website or logo"}><input className="form-control" onChange={(event) => { const companyWebsite = event.target.value; const existingIsAutomatic = !applicationDraft.logoUrl || applicationDraft.logoUrl.includes("google.com/s2/favicons"); setApplicationDraft((current) => ({ ...current, companyWebsite, logoUrl: existingIsAutomatic ? companyLogoFromWebsite(companyWebsite) : current.logoUrl })); }} onBlur={() => { if (applicationDraft.companyWebsite && !applicationDraft.logoUrl) setApplicationDraft((current) => ({ ...current, logoUrl: companyLogoFromWebsite(current.companyWebsite) })); }} placeholder="company.com" value={applicationDraft.companyWebsite} /></Field>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  <button className="logo-choice-button" disabled={!applicationDraft.companyWebsite} onClick={() => setApplicationDraft({ ...applicationDraft, logoUrl: companyLogoFromWebsite(applicationDraft.companyWebsite) })} type="button"><Sparkles className="h-3.5 w-3.5" />{language === "he" ? "שימוש בלוגו מהאתר" : "Use website logo"}</button>
+                  <button className="logo-choice-button" disabled={!applicationDraft.companyWebsite} onClick={() => setApplicationDraft((current) => ({ ...current, logoUrl: companyLogoFromWebsite(current.companyWebsite) }))} type="button"><Sparkles className="h-3.5 w-3.5" />{language === "he" ? "לוגו מהאתר" : "Website logo"}</button>
                   <label className="logo-choice-button"><UploadCloud className="h-3.5 w-3.5" />{language === "he" ? "העלאת לוגו" : "Upload logo"}<input accept="image/*" className="sr-only" onChange={uploadCompanyLogo} type="file" /></label>
-                  <button className="logo-choice-button" onClick={() => setApplicationDraft({ ...applicationDraft, logoUrl: "" })} type="button"><X className="h-3.5 w-3.5" />{language === "he" ? "ללא לוגו" : "No logo"}</button>
+                  <button className="logo-choice-button" onClick={() => setApplicationDraft((current) => ({ ...current, logoUrl: "" }))} type="button"><X className="h-3.5 w-3.5" />{language === "he" ? "ללא לוגו" : "No logo"}</button>
                 </div>
               </div>
             </div>
-            <Field label={language === "he" ? "שלב בתהליך" : "Pipeline stage"}><select className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, status: e.target.value as ApplicationStatus })} value={applicationDraft.status}>{applicationStatuses.map((status) => <option key={status}>{statusLabel(status)}</option>)}</select></Field>
-            <TrafficLightPicker label={language === "he" ? "רמזור התהליך" : "Process signal"} language={language} onChange={(trafficLight) => setApplicationDraft({ ...applicationDraft, trafficLight })} value={applicationDraft.trafficLight} />
-            <div className="grid gap-4 sm:grid-cols-[1fr_190px]"><Field label={language === "he" ? "השלב הנוכחי או הצעד הבא" : "Current stage / next step"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, nextStep: e.target.value })} placeholder={language === "he" ? "לדוגמה: הכנה לשיחת מגייסת" : "e.g. Prepare for recruiter screen"} required value={applicationDraft.nextStep} /></Field><Field label={language === "he" ? "תאריך יעד" : "Due date"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, nextStepDue: e.target.value })} type="date" value={applicationDraft.nextStepDue} /></Field></div>
-            <button aria-expanded={showApplicationDetails} className="progressive-toggle" onClick={() => setShowApplicationDetails((current) => !current)} type="button"><span><Sparkles className="h-4 w-4" /><strong>{language === "he" ? (showApplicationDetails ? "הסתרת פרטים נוספים" : "הוספת פרטים נוספים") : (showApplicationDetails ? "Hide optional details" : "Add more details")}</strong><small>{language === "he" ? "שכר, מקור, פגישה, הערות וקישור למשרה" : "Salary, source, event, notes and job link"}</small></span><ChevronDown className={`h-5 w-5 transition ${showApplicationDetails ? "rotate-180" : ""}`} /></button>
-            {showApplicationDetails && <div className="progressive-content space-y-5">
-            <Field label="Priority"><select className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, priority: e.target.value as ApplicationDraft["priority"] })} value={applicationDraft.priority}>{priorities.map((priority) => <option key={priority}>{priority}</option>)}</select></Field>
-            <div className="grid gap-4 sm:grid-cols-2"><Field label="Source"><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, source: e.target.value })} placeholder="Referral, LinkedIn, careers page…" value={applicationDraft.source} /></Field><Field label="Applied date"><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, appliedDate: e.target.value })} type="date" value={applicationDraft.appliedDate} /></Field></div>
-            <div className="grid gap-4 sm:grid-cols-2"><Field label="Location"><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, location: e.target.value })} placeholder="City or region" value={applicationDraft.location} /></Field><Field label="Work model"><select className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, workModel: e.target.value as ApplicationDraft["workModel"] })} value={applicationDraft.workModel}>{workModels.map((model) => <option key={model || "unset"} value={model}>{model || "Not specified"}</option>)}</select></Field></div>
-            <div className="grid gap-4 sm:grid-cols-2"><Field label="Contact name"><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, contactName: e.target.value })} value={applicationDraft.contactName} /></Field><div className="grid grid-cols-[110px_1fr] gap-2"><Field label="Currency"><select className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, salaryCurrency: e.target.value as ApplicationDraft["salaryCurrency"] })} value={applicationDraft.salaryCurrency}>{["ILS", "USD", "EUR", "GBP", "Other"].map((currency) => <option key={currency}>{currency}</option>)}</select></Field><Field label="Salary expectation"><input className="form-control" inputMode="decimal" onChange={(e) => setApplicationDraft({ ...applicationDraft, salary: e.target.value })} placeholder="e.g. 25,000 or 90k–105k" value={applicationDraft.salary} /></Field></div></div>
-            <Field label="Job link"><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, jobUrl: e.target.value })} placeholder="https://…" type="url" value={applicationDraft.jobUrl} /></Field>
-            <div className="rounded-2xl border border-violet-400/15 bg-violet-400/5 p-4"><p className="mb-4 flex items-center gap-2 text-sm font-semibold text-violet-200"><CalendarPlus className="h-4 w-4" /> Interview or meeting</p><div className="grid gap-4 sm:grid-cols-2"><Field label="Event type"><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, eventType: e.target.value })} placeholder="Interview, recruiter call…" value={applicationDraft.eventType} /></Field><Field label="Date & time"><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, eventDateTime: e.target.value })} type="datetime-local" value={applicationDraft.eventDateTime} /></Field></div><p className="mt-3 text-xs leading-5 text-slate-400">After saving, use Google Calendar or download a universal .ics file for Apple, Outlook, Samsung, and other calendars.</p></div>
-            <Field label="Notes (optional)"><textarea className="form-control min-h-24 resize-y" onChange={(e) => setApplicationDraft({ ...applicationDraft, notes: e.target.value })} value={applicationDraft.notes} /></Field>
+            <div className="grid gap-4 sm:grid-cols-2"><Field label={language === "he" ? "עיר / מיקום" : "City / location"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, location: e.target.value })} value={applicationDraft.location} /></Field><Field label={language === "he" ? "מדינה" : "Country"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, country: e.target.value })} value={applicationDraft.country} /></Field></div>
+            <Field label={language === "he" ? "קישור למשרה" : "Job link"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, jobUrl: e.target.value })} placeholder="https://…" type="url" value={applicationDraft.jobUrl} /></Field>
+            <div className="grid gap-4 sm:grid-cols-2"><Field label={language === "he" ? "מקור" : "Source"}><input className="form-control" list="application-source-options" onChange={(e) => setApplicationDraft({ ...applicationDraft, source: e.target.value })} placeholder={language === "he" ? "בחרו או כתבו מקור" : "Choose or type a source"} value={applicationDraft.source} /></Field><Field label={language === "he" ? "תאריך הגשה" : "Applied date"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, appliedDate: e.target.value })} type="date" value={applicationDraft.appliedDate} /></Field></div>
+            <div className="grid gap-4 sm:grid-cols-2"><Field label={language === "he" ? "רמת התאמה" : "Fit level"}><select className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, priority: e.target.value as ApplicationDraft["priority"] })} value={applicationDraft.priority}>{priorities.map((priority) => <option key={priority} value={priority}>{language === "he" ? ({ Low: "נמוכה", Medium: "בינונית", High: "גבוהה" } as Record<string, string>)[priority] : priority}</option>)}</select></Field><Field label={language === "he" ? "מודל עבודה" : "Work model"}><select className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, workModel: e.target.value as ApplicationDraft["workModel"] })} value={applicationDraft.workModel}>{workModels.map((model) => <option key={model || "unset"} value={model}>{model || (language === "he" ? "לא צוין" : "Not specified")}</option>)}</select></Field></div>
+            <Field label={language === "he" ? "איש או אשת קשר בחברה" : "Company contact"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, contactName: e.target.value })} placeholder={language === "he" ? "מגייסת, מנהל מגייס או רפרל" : "Recruiter, hiring manager, or referral"} value={applicationDraft.contactName} /></Field>
+            <div className="grid gap-4 sm:grid-cols-[110px_1fr_1fr]"><Field label={language === "he" ? "מטבע" : "Currency"}><select className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, salaryCurrency: e.target.value as ApplicationDraft["salaryCurrency"] })} value={applicationDraft.salaryCurrency}>{["ILS", "USD", "EUR", "GBP", "Other"].map((currency) => <option key={currency}>{currency}</option>)}</select></Field><Field label={language === "he" ? "ציפיות שכר" : "Salary expectation"}><input className="form-control" inputMode="decimal" onChange={(e) => setApplicationDraft({ ...applicationDraft, salary: e.target.value })} value={applicationDraft.salary} /></Field><Field label={language === "he" ? "טווח החברה" : "Company budget range"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, budgetRange: e.target.value })} value={applicationDraft.budgetRange} /></Field></div>
+            <div className="rounded-2xl border border-violet-400/15 bg-violet-400/5 p-4"><p className="mb-4 flex items-center gap-2 text-sm font-semibold text-violet-200"><CalendarPlus className="h-4 w-4" /> Interview or meeting</p><div className="grid gap-4 sm:grid-cols-2"><Field label="Event type"><input className="form-control" list="application-event-options" onChange={(e) => setApplicationDraft({ ...applicationDraft, eventType: e.target.value })} placeholder={language === "he" ? "בחרו או כתבו סוג אירוע" : "Choose or type an event"} value={applicationDraft.eventType} /></Field><Field label="Date & time"><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, eventDateTime: e.target.value })} type="datetime-local" value={applicationDraft.eventDateTime} /></Field></div><p className="mt-3 text-xs leading-5 text-slate-400">After saving, use Google Calendar or download a universal .ics file for Apple, Outlook, Samsung, and other calendars.</p></div>
+            <Field label={language === "he" ? "הערות" : "Notes"}><textarea className="form-control min-h-20 resize-y" onChange={(e) => setApplicationDraft({ ...applicationDraft, notes: e.target.value })} value={applicationDraft.notes} /></Field>
+            <div className="process-stage-editor">
+              <div className="process-stage-heading"><div><strong>🚦 {language === "he" ? "שלבי התהליך" : "Process stages"}</strong><small>{language === "he" ? "תאריך ורמזור נפרד לכל שלב" : "A date and traffic light for every stage"}</small></div><button className="secondary-button" onClick={() => setApplicationDraft((current) => ({ ...current, processStages: [...current.processStages, { id: makeId("stage"), name: "", date: "", trafficLight: "none" }] }))} type="button"><Plus className="h-4 w-4" />{language === "he" ? "הוספת שלב" : "Add stage"}</button></div>
+              {applicationDraft.processStages.length === 0 ? <p className="process-stage-empty">{language === "he" ? "אפשר להוסיף כאן שיחת סינון, ראיון, משימה או כל שלב אחר." : "Add a screen, interview, assignment, or any other stage when needed."}</p> : <div className="process-stage-list">{applicationDraft.processStages.map((stage) => <div className="process-stage-row" key={stage.id}><input aria-label={language === "he" ? "שם השלב" : "Stage name"} className="form-control" list="process-stage-options" onChange={(event) => setApplicationDraft((current) => ({ ...current, processStages: current.processStages.map((item) => item.id === stage.id ? { ...item, name: event.target.value } : item) }))} placeholder={language === "he" ? "בחרו או כתבו שם שלב" : "Choose or type a stage"} value={stage.name} /><input aria-label={language === "he" ? "תאריך השלב" : "Stage date"} className="form-control" onChange={(event) => setApplicationDraft((current) => ({ ...current, processStages: current.processStages.map((item) => item.id === stage.id ? { ...item, date: event.target.value } : item) }))} type="date" value={stage.date} /><select aria-label={language === "he" ? "רמזור השלב" : "Stage traffic light"} className={`form-control stage-signal-select stage-signal-${stage.trafficLight}`} onChange={(event) => setApplicationDraft((current) => ({ ...current, processStages: current.processStages.map((item) => item.id === stage.id ? { ...item, trafficLight: event.target.value as TrafficLight } : item) }))} value={stage.trafficLight}><option value="none">⚪ {language === "he" ? "ללא סטטוס" : "No signal"}</option><option value="green">🟢 {language === "he" ? "עבר / מתקדם" : "Passed / progressing"}</option><option value="yellow">🟡 {language === "he" ? "ממתין" : "Waiting"}</option><option value="red">🔴 {language === "he" ? "נדחה / נסגר" : "Rejected / closed"}</option></select><button aria-label={language === "he" ? "מחיקת שלב" : "Delete stage"} className="icon-button" onClick={() => setApplicationDraft((current) => ({ ...current, processStages: current.processStages.filter((item) => item.id !== stage.id) }))} type="button"><Trash2 className="h-4 w-4" /></button></div>)}</div>}
+            </div>
             </div>}
             <div className="modal-actions"><button className="secondary-button" onClick={() => setShowApplicationModal(false)} type="button">{language === "he" ? "ביטול" : "Cancel"}</button><button className="primary-button" type="submit">{language === "he" ? (editingApplicationId ? "שמירת השינויים" : "הוספת המועמדות") : (editingApplicationId ? "Save changes" : "Add application")}</button></div>
           </form>
@@ -2347,17 +2713,20 @@ export default function Home() {
       {showContactModal && (
         <Modal title={language === "he" ? (editingContactId ? "עריכת איש קשר" : "הוספת איש קשר") : (editingContactId ? "Edit contact" : "Add contact")} description={language === "he" ? "בנו היסטוריית קשר שימושית ואל תפספסו את נקודת המגע הבאה." : "Build a useful relationship history and never miss the next touchpoint."} onClose={() => setShowContactModal(false)}>
           <form className="space-y-5" onSubmit={saveContact}>
+            <datalist id="relationship-options">{["Former colleague", "Current colleague", "Recruiter", "Hiring manager", "Referral", "Alumni connection", "Professional community", "Friend", "New connection"].map((option) => <option key={option} value={option} />)}</datalist>
+            <datalist id="network-action-options">{["Send a thank-you", "Ask for a short call", "Share an update", "Follow up on referral", "Send relevant article", "Congratulate on milestone", "Schedule coffee chat", "Check in"].map((option) => <option key={option} value={option} />)}</datalist>
+            <datalist id="network-event-options">{["Coffee chat", "Networking call", "Introductory call", "Mentoring conversation", "Industry event", "Follow-up meeting", "Informational interview"].map((option) => <option key={option} value={option} />)}</datalist>
             <Field label="Name"><input autoFocus className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, name: e.target.value })} required value={contactDraft.name} /></Field>
             <div className="grid gap-4 sm:grid-cols-2"><Field label="Company"><input className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, company: e.target.value })} value={contactDraft.company} /></Field><Field label="Role"><input className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, role: e.target.value })} required value={contactDraft.role} /></Field></div>
-            <Field label="Relationship"><input className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, relationship: e.target.value })} placeholder="e.g. Former colleague" required value={contactDraft.relationship} /></Field>
-            <div className="grid gap-4 sm:grid-cols-[1fr_190px]"><Field label="Next action"><input className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, nextAction: e.target.value })} placeholder="Send a thank-you, ask for a call…" required value={contactDraft.nextAction} /></Field><Field label="Due date"><input className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, nextActionDue: e.target.value })} type="date" value={contactDraft.nextActionDue} /></Field></div>
+            <Field label="Relationship"><input className="form-control" list="relationship-options" onChange={(e) => setContactDraft({ ...contactDraft, relationship: e.target.value })} placeholder={language === "he" ? "בחרו או כתבו סוג קשר" : "Choose or type a relationship"} required value={contactDraft.relationship} /></Field>
+            <div className="grid gap-4 sm:grid-cols-[1fr_190px]"><Field label="Next action"><input className="form-control" list="network-action-options" onChange={(e) => setContactDraft({ ...contactDraft, nextAction: e.target.value })} placeholder={language === "he" ? "בחרו או כתבו פעולה" : "Choose or type an action"} required value={contactDraft.nextAction} /></Field><Field label="Due date"><input className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, nextActionDue: e.target.value })} type="date" value={contactDraft.nextActionDue} /></Field></div>
             <button aria-expanded={showContactDetails} className="progressive-toggle" onClick={() => setShowContactDetails((current) => !current)} type="button"><span><Sparkles className="h-4 w-4" /><strong>{showContactDetails ? "Hide optional details" : "Add more details"}</strong><small>Signal, contact details, meeting and notes</small></span><ChevronDown className={`h-5 w-5 transition ${showContactDetails ? "rotate-180" : ""}`} /></button>
             {showContactDetails && <div className="progressive-content space-y-5">
             <TrafficLightPicker label={language === "he" ? "רמזור הקשר" : "Relationship signal"} language={language} onChange={(trafficLight) => setContactDraft({ ...contactDraft, trafficLight })} value={contactDraft.trafficLight} />
             <div className="grid gap-4 sm:grid-cols-2"><Field label="Email"><input className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, email: e.target.value })} type="email" value={contactDraft.email} /></Field><Field label="Phone"><input className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, phone: e.target.value })} type="tel" value={contactDraft.phone} /></Field></div>
             <Field label="LinkedIn profile"><input className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, linkedInUrl: e.target.value })} placeholder="https://linkedin.com/in/…" type="url" value={contactDraft.linkedInUrl} /></Field>
             <Field label="Last contact date"><input className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, lastContactDate: e.target.value })} type="date" value={contactDraft.lastContactDate} /></Field>
-            <div className="rounded-2xl border border-fuchsia-400/15 bg-fuchsia-400/5 p-4"><p className="mb-4 flex items-center gap-2 text-sm font-semibold text-fuchsia-200"><CalendarPlus className="h-4 w-4" /> Networking event</p><div className="grid gap-4 sm:grid-cols-2"><Field label="Event type"><input className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, eventType: e.target.value })} placeholder="Coffee chat, call…" value={contactDraft.eventType} /></Field><Field label="Date & time"><input className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, eventDateTime: e.target.value })} type="datetime-local" value={contactDraft.eventDateTime} /></Field></div><p className="mt-3 text-xs leading-5 text-slate-400">Save first, then add the event to Google, Apple, Outlook, Samsung, or another device calendar.</p></div>
+            <div className="rounded-2xl border border-fuchsia-400/15 bg-fuchsia-400/5 p-4"><p className="mb-4 flex items-center gap-2 text-sm font-semibold text-fuchsia-200"><CalendarPlus className="h-4 w-4" /> Networking event</p><div className="grid gap-4 sm:grid-cols-2"><Field label="Event type"><input className="form-control" list="network-event-options" onChange={(e) => setContactDraft({ ...contactDraft, eventType: e.target.value })} placeholder={language === "he" ? "בחרו או כתבו סוג פגישה" : "Choose or type an event"} value={contactDraft.eventType} /></Field><Field label="Date & time"><input className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, eventDateTime: e.target.value })} type="datetime-local" value={contactDraft.eventDateTime} /></Field></div><p className="mt-3 text-xs leading-5 text-slate-400">Save first, then add the event to Google, Apple, Outlook, Samsung, or another device calendar.</p></div>
             <Field label="Notes (optional)"><textarea className="form-control min-h-24 resize-y" onChange={(e) => setContactDraft({ ...contactDraft, notes: e.target.value })} value={contactDraft.notes} /></Field>
             </div>}
             <div className="modal-actions"><button className="secondary-button" onClick={() => setShowContactModal(false)} type="button">{language === "he" ? "ביטול" : "Cancel"}</button><button className="primary-button" type="submit">{language === "he" ? (editingContactId ? "שמירת השינויים" : "הוספת איש הקשר") : (editingContactId ? "Save changes" : "Add contact")}</button></div>
@@ -2416,15 +2785,16 @@ function EmptyState({ icon, title, text, action, onAction }: { icon: ReactNode; 
 
 function TrafficLightPicker({ label, value, language, onChange }: { label: string; value: TrafficLight; language: Language; onChange: (value: TrafficLight) => void }) {
   return (
-    <fieldset>
+    <fieldset className="traffic-picker">
       <legend className="text-sm font-medium text-slate-200">{label}</legend>
-      <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="traffic-options">
         {trafficLights.map((trafficLight) => {
           const meta = trafficLightMeta[trafficLight];
           const translatedLabel = language === "he" ? ({ none: "ללא סטטוס", green: "מתקדם", yellow: "ממתין", red: "חסום או נסגר" } as Record<TrafficLight, string>)[trafficLight] : meta.label;
-          return <button aria-pressed={value === trafficLight} className={`traffic-option ${value === trafficLight ? "border-cyan-400/50 bg-cyan-400/10 text-white" : "border-white/10 bg-slate-950/50 text-slate-400"}`} key={trafficLight} onClick={() => onChange(trafficLight)} type="button"><span className={`h-3 w-3 rounded-full ring-2 ring-white/10 ${meta.dot}`} />{translatedLabel}</button>;
+          return <button aria-label={`${label}: ${translatedLabel}`} aria-pressed={value === trafficLight} className={`traffic-option traffic-option-${trafficLight} ${value === trafficLight ? "traffic-option-selected" : ""}`} key={trafficLight} onClick={() => onChange(trafficLight)} type="button"><span className={`traffic-dot ${meta.dot}`} /><span>{translatedLabel}</span>{value === trafficLight && <CheckCircle2 aria-hidden="true" className="traffic-check h-4 w-4" />}</button>;
         })}
       </div>
+      <p aria-live="polite" className="traffic-selection-note">{language === "he" ? "נבחר:" : "Selected:"} <strong>{language === "he" ? ({ none: "ללא סטטוס", green: "מתקדם", yellow: "ממתין", red: "חסום או נסגר" } as Record<TrafficLight, string>)[value] : trafficLightMeta[value].label}</strong></p>
     </fieldset>
   );
 }
@@ -2449,6 +2819,115 @@ function SalaryBars({ data }: { data: { label: string; value: number; count: num
   const max = Math.max(1, ...data.map((item) => item.value));
   if (!data.length) return <div className="flex h-44 flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 text-center"><span className="text-4xl">💸</span><p className="mt-3 text-sm text-slate-500">Salary insights will appear after expectations are added.</p></div>;
   return <div className="space-y-4">{data.map((item, index) => <div key={item.label}><div className="mb-2 flex items-center justify-between gap-3"><span className="text-sm text-slate-400">{item.label} · {item.count} {item.count === 1 ? "role" : "roles"}</span><strong className="text-sm text-emerald-300">{compactMoney(item.value, item.label)}</strong></div><div className="h-3 overflow-hidden rounded-full bg-white/5"><div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-cyan-400 transition-all duration-700" style={{ opacity: 1 - index * 0.12, width: `${Math.max(10, item.value / max * 100)}%` }} /></div></div>)}</div>;
+}
+
+function RadarChart({ data }: { data: { label: string; value: number }[] }) {
+  const size = 240;
+  const center = size / 2;
+  const radius = 78;
+  const max = Math.max(1, ...data.map((item) => item.value));
+  const point = (index: number, scale: number) => {
+    const angle = -Math.PI / 2 + index * Math.PI * 2 / data.length;
+    return `${center + Math.cos(angle) * radius * scale},${center + Math.sin(angle) * radius * scale}`;
+  };
+  const polygon = data.map((item, index) => point(index, item.value / max)).join(" ");
+  return <div className="flex min-h-48 flex-col items-center gap-3">
+    <svg aria-label="Process-stage health radar chart" className="w-full max-w-xs overflow-visible" role="img" viewBox={`0 0 ${size} ${size}`}>
+      {[0.33, 0.66, 1].map((scale) => <polygon fill="none" key={scale} points={data.map((_, index) => point(index, scale)).join(" ")} stroke="rgba(148,163,184,.22)" strokeWidth="1" />)}
+      {data.map((_, index) => <line key={index} stroke="rgba(148,163,184,.18)" x1={center} x2={point(index, 1).split(",")[0]} y1={center} y2={point(index, 1).split(",")[1]} />)}
+      <polygon fill="rgba(34,211,238,.22)" points={polygon} stroke="#22d3ee" strokeLinejoin="round" strokeWidth="2.5" />
+      {data.map((item, index) => {
+        const [x, y] = point(index, item.value / max).split(",");
+        const [labelX, labelY] = point(index, 1.23).split(",");
+        return <g key={item.label}><circle cx={x} cy={y} fill="#5eead4" r="4" /><text fill="currentColor" fontSize="9" textAnchor="middle" x={labelX} y={labelY}>{item.label}</text></g>;
+      })}
+    </svg>
+  </div>;
+}
+
+function OpportunityMatrix({ data, language }: {
+  data: {
+    id: string;
+    company: string;
+    role: string;
+    fit: number;
+    progression: number;
+    priority: (typeof priorities)[number];
+    trafficLight: TrafficLight;
+    status: ApplicationStatus;
+    overdue: boolean;
+  }[];
+  language: Language;
+}) {
+  const colors: Record<TrafficLight, string> = {
+    none: "#94a3b8",
+    green: "#34d399",
+    yellow: "#fbbf24",
+    red: "#fb7185",
+  };
+  const fitLabels = language === "he" ? ["נמוכה", "בינונית", "גבוהה"] : ["Low", "Medium", "High"];
+  const progressLabels = language === "he" ? ["נרשמה", "מעקב", "ראיון", "הצעה"] : ["Tracked", "Follow-up", "Interview", "Offer"];
+  const xFor = (fit: number) => 72 + (fit - 1) * 108;
+  const yFor = (progression: number) => 198 - (progression - 1) * 48;
+
+  if (!data.length) {
+    return <div className="flex h-48 items-center justify-center rounded-2xl border border-dashed border-white/10 px-6 text-center text-sm text-slate-500">{language === "he" ? "הוסיפו מועמדויות ורמת התאמה כדי לבנות את המטריצה." : "Add applications and fit levels to build your matrix."}</div>;
+  }
+
+  return <div className="min-h-48">
+    <svg aria-label={language === "he" ? "מטריצת איכות הזדמנויות" : "Opportunity quality matrix"} className="w-full overflow-visible" role="img" viewBox="0 0 360 255">
+      <defs>
+        <linearGradient id="matrixOpportunityZone" x1="0" x2="1" y1="1" y2="0">
+          <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.02" />
+          <stop offset="100%" stopColor="#34d399" stopOpacity="0.20" />
+        </linearGradient>
+      </defs>
+      <rect fill="url(#matrixOpportunityZone)" height="174" rx="14" width="292" x="46" y="24" />
+      {[1, 2, 3].map((fit) => <line key={`fit-${fit}`} stroke="rgba(148,163,184,.16)" x1={xFor(fit)} x2={xFor(fit)} y1="24" y2="198" />)}
+      {[1, 2, 3, 4].map((progression) => <line key={`progress-${progression}`} stroke="rgba(148,163,184,.16)" x1="46" x2="338" y1={yFor(progression)} y2={yFor(progression)} />)}
+      <text fill="currentColor" fontSize="9" textAnchor="middle" x="192" y="245">{language === "he" ? "רמת התאמה למשרה" : "Role fit"}</text>
+      {fitLabels.map((label, index) => <text fill="currentColor" fontSize="8" key={label} opacity=".72" textAnchor="middle" x={xFor(index + 1)} y="218">{label}</text>)}
+      <text fill="currentColor" fontSize="9" textAnchor="middle" transform="rotate(-90 12 111)" x="12" y="111">{language === "he" ? "התקדמות בתהליך" : "Pipeline progress"}</text>
+      {progressLabels.map((label, index) => <text fill="currentColor" fontSize="7.5" key={label} opacity=".68" textAnchor="end" x="40" y={yFor(index + 1) + 3}>{label}</text>)}
+      {data.map((item, index) => {
+        const sameCellIndex = data.slice(0, index).filter((other) => other.fit === item.fit && other.progression === item.progression).length;
+        const jitterX = sameCellIndex % 2 === 0 ? sameCellIndex * 7 : -sameCellIndex * 7;
+        const jitterY = sameCellIndex * -5;
+        const x = xFor(item.fit) + jitterX;
+        const y = yFor(item.progression) + jitterY;
+        const radius = item.priority === "High" ? 13 : item.priority === "Medium" ? 10.5 : 8.5;
+        const accessibleLabel = `${item.company}, ${item.role}, ${item.status}, ${item.priority} fit, ${trafficLightMeta[item.trafficLight].label}`;
+        return <g aria-label={accessibleLabel} key={item.id} role="group">
+          <title>{accessibleLabel}</title>
+          {item.overdue && <circle cx={x} cy={y} fill="none" r={radius + 4} stroke="#fb7185" strokeDasharray="3 3" strokeWidth="1.5" />}
+          <circle className="transition-all duration-300 hover:opacity-80" cx={x} cy={y} fill={colors[item.trafficLight]} fillOpacity=".92" r={radius} stroke="rgba(255,255,255,.82)" strokeWidth="1.5" />
+          <text fill="#07131f" fontSize={radius > 10 ? "7" : "6"} fontWeight="800" textAnchor="middle" x={x} y={y + 2.4}>{item.company.slice(0, 2).toUpperCase()}</text>
+        </g>;
+      })}
+    </svg>
+    <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[11px] text-slate-500">
+      {(["green", "yellow", "red", "none"] as TrafficLight[]).map((signal) => <span className="flex items-center gap-1.5" key={signal}><i className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: colors[signal] }} />{language === "he" ? ({ green: "מתקדם", yellow: "ממתין", red: "חסום/נסגר", none: "ללא סימון" } as Record<TrafficLight, string>)[signal] : trafficLightMeta[signal].label}</span>)}
+      <span>{language === "he" ? "עיגול גדול = התאמה גבוהה" : "Larger circle = higher fit"}</span>
+      <span>{language === "he" ? "מסגרת מקווקוות = פעולה באיחור" : "Dashed ring = overdue action"}</span>
+    </div>
+  </div>;
+}
+
+function FunnelChart({ data }: { data: { label: string; value: number }[] }) {
+  const max = Math.max(1, ...data.map((item) => item.value));
+  const colors = ["linear-gradient(90deg,#22d3ee,#38bdf8)", "linear-gradient(90deg,#8b5cf6,#c084fc)", "linear-gradient(90deg,#10b981,#5eead4)"];
+  return <div className="flex min-h-48 flex-col items-center justify-center gap-3">
+    {data.map((item, index) => {
+      const relative = item.value / max;
+      const width = item.value ? Math.max(42, 100 - index * 23, relative * 100) : Math.max(34, 100 - index * 23);
+      return <div className="flex w-full flex-col items-center" key={item.label}>
+        <div className="flex min-h-12 items-center justify-between gap-4 rounded-xl px-4 text-white shadow-lg transition-all duration-500" style={{ background: colors[index], opacity: item.value ? 1 : 0.32, width: `${width}%` }}>
+          <span className="truncate text-sm font-medium">{item.label}</span><strong className="text-lg">{item.value}</strong>
+        </div>
+        {index < data.length - 1 && <span aria-hidden="true" className="my-0.5 text-slate-500">↓</span>}
+      </div>;
+    })}
+  </div>;
 }
 
 function DonutChart({ data }: { data: { label: string; value: number; color: string }[] }) {
