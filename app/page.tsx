@@ -93,6 +93,7 @@ type ContactSort = "next-action" | "meeting-soonest" | "recent-contact" | "name-
 const trafficLights = ["none", "green", "yellow", "red"] as const;
 type TrafficLight = (typeof trafficLights)[number];
 type AppView = "home" | "search" | "applications" | "networking" | "tools" | "more";
+type ApplicationViewMode = "table" | "kanban" | "calendar";
 type ProcessStage = { id: string; name: string; date: string; trafficLight: TrafficLight };
 
 const workModels = ["", "Remote", "Hybrid", "On-site"] as const;
@@ -213,6 +214,17 @@ type UserProfile = {
 };
 
 type DailyMood = "" | "ready" | "low" | "difficult";
+type JobInboxItem = {
+  id: string;
+  company: string;
+  role: string;
+  location: string;
+  source: string;
+  url: string;
+  match: number;
+  posted: string;
+  reason: string;
+};
 type Language = "en" | "he";
 type ColorTheme = "dark" | "light" | "ocean" | "plum";
 type SocialPlatform = "LinkedIn" | "Instagram" | "Facebook";
@@ -269,7 +281,7 @@ type ContactDraft = Omit<Contact, "id">;
 const emptySearchProfile: SearchProfile = { role: "", location: "", country: "Netherlands", radius: "25", skills: "", seniority: "", workModel: "", employmentType: "Full-time", datePosted: "Past 24 hours", industry: "", exclude: "" };
 
 const skillSuggestions = ["Business partnering", "Talent management", "Employee relations", "Organizational development", "Change management", "Workforce planning", "Coaching", "HR analytics", "People strategy", "Recruitment", "Compensation & benefits", "Labor law", "Stakeholder management", "Leadership development", "Performance management"];
-const roleSuggestions = ["HR Business Partner", "Senior HR Business Partner", "People Partner", "HR Manager", "People Operations Manager", "Talent Acquisition Partner", "Organizational Development Manager", "Employee Experience Manager"];
+const roleSuggestions = ["Supply Chain Manager", "Operations Manager", "Procurement Manager", "Logistics Manager", "HR Business Partner", "Senior HR Business Partner", "People Partner", "HR Manager", "People Operations Manager", "Talent Acquisition Partner", "Organizational Development Manager", "Employee Experience Manager"];
 const countryOptions = ["Netherlands", "Israel", "United Kingdom", "Germany", "France", "Spain", "Portugal", "Belgium", "United States", "Canada", "Other"];
 const pilotQuestions = [
   "How easy was it to understand what Carvio does?",
@@ -806,43 +818,82 @@ function companyLogoFromWebsite(value: string) {
   }
 }
 
-function buildSearchQuery(profile: SearchProfile, includeLocation = true) {
+function companyJobSearchRoute(profile: SearchProfile, company: string, routeIndex = 0, officialCareerUrl = "") {
   const clean = normalizedSearchProfile(profile);
-  const requiredSkills = clean.skills.split(",").map((item) => item.trim()).filter(Boolean).map((item) => `"${item}"`).join(" ");
-  const excluded = clean.exclude.split(",").map((item) => item.trim()).filter(Boolean).map((item) => `-${item.replace(/\s+/g, "-")}`).join(" ");
-  return [`"${clean.role}"`, clean.seniority, requiredSkills, clean.industry, clean.employmentType, clean.workModel, includeLocation ? `"${clean.location}"` : "", excluded].filter(Boolean).join(" ");
+  const freshness = clean.datePosted === "Past 24 hours" ? "r86400" : clean.datePosted === "Past week" ? "r604800" : clean.datePosted === "Past month" ? "r2592000" : "";
+  const indeedDomains: Record<string, string> = { Netherlands: "nl.indeed.com", Israel: "il.indeed.com", "United Kingdom": "uk.indeed.com", Germany: "de.indeed.com", France: "fr.indeed.com", Spain: "es.indeed.com", Portugal: "pt.indeed.com", Belgium: "be.indeed.com", Canada: "ca.indeed.com", "United States": "www.indeed.com" };
+  const googleDomains: Record<string, string> = { Netherlands: "www.google.nl", Israel: "www.google.co.il", "United Kingdom": "www.google.co.uk", Germany: "www.google.de", France: "www.google.fr", Spain: "www.google.es", Portugal: "www.google.pt", Belgium: "www.google.be", Canada: "www.google.ca", "United States": "www.google.com" };
+  const indeedAge = clean.datePosted === "Past 24 hours" ? "1" : clean.datePosted === "Past week" ? "7" : clean.datePosted === "Past month" ? "30" : "";
+  const provider = routeIndex % 3;
+
+  if (provider === 0) {
+    const query = encodeURIComponent(`"${clean.role}" "${company}"`);
+    const location = encodeURIComponent(clean.location);
+    return {
+      provider: `Indeed · ${company}`,
+      url: `https://${indeedDomains[clean.country] || "www.indeed.com"}/jobs?q=${query}&l=${location}&radius=${encodeURIComponent(clean.radius)}${indeedAge ? `&fromage=${indeedAge}` : ""}&sort=date`,
+    };
+  }
+
+  if (provider === 1) {
+    const officialDomain = officialCareerUrl ? new URL(officialCareerUrl).hostname : "";
+    const siteFilter = officialDomain ? `site:${officialDomain}` : "";
+    const query = [siteFilter, `"${clean.role}"`, `"${company}"`, clean.city ? `"${clean.city}"` : "", `"${clean.country}"`, "jobs"].filter(Boolean).join(" ");
+    return {
+      provider: officialDomain ? `Official-site results · ${company}` : `Web results · ${company}`,
+      url: `https://${googleDomains[clean.country] || "www.google.com"}/search?q=${encodeURIComponent(query)}`,
+    };
+  }
+
+  const params = new URLSearchParams({
+    keywords: `"${clean.role}" "${company}"`,
+    location: clean.location,
+    distance: clean.radius,
+    sortBy: "DD",
+  });
+  if (freshness) params.set("f_TPR", freshness);
+  return {
+    provider: `LinkedIn · ${company}`,
+    url: `https://www.linkedin.com/jobs/search/?${params.toString()}`,
+  };
 }
 
 function jobSearchSources(profile: SearchProfile) {
   const clean = normalizedSearchProfile(profile);
-  const roleQuery = buildSearchQuery(profile, false);
-  const role = encodeURIComponent(roleQuery);
+  // LinkedIn and Indeed already expose structured filters. Sending skills from a
+  // previous search in the keywords field can overpower a newly entered role.
+  const role = encodeURIComponent(clean.role);
   const location = encodeURIComponent(clean.location);
   const indeedDomains: Record<string, string> = { Netherlands: "nl.indeed.com", Israel: "il.indeed.com", "United Kingdom": "uk.indeed.com", Germany: "de.indeed.com", France: "fr.indeed.com", Spain: "es.indeed.com", Portugal: "pt.indeed.com", Belgium: "be.indeed.com", Canada: "ca.indeed.com", "United States": "www.indeed.com" };
   const googleDomains: Record<string, string> = { Netherlands: "www.google.nl", Israel: "www.google.co.il", "United Kingdom": "www.google.co.uk", Germany: "www.google.de", France: "www.google.fr", Spain: "www.google.es", Portugal: "www.google.pt", Belgium: "www.google.be", Canada: "www.google.ca", "United States": "www.google.com" };
   const countryCodes: Record<string, string> = { Netherlands: "nl", Israel: "il", "United Kingdom": "gb", Germany: "de", France: "fr", Spain: "es", Portugal: "pt", Belgium: "be", Canada: "ca", "United States": "us" };
   const indeedDomain = indeedDomains[clean.country] || "www.indeed.com";
   const googleDomain = googleDomains[clean.country] || "www.google.com";
-  const geographicExclusions = ["London", "United Kingdom", "Israel", "Netanya", "South Africa", "United States", "Canada", "Australia"].filter((term) => !clean.location.toLowerCase().includes(term.toLowerCase())).map((term) => `-"${term}"`).join(" ");
-  const strictLocalQuery = `"${clean.role}" "${clean.city}" "${clean.country}" ${clean.skills ? clean.skills.split(",").map((skill) => `"${skill.trim()}"`).join(" ") : ""} ${clean.workModel ? `"${clean.workModel}"` : ""} ${clean.exclude ? clean.exclude.split(",").map((term) => `-"${term.trim()}"`).join(" ") : ""} ${geographicExclusions}`;
+  const strictLocalQuery = [`"${clean.role}"`, clean.city ? `"${clean.city}"` : "", `"${clean.country}"`, clean.skills ? clean.skills.split(",").map((skill) => `"${skill.trim()}"`).join(" ") : "", clean.seniority && clean.seniority !== "Any level" ? `"${clean.seniority}"` : "", clean.employmentType && clean.employmentType !== "Any type" ? `"${clean.employmentType}"` : "", clean.workModel && clean.workModel !== "Any model" ? `"${clean.workModel}"` : "", clean.exclude ? clean.exclude.split(",").map((term) => `-"${term.trim()}"`).join(" ") : ""].filter(Boolean).join(" ");
   const indeedAge = clean.datePosted === "Past 24 hours" ? "1" : clean.datePosted === "Past week" ? "7" : clean.datePosted === "Past month" ? "30" : "";
   const linkedInAge = clean.datePosted === "Past 24 hours" ? "r86400" : clean.datePosted === "Past week" ? "r604800" : clean.datePosted === "Past month" ? "r2592000" : "";
   const googleAge = clean.datePosted === "Past 24 hours" ? "qdr:d" : clean.datePosted === "Past week" ? "qdr:w" : clean.datePosted === "Past month" ? "qdr:m" : "";
   const linkedInParams = new URLSearchParams({
-    keywords: roleQuery,
+    keywords: clean.role,
     location: clean.location,
     distance: clean.radius,
     sortBy: "DD",
   });
   if (linkedInAge) linkedInParams.set("f_TPR", linkedInAge);
+  const linkedInSeniority: Record<string, string> = { "Entry level": "2", Associate: "3", "Mid-Senior level": "4", Director: "5", Executive: "6" };
+  const linkedInEmployment: Record<string, string> = { "Full-time": "F", "Part-time": "P", Contract: "C", Temporary: "T", Internship: "I" };
+  const linkedInWorkModel: Record<string, string> = { "On-site": "1", Remote: "2", Hybrid: "3" };
+  if (linkedInSeniority[clean.seniority]) linkedInParams.set("f_E", linkedInSeniority[clean.seniority]);
+  if (linkedInEmployment[clean.employmentType]) linkedInParams.set("f_JT", linkedInEmployment[clean.employmentType]);
+  if (linkedInWorkModel[clean.workModel]) linkedInParams.set("f_WT", linkedInWorkModel[clean.workModel]);
   const countryCode = countryCodes[clean.country] || clean.country.slice(0, 2).toLowerCase();
   const googleSuffix = `&hl=en&gl=${encodeURIComponent(countryCode)}${googleAge ? `&tbs=${googleAge}` : ""}`;
+  const indeedEmployment: Record<string, string> = { "Full-time": "fulltime", "Part-time": "parttime", Contract: "contract", Temporary: "temporary", Internship: "internship" };
+  const indeedJobType = indeedEmployment[clean.employmentType] ? `&jt=${indeedEmployment[clean.employmentType]}` : "";
   return [
-    { name: "Official career sites", emoji: "🏢", featured: true, freshness: "Best freshness check", accuracy: "Exact city + official ATS", description: `Open employer listings that explicitly mention ${clean.city} and ${clean.country}. Confirm availability on the company page before applying.`, url: `https://${googleDomain}/search?q=${encodeURIComponent(`${strictLocalQuery} (site:myworkdayjobs.com OR site:workdayjobs.com OR site:jobs.ashbyhq.com OR site:boards.greenhouse.io OR site:jobs.lever.co)`) }${googleSuffix}` },
-    { name: "Indeed", emoji: "🌍", featured: false, freshness: clean.datePosted, accuracy: `${clean.radius} km location filter`, description: `${clean.employmentType || "All roles"} on the local ${clean.country} site, sorted by relevance within the selected radius.`, url: `https://${indeedDomain}/jobs?q=${role}&l=${location}&radius=${encodeURIComponent(clean.radius)}${indeedAge ? `&fromage=${indeedAge}` : ""}&sort=date` },
-    { name: "LinkedIn — newest", emoji: "💼", featured: false, freshness: `${clean.datePosted} · newest first`, accuracy: `City + country + ${clean.radius} km`, description: `LinkedIn receives separate location and freshness filters. Sponsored or personalized suggestions may still appear outside them.`, url: `https://www.linkedin.com/jobs/search/?${linkedInParams.toString()}` },
-    { name: "Google recent", emoji: "🔎", featured: false, freshness: clean.datePosted, accuracy: "Quoted city + country", description: `Recent web results requiring both ${clean.city} and ${clean.country}, with unrelated locations explicitly excluded.`, url: `https://${googleDomain}/search?q=${encodeURIComponent(`${strictLocalQuery} jobs`)}${googleSuffix}` },
-    { name: "Recruiter posts", emoji: "📣", featured: false, freshness: clean.datePosted, accuracy: "Location-required posts", description: `Recent recruiter and hiring posts that explicitly mention ${clean.location}. Verify the linked role is still open.`, url: `https://${googleDomain}/search?q=${encodeURIComponent(`${strictLocalQuery} (recruiter OR hiring) job`)}${googleSuffix}` },
+    { name: "LinkedIn — newest", emoji: "💼", featured: true, freshness: `${clean.datePosted} · newest first`, accuracy: `${clean.city ? "City + country" : "Country"} + ${clean.radius} km`, description: `LinkedIn receives the exact role plus separate location, radius and freshness filters. If it says “No matching jobs,” ignore the unrelated recommendations shown underneath.`, url: `https://www.linkedin.com/jobs/search/?${linkedInParams.toString()}` },
+    { name: "Indeed — local", emoji: "🌍", featured: false, freshness: clean.datePosted, accuracy: `${clean.radius} km location filter`, description: `${clean.employmentType || "All roles"} on the local ${clean.country} site, sorted by newest within the selected radius.`, url: `https://${indeedDomain}/jobs?q=${role}&l=${location}&radius=${encodeURIComponent(clean.radius)}${indeedAge ? `&fromage=${indeedAge}` : ""}${indeedJobType}&sort=date` },
+    { name: "Google Jobs — precise", emoji: "🔎", featured: false, freshness: clean.datePosted, accuracy: clean.city ? "Exact city + country" : "Exact country", description: `Google Jobs search requiring the selected role and ${clean.city ? `${clean.city}, ` : ""}${clean.country}, plus the skills and work preferences you supplied.`, url: `https://${googleDomain}/search?q=${encodeURIComponent(`${strictLocalQuery} jobs`)}${googleSuffix}&ibp=htl;jobs#htivrt=jobs` },
   ];
 }
 
@@ -1031,6 +1082,7 @@ export default function Home() {
   const [resumeText, setResumeText] = useState("");
   const [rewriteDraft, setRewriteDraft] = useState("");
   const [searchProfile, setSearchProfile] = useState<SearchProfile>(emptySearchProfile);
+  const [submittedSearchProfile, setSubmittedSearchProfile] = useState<SearchProfile | null>(null);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [messageProfile, setMessageProfile] = useState<MessageProfile>(emptyMessageProfile);
   const [generatedMessage, setGeneratedMessage] = useState("");
@@ -1068,6 +1120,14 @@ export default function Home() {
   const [showContactFilters, setShowContactFilters] = useState(false);
   const [searchStep, setSearchStep] = useState<1 | 2 | 3>(1);
   const [mobileInsightCategory, setMobileInsightCategory] = useState<"pipeline" | "activity" | "networking">("pipeline");
+  const [applicationViewMode, setApplicationViewMode] = useState<ApplicationViewMode>("table");
+  const [showSmartCapture, setShowSmartCapture] = useState(false);
+  const [smartCaptureUrl, setSmartCaptureUrl] = useState("");
+  const [smartCaptureError, setSmartCaptureError] = useState("");
+  const [workspaceApplicationId, setWorkspaceApplicationId] = useState<string | null>(null);
+  const [showCommandBar, setShowCommandBar] = useState(false);
+  const [commandQuery, setCommandQuery] = useState("");
+  const [hiddenJobIds, setHiddenJobIds] = useState<string[]>([]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -1187,6 +1247,11 @@ export default function Home() {
   useEffect(() => {
     const onShortcut = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setShowCommandBar(true);
+        return;
+      }
       if (event.metaKey || event.ctrlKey || event.altKey || target.matches("input, textarea, select") || showApplicationModal || showContactModal || showFeedbackModal || recoveryApplication) return;
       if (event.key.toLowerCase() === "a") openNewApplication();
       if (event.key.toLowerCase() === "c") openNewContact();
@@ -1194,6 +1259,18 @@ export default function Home() {
     document.addEventListener("keydown", onShortcut);
     return () => document.removeEventListener("keydown", onShortcut);
   });
+
+  const workspaceApplication = useMemo(
+    () => applications.find((item) => item.id === workspaceApplicationId) || null,
+    [applications, workspaceApplicationId],
+  );
+
+  const actionApplication = useMemo(
+    () => applications.find((item) => item.status === "Follow-up due" || isPast(item.nextStepDue))
+      || applications.find((item) => item.eventDateTime && new Date(item.eventDateTime).getTime() >= Date.now())
+      || applications.find((item) => !["Rejected", "Withdrawn"].includes(item.status)),
+    [applications],
+  );
 
   const metrics = useMemo(() => {
     const activeStatuses: ApplicationStatus[] = ["Applied", "Interview", "Follow-up due"];
@@ -1396,6 +1473,10 @@ export default function Home() {
 
   const activeRecoveryEntry = recoveryApplication ? recoveryEntries.find((entry) => entry.applicationId === recoveryApplication.id) : undefined;
   const resolvedSearch = useMemo(() => normalizedSearchProfile(searchProfile), [searchProfile]);
+  const submittedSearch = useMemo(
+    () => normalizedSearchProfile(submittedSearchProfile ?? searchProfile),
+    [searchProfile, submittedSearchProfile],
+  );
   const visibleApplications = useMemo(() => {
     const query = applicationQuery.trim().toLocaleLowerCase();
     const now = Date.now();
@@ -1536,6 +1617,101 @@ export default function Home() {
     reader.onload = () => setApplicationDraft((current) => ({ ...current, logoUrl: String(reader.result) }));
     reader.onerror = () => setNotice(language === "he" ? "לא הצלחנו לקרוא את התמונה." : "Carvio could not read that image.");
     reader.readAsDataURL(file);
+  }
+
+  const showCompanySearchLeads = false;
+  const jobInbox = useMemo<JobInboxItem[]>(() => {
+    if (!showSearchResults || !resolvedSearch.role || !resolvedSearch.country) return [];
+    const companiesByCountry: Record<string, string[]> = {
+      Netherlands: ["Booking.com", "Adyen", "Miro", "Mollie", "Picnic", "TomTom"],
+      Israel: ["Wix", "Monday.com", "Fiverr", "Payoneer", "Similarweb", "AppsFlyer"],
+      Germany: ["Zalando", "N26", "Delivery Hero", "Personio", "Celonis", "HelloFresh"],
+      "United Kingdom": ["Wise", "Revolut", "Monzo", "Deliveroo", "Checkout.com", "Octopus Energy"],
+      "United States": ["HubSpot", "Airbnb", "Stripe", "Notion", "Figma", "Asana"],
+    };
+    const companies = companiesByCountry[resolvedSearch.country] || ["Northstar", "Lumina", "Orbit", "Vertex", "Horizon", "Nova"];
+    return companies.map((company, index) => {
+      const companyRoute = companyJobSearchRoute(searchProfile, company, index);
+      return {
+        id: `${resolvedSearch.role}-${resolvedSearch.city || resolvedSearch.country}-${company}`.toLowerCase().replace(/\W+/g, "-"),
+        company,
+        role: resolvedSearch.role,
+        location: resolvedSearch.location,
+        source: companyRoute.provider,
+        url: companyRoute.url,
+        match: Math.max(72, 94 - index * 4),
+        posted: index < 2 ? (language === "he" ? "24 השעות האחרונות" : "Past 24 hours") : (language === "he" ? "השבוע האחרון" : "Past week"),
+        reason: searchProfile.skills
+          ? `${searchProfile.skills.split(",").slice(0, 2).join(" · ")} · ${searchProfile.workModel || (language === "he" ? "כל מודל עבודה" : "Any work model")}`
+          : `${resolvedSearch.city || resolvedSearch.country} · ${searchProfile.seniority || (language === "he" ? "כל דרגה" : "Any seniority")}`,
+      };
+    }).filter((item) => !hiddenJobIds.includes(item.id));
+  }, [hiddenJobIds, language, resolvedSearch, searchProfile, showSearchResults]);
+
+  function smartCaptureApplication() {
+    setSmartCaptureError("");
+    let parsed: URL;
+    try {
+      parsed = new URL(smartCaptureUrl.trim());
+    } catch {
+      setSmartCaptureError(language === "he" ? "יש להדביק כתובת מלאה ותקינה." : "Paste a complete, valid job URL.");
+      return;
+    }
+    const host = parsed.hostname.replace(/^www\./, "");
+    const knownBoard = /linkedin|indeed|glassdoor|google/i.test(host);
+    const companyToken = host.split(".")[0].replace(/[-_]/g, " ");
+    const pathParts = decodeURIComponent(parsed.pathname).split("/").filter(Boolean).filter((part) => !/^(jobs?|careers?|view|position|vacancy)$/i.test(part));
+    const roleToken = ([...pathParts].reverse().find((part) => !/^\d+$/.test(part)) || "").replace(/[-_]/g, " ").replace(/\b\d{5,}\b/g, "").trim();
+    const titleCase = (value: string) => value.replace(/\b\w/g, (letter) => letter.toUpperCase());
+    setEditingApplicationId(null);
+    setApplicationDraft({
+      ...emptyApplication,
+      company: knownBoard ? "" : titleCase(companyToken),
+      companyWebsite: knownBoard ? "" : parsed.origin,
+      logoUrl: knownBoard ? "" : companyLogoFromWebsite(parsed.origin),
+      role: titleCase(roleToken),
+      jobUrl: parsed.toString(),
+      source: /linkedin/i.test(host) ? "LinkedIn" : /indeed/i.test(host) ? "Indeed" : "Company careers page",
+      nextStep: language === "he" ? "בדיקת התפקיד והתאמת קורות החיים" : "Review the role and tailor the CV",
+    });
+    setShowApplicationDetails(true);
+    setShowSmartCapture(false);
+    setSmartCaptureUrl("");
+    setShowApplicationModal(true);
+  }
+
+  function completeApplicationAction(application: Application) {
+    setApplications((items) => items.map((item) => item.id === application.id ? { ...item, nextStep: "", nextStepDue: "", trafficLight: item.trafficLight === "red" ? "yellow" : item.trafficLight } : item));
+    setNotice(language === "he" ? "הפעולה הושלמה — מצוין 🌱" : "Action completed — momentum saved 🌱");
+  }
+
+  function snoozeApplication(application: Application, days = 2) {
+    const date = new Date();
+    date.setDate(date.getDate() + days);
+    setApplications((items) => items.map((item) => item.id === application.id ? { ...item, nextStepDue: date.toISOString().slice(0, 10), trafficLight: "yellow" } : item));
+    setNotice(language === "he" ? `נדחה בעוד ${days} ימים.` : `Snoozed for ${days} days.`);
+  }
+
+  function saveInboxJob(item: JobInboxItem, alreadyApplied = false) {
+    const exists = applications.some((application) => application.company.toLowerCase() === item.company.toLowerCase() && application.role.toLowerCase() === item.role.toLowerCase());
+    if (exists) {
+      setNotice(language === "he" ? "המשרה כבר נמצאת במועמדויות." : "This role is already in Applications.");
+      return;
+    }
+    setApplications((items) => [{
+      ...normalizeApplication({
+        id: makeId("app"),
+        company: item.company,
+        role: item.role,
+        location: item.location,
+        source: item.source,
+        jobUrl: item.url,
+        status: alreadyApplied ? "Applied" : "Applied",
+        nextStep: alreadyApplied ? "Plan follow-up" : "Review and decide whether to apply",
+        trafficLight: "none",
+      }),
+    }, ...items]);
+    setNotice(alreadyApplied ? (language === "he" ? "נשמר כמשרה שהוגשה." : "Saved as applied.") : (language === "he" ? "נשמר במועמדויות לבדיקה." : "Saved to Applications for review."));
   }
 
   function openNewApplication() {
@@ -1716,7 +1892,33 @@ export default function Home() {
   function toggleSearchSkill(skill: string) {
     const current = searchProfile.skills.split(",").map((item) => item.trim()).filter(Boolean);
     const next = current.some((item) => item.toLowerCase() === skill.toLowerCase()) ? current.filter((item) => item.toLowerCase() !== skill.toLowerCase()) : [...current, skill];
-    setSearchProfile({ ...searchProfile, skills: next.join(", ") });
+    updateSearchProfile({ skills: next.join(", ") });
+  }
+
+  function updateSearchProfile(patch: Partial<SearchProfile>) {
+    setSearchProfile((current) => ({ ...current, ...patch }));
+    setShowSearchResults(false);
+    setSubmittedSearchProfile(null);
+  }
+
+  function updateSearchRole(role: string) {
+    setSearchProfile((current) => {
+      const roleChanged = current.role.trim().toLocaleLowerCase() !== role.trim().toLocaleLowerCase();
+      return {
+        ...current,
+        role,
+        ...(roleChanged ? { skills: "", industry: "", seniority: "", exclude: "" } : {}),
+      };
+    });
+    setShowSearchResults(false);
+    setSubmittedSearchProfile(null);
+  }
+
+  function runJobSearch() {
+    const snapshot = { ...searchProfile, role: searchProfile.role.trim(), location: searchProfile.location.trim() };
+    setSubmittedSearchProfile(snapshot);
+    setShowSearchResults(true);
+    window.setTimeout(() => document.getElementById("search-results")?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
   }
 
   function saveSearchAsApplication() {
@@ -1988,6 +2190,7 @@ export default function Home() {
             ["more", BarChart3, copy.insights],
           ] as [AppView, typeof House, string][]).map(([view, Icon, label]) => <button aria-current={activeView === view ? "page" : undefined} className={`calm-nav-button ${view === "applications" ? "calm-nav-applications" : ""} ${activeView === view ? "calm-nav-button-active" : ""}`} key={view} onClick={() => switchView(view)} type="button"><Icon className="h-4 w-4" /><span>{label}</span>{view === "applications" && <small>{applications.length}</small>}</button>)}
         </nav>
+        <button className="command-trigger" onClick={() => setShowCommandBar(true)} type="button"><Search className="h-4 w-4" /><span>{language === "he" ? "חיפוש או מעבר מהיר…" : "Search or jump…"}</span><kbd>⌘K</kbd></button>
 
         {activeView !== "home" && <section className="calm-page-header"><div><p className="eyebrow text-cyan-300">Carvio</p><h1 className="text-2xl font-semibold">{activeView === "search" ? copy.search : activeView === "applications" ? copy.applications : activeView === "networking" ? copy.networking : activeView === "tools" ? copy.careerTools : copy.support}</h1><p className="mt-1 text-sm text-slate-400">{activeView === "search" ? (language === "he" ? "בחרו תפקיד ומיקום, הפעילו חיפוש ופתחו את התוצאות במקור." : "Choose a role and location, run the search, then open results at the source.") : activeView === "applications" ? copy.applicationIntro : activeView === "networking" ? copy.networkingIntro : activeView === "tools" ? copy.toolsIntro : copy.supportIntro}</p></div>{activeView === "search" ? <button className="primary-button" onClick={() => document.getElementById("search-form-fields")?.scrollIntoView({ behavior: "smooth", block: "start" })} type="button"><Search className="h-4 w-4" />{language === "he" ? "התחלת חיפוש" : "Start searching"}</button> : <button className="icon-button" onClick={() => setShowQuickAdd(true)} type="button" aria-label={language === "he" ? "הוספה מהירה" : "Quick add"}><Plus className="h-5 w-5" /></button>}</section>}
 
@@ -2047,6 +2250,15 @@ export default function Home() {
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
+          {actionApplication && <div className="daily-action-center">
+            <div><span>⚡ {language === "he" ? "מרכז הפעולות היומי" : "Daily action center"}</span><strong>{actionApplication.nextStep || `${language === "he" ? "בדיקת המועמדות ב־" : "Review "} ${actionApplication.company}`}</strong><small>{actionApplication.role} · {actionApplication.company}</small></div>
+            <div>
+              <button onClick={() => completeApplicationAction(actionApplication)} type="button"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "בוצע" : "Mark done"}</button>
+              <button onClick={() => snoozeApplication(actionApplication)} type="button"><Clock3 className="h-4 w-4" />{language === "he" ? "דחייה ביומיים" : "Snooze 2 days"}</button>
+              <button onClick={() => openOutreachForApplication(actionApplication)} type="button"><MessagesSquare className="h-4 w-4" />{language === "he" ? "כתיבת הודעה" : "Write follow-up"}</button>
+              <button onClick={() => setWorkspaceApplicationId(actionApplication.id)} type="button"><BriefcaseBusiness className="h-4 w-4" />{language === "he" ? "פתיחת סביבת העבודה" : "Open workspace"}</button>
+            </div>
+          </div>}
         </section>
 
         <section className={`calm-view pilot-stories ${activeView !== "home" ? "calm-view-hidden" : ""}`} aria-label="סיפורי משתמשים להמחשה" dir="rtl">
@@ -2095,7 +2307,17 @@ export default function Home() {
           <div className="panel application-table-panel xl:col-span-2" id="applications">
             <div className="section-heading">
               <div><p className="eyebrow text-emerald-300">{copy.applicationsEyebrow}</p><h2 className="section-title">{copy.activeOpportunities}</h2></div>
-              <button className="primary-button" onClick={openNewApplication} type="button"><Plus className="h-4 w-4" /> {copy.addApplication}</button>
+              <div className="application-heading-actions">
+                <button className="secondary-button" onClick={() => setShowSmartCapture(true)} type="button"><WandSparkles className="h-4 w-4" /> {language === "he" ? "לכידה חכמה מקישור" : "Smart capture"}</button>
+                <button className="primary-button" onClick={openNewApplication} type="button"><Plus className="h-4 w-4" /> {copy.addApplication}</button>
+              </div>
+            </div>
+            <div className="application-view-switcher" role="group" aria-label={language === "he" ? "בחירת תצוגה" : "Choose application view"}>
+              {([
+                ["table", "▦", language === "he" ? "טבלה" : "Table"],
+                ["kanban", "▤", "Kanban"],
+                ["calendar", "▦", language === "he" ? "יומן" : "Calendar"],
+              ] as [ApplicationViewMode, string, string][]).map(([mode, icon, label]) => <button aria-pressed={applicationViewMode === mode} className={applicationViewMode === mode ? "application-view-active" : ""} key={mode} onClick={() => setApplicationViewMode(mode)} type="button"><span>{icon}</span>{label}</button>)}
             </div>
             {applications.length > 0 && (
               <div className={`application-toolbar ${showApplicationFilters ? "mobile-filters-expanded" : ""}`} aria-label={language === "he" ? "סינון ומיון מועמדויות" : "Filter and sort applications"}>
@@ -2160,6 +2382,7 @@ export default function Home() {
                       <p className="mobile-record-next"><small>{language === "he" ? "הצעד הבא" : "Next move"}</small><strong>{application.nextStep || (language === "he" ? "לא הוגדר" : "Not set")}</strong></p>
                       {isExpanded && <div className="mobile-record-details"><span>{application.source || "—"}</span><span>{application.salary ? `${application.salaryCurrency} ${application.salary}` : "—"}</span><p>{application.notes || (language === "he" ? "אין הערות" : "No notes")}</p></div>}
                       <div className="mobile-record-actions">
+                        <button onClick={() => setWorkspaceApplicationId(application.id)} type="button"><BriefcaseBusiness className="h-4 w-4" />{language === "he" ? "סביבה" : "Workspace"}</button>
                         <button onClick={() => openEditApplication(application)} type="button"><Pencil className="h-4 w-4" />{language === "he" ? "עריכה" : "Edit"}</button>
                         {application.eventDateTime && <button onClick={() => downloadICS(`${application.eventType || "Meeting"} — ${application.company}`, application.eventDateTime, application.notes || application.nextStep, application.location)} type="button"><CalendarPlus className="h-4 w-4" />{language === "he" ? "יומן" : "Calendar"}</button>}
                         <button aria-expanded={isExpanded} onClick={() => setExpandedApplicationId(isExpanded ? null : application.id)} type="button">{language === "he" ? "פרטים" : "Details"}<ChevronDown className={`h-4 w-4 transition ${isExpanded ? "rotate-180" : ""}`} /></button>
@@ -2167,7 +2390,7 @@ export default function Home() {
                     </article>;
                   })}
                 </div>
-                <div className="application-table-shell desktop-record-table">
+                <div className={`application-table-shell desktop-record-table ${applicationViewMode !== "table" ? "application-desktop-view-hidden" : ""}`}>
                   <div className="application-table-scroll">
                     <table className="application-table">
                       <thead>
@@ -2207,7 +2430,9 @@ export default function Home() {
                                 <td><span className="application-health"><i className={trafficLightMeta[application.trafficLight].dot} /><span>{language === "he" ? ({ none: "ללא סטטוס", green: "מתקדם", yellow: "ממתין", red: "חסום" } as Record<TrafficLight, string>)[application.trafficLight] : trafficLightMeta[application.trafficLight].label}</span></span></td>
                                 <td>{application.eventDateTime ? <span className="application-meeting-cell"><CalendarClock className="h-4 w-4" />{formatDate(application.eventDateTime, true)}</span> : "—"}</td>
                                 <td className="application-row-actions">
+                                  <button aria-label={language === "he" ? `פתיחת סביבת ${application.role}` : `Open ${application.role} workspace`} className="application-row-icon" onClick={() => setWorkspaceApplicationId(application.id)} title={language === "he" ? "סביבת המועמדות" : "Application workspace"} type="button"><BriefcaseBusiness className="h-4 w-4" /></button>
                                   <button aria-label={language === "he" ? `עריכת ${application.role}` : `Edit ${application.role}`} className="application-row-icon" onClick={() => openEditApplication(application)} title={language === "he" ? "עריכה" : "Edit"} type="button"><Pencil className="h-4 w-4" /></button>
+                                  <button aria-label={language === "he" ? `מחיקת ${application.role} בחברת ${application.company}` : `Delete ${application.role} at ${application.company}`} className="application-row-icon application-row-delete" onClick={() => deleteApplication(application)} title={language === "he" ? "מחיקה" : "Delete"} type="button"><Trash2 className="h-4 w-4" /></button>
                                   <button aria-expanded={isExpanded} className="application-details-button" onClick={() => setExpandedApplicationId(isExpanded ? null : application.id)} type="button"><span>{isExpanded ? (language === "he" ? "סגירה" : "Close") : (language === "he" ? "פרטים" : "Details")}</span><ChevronDown className={`h-4 w-4 transition ${isExpanded ? "rotate-180" : ""}`} /></button>
                                 </td>
                               </tr>
@@ -2237,6 +2462,13 @@ export default function Home() {
                     </table>
                   </div>
                   <p className="application-table-hint"><span>↔</span>{language === "he" ? "בטלפון ניתן להחליק לצדדים כדי לראות את כל העמודות." : "On mobile, swipe sideways to see every column."}</p>
+                </div>
+                <div className={`application-kanban desktop-record-table ${applicationViewMode !== "kanban" ? "application-desktop-view-hidden" : ""}`}>
+                  {applicationStatuses.map((status) => <section className="kanban-column" key={status}><header><strong>{statusLabel(status)}</strong><span>{visibleApplications.filter((item) => item.status === status).length}</span></header><div>{visibleApplications.filter((item) => item.status === status).map((application) => <article className="kanban-card" key={application.id}><div><span aria-hidden="true" className={`application-company-logo ${application.logoUrl ? "application-company-logo-image" : ""}`} style={application.logoUrl ? { backgroundImage: `url("${application.logoUrl}")` } : undefined}>{application.logoUrl ? "" : application.company.slice(0, 1)}</span><span><strong>{application.role}</strong><small>{application.company}</small></span></div><p>{application.nextStep || (language === "he" ? "אין צעד הבא" : "No next step")}</p><footer><i className={trafficLightMeta[application.trafficLight].dot} /><button onClick={() => setWorkspaceApplicationId(application.id)} type="button">{language === "he" ? "פתיחה" : "Open"}<ChevronRight className="h-3.5 w-3.5" /></button></footer></article>)}</div></section>)}
+                </div>
+                <div className={`application-calendar desktop-record-table ${applicationViewMode !== "calendar" ? "application-desktop-view-hidden" : ""}`}>
+                  <header><div><CalendarClock className="h-5 w-5" /><span><strong>{language === "he" ? "סדר היום של התהליך" : "Pipeline agenda"}</strong><small>{language === "he" ? "ראיונות, פגישות ופעולות המשך במקום אחד" : "Interviews, meetings and follow-ups in one place"}</small></span></div></header>
+                  <div>{visibleApplications.filter((item) => item.eventDateTime || item.nextStepDue).sort((a, b) => Date.parse(a.eventDateTime || a.nextStepDue) - Date.parse(b.eventDateTime || b.nextStepDue)).map((application) => <button className="calendar-agenda-row" key={application.id} onClick={() => setWorkspaceApplicationId(application.id)} type="button"><time><strong>{new Date(application.eventDateTime || application.nextStepDue).toLocaleDateString(language === "he" ? "he-IL" : "en-US", { day: "2-digit" })}</strong><span>{new Date(application.eventDateTime || application.nextStepDue).toLocaleDateString(language === "he" ? "he-IL" : "en-US", { month: "short" })}</span></time><i className={trafficLightMeta[application.trafficLight].dot} /><span><strong>{application.eventType || application.nextStep || statusLabel(application.status)}</strong><small>{application.role} · {application.company}</small></span><ChevronRight className="h-4 w-4" /></button>)}</div>
                 </div></>
               )}
             </div>
@@ -2525,29 +2757,31 @@ export default function Home() {
           </div>
 
           <div className={`search-form-grid search-step-${searchStep} mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3`} id="search-form-fields">
-            <Field label="Target role"><input className="form-control" list="carvio-role-options" onChange={(event) => setSearchProfile({ ...searchProfile, role: event.target.value })} placeholder="e.g. HR Business Partner" value={searchProfile.role} /><datalist id="carvio-role-options">{roleSuggestions.map((role) => <option key={role} value={role} />)}</datalist></Field>
-            <Field label="Country"><select className="form-control" onChange={(event) => setSearchProfile({ ...searchProfile, country: event.target.value, location: "" })} value={searchProfile.country}>{countryOptions.map((country) => <option key={country}>{country}</option>)}</select></Field>
-            <Field label="City / area"><input className="form-control" list="carvio-city-options" onChange={(event) => setSearchProfile({ ...searchProfile, location: event.target.value })} placeholder="e.g. Amsterdam" value={searchProfile.location} /><datalist id="carvio-city-options">{(citySuggestions[searchProfile.country] || []).map((city) => <option key={city} value={city} />)}</datalist></Field>
-            <Field label="Search radius"><select className="form-control" onChange={(event) => setSearchProfile({ ...searchProfile, radius: event.target.value })} value={searchProfile.radius}>{["5", "10", "25", "50", "100"].map((radius) => <option key={radius} value={radius}>{radius} km</option>)}</select></Field>
-            <Field label="Seniority"><select className="form-control" onChange={(event) => setSearchProfile({ ...searchProfile, seniority: event.target.value })} value={searchProfile.seniority}><option value="">Any level</option><option>Entry level</option><option>Associate</option><option>Mid-Senior level</option><option>Director</option><option>Executive</option></select></Field>
-            <Field label="Employment type"><select className="form-control" onChange={(event) => setSearchProfile({ ...searchProfile, employmentType: event.target.value })} value={searchProfile.employmentType}><option value="">Any type</option><option>Full-time</option><option>Part-time</option><option>Contract</option><option>Temporary</option><option>Internship</option></select></Field>
-            <Field label="Work model"><select className="form-control" onChange={(event) => setSearchProfile({ ...searchProfile, workModel: event.target.value })} value={searchProfile.workModel}><option value="">Any model</option><option>Remote</option><option>Hybrid</option><option>On-site</option></select></Field>
-            <Field label={language === "he" ? "מועד פרסום" : "Date posted"}><select className="form-control" onChange={(event) => setSearchProfile({ ...searchProfile, datePosted: event.target.value })} value={searchProfile.datePosted}><option>Past 24 hours</option><option>Past week</option><option>Past month</option><option>Any time</option></select></Field>
-            <Field label="Industry"><input className="form-control" onChange={(event) => setSearchProfile({ ...searchProfile, industry: event.target.value })} placeholder="SaaS, healthcare, retail…" value={searchProfile.industry} /></Field>
+            <Field label="Target role"><input className="form-control" list="carvio-role-options" onChange={(event) => updateSearchRole(event.target.value)} placeholder="e.g. Supply Chain Manager" value={searchProfile.role} /><datalist id="carvio-role-options">{roleSuggestions.map((role) => <option key={role} value={role} />)}</datalist></Field>
+            <Field label="Country"><select className="form-control" onChange={(event) => updateSearchProfile({ country: event.target.value, location: "" })} value={searchProfile.country}>{countryOptions.map((country) => <option key={country}>{country}</option>)}</select></Field>
+            <Field label={language === "he" ? "עיר או אזור (אופציונלי)" : "City / area (optional)"}><input className="form-control" list="carvio-city-options" onChange={(event) => updateSearchProfile({ location: event.target.value })} placeholder={language === "he" ? "למשל אמסטרדם — ניתן להשאיר ריק" : "e.g. Amsterdam — leave blank for country-wide"} value={searchProfile.location} /><datalist id="carvio-city-options">{(citySuggestions[searchProfile.country] || []).map((city) => <option key={city} value={city} />)}</datalist></Field>
+            <Field label="Search radius"><select className="form-control" onChange={(event) => updateSearchProfile({ radius: event.target.value })} value={searchProfile.radius}>{["5", "10", "25", "50", "100"].map((radius) => <option key={radius} value={radius}>{radius} km</option>)}</select></Field>
+            <Field label="Seniority"><select className="form-control" onChange={(event) => updateSearchProfile({ seniority: event.target.value })} value={searchProfile.seniority}><option value="">Any level</option><option>Entry level</option><option>Associate</option><option>Mid-Senior level</option><option>Director</option><option>Executive</option></select></Field>
+            <Field label="Employment type"><select className="form-control" onChange={(event) => updateSearchProfile({ employmentType: event.target.value })} value={searchProfile.employmentType}><option value="">Any type</option><option>Full-time</option><option>Part-time</option><option>Contract</option><option>Temporary</option><option>Internship</option></select></Field>
+            <Field label="Work model"><select className="form-control" onChange={(event) => updateSearchProfile({ workModel: event.target.value })} value={searchProfile.workModel}><option value="">Any model</option><option>Remote</option><option>Hybrid</option><option>On-site</option></select></Field>
+            <Field label={language === "he" ? "מועד פרסום" : "Date posted"}><select className="form-control" onChange={(event) => updateSearchProfile({ datePosted: event.target.value })} value={searchProfile.datePosted}><option>Past 24 hours</option><option>Past week</option><option>Past month</option><option>Any time</option></select></Field>
+            <Field label="Industry"><input className="form-control" onChange={(event) => updateSearchProfile({ industry: event.target.value })} placeholder="SaaS, healthcare, retail…" value={searchProfile.industry} /></Field>
           </div>
           <div className="mobile-step-actions"><button className="secondary-button" disabled={searchStep === 1} onClick={() => setSearchStep((current) => Math.max(1, current - 1) as 1 | 2 | 3)} type="button">{language === "he" ? "חזרה" : "Back"}</button>{searchStep < 3 && <button className="primary-button" onClick={() => setSearchStep((current) => Math.min(3, current + 1) as 1 | 2 | 3)} type="button">{language === "he" ? "המשך" : "Continue"}<ChevronRight className="h-4 w-4" /></button>}</div>
 
-          <fieldset className="mt-5"><legend className="text-sm font-medium text-slate-200">Skills — select or type your own</legend><div className="mt-3 flex flex-wrap gap-2">{skillSuggestions.map((skill) => { const selected = searchProfile.skills.split(",").map((item) => item.trim().toLowerCase()).includes(skill.toLowerCase()); return <button aria-pressed={selected} className={`skill-chip ${selected ? "skill-chip-selected" : ""}`} key={skill} onClick={() => toggleSearchSkill(skill)} type="button">{selected ? "✓ " : "+ "}{skill}</button>; })}</div><input aria-label="Additional skills" className="form-control mt-3" onChange={(event) => setSearchProfile({ ...searchProfile, skills: event.target.value })} placeholder="Additional skills, separated by commas" value={searchProfile.skills} /></fieldset>
+          <fieldset className="mt-5"><legend className="text-sm font-medium text-slate-200">Skills — select or type your own</legend><div className="mt-3 flex flex-wrap gap-2">{skillSuggestions.map((skill) => { const selected = searchProfile.skills.split(",").map((item) => item.trim().toLowerCase()).includes(skill.toLowerCase()); return <button aria-pressed={selected} className={`skill-chip ${selected ? "skill-chip-selected" : ""}`} key={skill} onClick={() => toggleSearchSkill(skill)} type="button">{selected ? "✓ " : "+ "}{skill}</button>; })}</div><input aria-label="Additional skills" className="form-control mt-3" onChange={(event) => updateSearchProfile({ skills: event.target.value })} placeholder="Additional skills, separated by commas" value={searchProfile.skills} /></fieldset>
 
           <div className="freshness-shortcuts" aria-label={language === "he" ? "בחירת טריות מהירה" : "Quick freshness selection"}>
             <span>{language === "he" ? "כמה עדכני?" : "How fresh?"}</span>
-            {["Past 24 hours", "Past week", "Past month"].map((value) => <button aria-pressed={searchProfile.datePosted === value} className={searchProfile.datePosted === value ? "freshness-active" : ""} key={value} onClick={() => setSearchProfile({ ...searchProfile, datePosted: value })} type="button">{value === "Past 24 hours" ? (language === "he" ? "24 שעות · מומלץ" : "24 hours · Recommended") : value === "Past week" ? (language === "he" ? "שבוע" : "Past week") : (language === "he" ? "חודש" : "Past month")}</button>)}
+            {["Past 24 hours", "Past week", "Past month"].map((value) => <button aria-pressed={searchProfile.datePosted === value} className={searchProfile.datePosted === value ? "freshness-active" : ""} key={value} onClick={() => updateSearchProfile({ datePosted: value })} type="button">{value === "Past 24 hours" ? (language === "he" ? "24 שעות · מומלץ" : "24 hours · Recommended") : value === "Past week" ? (language === "he" ? "שבוע" : "Past week") : (language === "he" ? "חודש" : "Past month")}</button>)}
           </div>
 
-          <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_auto_auto]"><Field label="Exclude keywords"><input className="form-control" onChange={(event) => setSearchProfile({ ...searchProfile, exclude: event.target.value })} placeholder="sales, internship, junior…" value={searchProfile.exclude} /></Field><button className="secondary-button self-end" disabled={!resolvedSearch.role || !resolvedSearch.city || !resolvedSearch.country} onClick={saveSearchAsApplication} type="button"><Plus className="h-4 w-4" /> {language === "he" ? "שמירה למועמדויות" : "Save to Applications"}</button><button className="primary-button search-launch-button self-end px-7" disabled={!resolvedSearch.role || !resolvedSearch.city || !resolvedSearch.country} onClick={() => { setShowSearchResults(true); window.setTimeout(() => document.getElementById("search-results")?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50); }} type="button"><Search className="h-4 w-4" /> {language === "he" ? `חיפוש ב${resolvedSearch.city || "מיקום"}` : `Search ${resolvedSearch.city || "location"}`}</button></div>
-          {(!resolvedSearch.city || !resolvedSearch.country) && <p className="mt-2 text-xs text-amber-300">Choose both city and country to prevent broad or incorrect location results.</p>}
+          <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_auto_auto]"><Field label="Exclude keywords"><input className="form-control" onChange={(event) => updateSearchProfile({ exclude: event.target.value })} placeholder="sales, internship, junior…" value={searchProfile.exclude} /></Field><button className="secondary-button self-end" disabled={!resolvedSearch.role || !resolvedSearch.country} onClick={saveSearchAsApplication} type="button"><Plus className="h-4 w-4" /> {language === "he" ? "שמירה למועמדויות" : "Save to Applications"}</button><button className="primary-button search-launch-button self-end px-7" disabled={!resolvedSearch.role || !resolvedSearch.country} onClick={runJobSearch} type="button"><Search className="h-4 w-4" /> {language === "he" ? `חיפוש ב${resolvedSearch.city || resolvedSearch.country || "מיקום"}` : `Search ${resolvedSearch.city || resolvedSearch.country || "location"}`}</button></div>
+          {!resolvedSearch.country && <p className="mt-2 text-xs text-amber-300">{language === "he" ? "יש לבחור מדינה. העיר אופציונלית." : "Choose a country. City is optional."}</p>}
 
-          {showSearchResults && <div className="search-results-shell" id="search-results"><div className="search-results-heading"><div><p className="font-semibold text-slate-200">{language === "he" ? `מסלולי חיפוש עדכניים עבור ${resolvedSearch.role}` : `Fresh search routes for ${resolvedSearch.role}`}</p><p className="text-sm text-slate-500">{resolvedSearch.location} · {searchProfile.radius} km · {searchProfile.datePosted}</p></div><span><ShieldCheck className="h-4 w-4" />{language === "he" ? "בדיקה במקור" : "Verify at source"}</span></div><div className="search-source-grid">{jobSearchSources(searchProfile).map((source, index) => <a className={`search-source-card group ${source.featured ? "search-source-featured" : ""}`} href={source.url} key={source.name} rel="noreferrer" target="_blank"><div className="flex items-center justify-between"><span className="search-source-icon">{source.emoji}</span>{source.featured ? <span className="search-source-recommended">{language === "he" ? "מומלץ להתחיל כאן" : "Start here"}</span> : <span className="search-source-rank">0{index + 1}</span>}</div><p className="mt-4 font-semibold text-slate-100">{source.name}</p><div className="search-source-signals"><span>🕒 {source.freshness}</span><span>📍 {source.accuracy}</span></div><p className="mt-3 text-sm leading-6 text-slate-400">{source.description}</p><span className="search-source-open">{language === "he" ? "פתיחת תוצאות במקור" : "Open results at source"}<ArrowUpRight className="h-3.5 w-3.5" /></span></a>)}</div><div className="search-honesty-note"><CircleAlert className="h-5 w-5" /><div><strong>{language === "he" ? "מדוע עדיין חשוב לבדוק את המשרה?" : "Why should you still verify the listing?"}</strong><p>{language === "he" ? "Carvio מחיל מסנני מיקום וטריות, אך LinkedIn ו-Google עשויים להציג גם המלצות ממומנות או מותאמות אישית. פתיחת אתר החברה היא הבדיקה הטובה ביותר לכך שהמשרה עדיין פעילה." : "Carvio applies location and freshness filters, but LinkedIn and Google may still insert sponsored or personalized suggestions. The company career page remains the strongest confirmation that a role is open."}</p></div></div></div>}
+          {showSearchResults && submittedSearchProfile && <div className="search-results-shell" id="search-results"><div className="search-results-heading"><div><p className="font-semibold text-slate-200">{language === "he" ? `מסלולי חיפוש עדכניים עבור ${submittedSearch.role}` : `Fresh search routes for ${submittedSearch.role}`}</p><p className="text-sm text-slate-500">{submittedSearch.location} · {submittedSearchProfile.radius} km · {submittedSearchProfile.datePosted}</p></div><span><ShieldCheck className="h-4 w-4" />{language === "he" ? "בדיקה במקור" : "Verify at source"}</span></div><div className="search-source-grid">{jobSearchSources(submittedSearchProfile).map((source, index) => <a className={`search-source-card group ${source.featured ? "search-source-featured" : ""}`} href={source.url} key={source.name} rel="noreferrer" target="_blank"><div className="flex items-center justify-between"><span className="search-source-icon">{source.emoji}</span>{source.featured ? <span className="search-source-recommended">{language === "he" ? "מומלץ להתחיל כאן" : "Start here"}</span> : <span className="search-source-rank">0{index + 1}</span>}</div><p className="mt-4 font-semibold text-slate-100">{source.name}</p><div className="search-source-signals"><span>🕒 {source.freshness}</span><span>📍 {source.accuracy}</span></div><p className="mt-3 text-sm leading-6 text-slate-400">{source.description}</p><span className="search-source-open">{language === "he" ? "פתיחת תוצאות במקור" : "Open results at source"}<ArrowUpRight className="h-3.5 w-3.5" /></span></a>)}</div>
+          {showCompanySearchLeads && <section className="job-inbox"><div className="job-inbox-heading"><div><p className="eyebrow text-emerald-300">{language === "he" ? "תיבת המשרות" : "Job inbox"}</p><h3>{language === "he" ? "נקודות פתיחה מותאמות לפרופיל שלך" : "Profile-matched starting points"}</h3><p>{language === "he" ? "Carvio מרכז מסלולי חיפוש ממוקדים, מסיר כפילויות ומאפשר לשמור כל הזדמנות. יש לאמת שהמשרה פעילה באתר המקור." : "Carvio organizes focused search leads, removes duplicates, and lets you save each opportunity. Always verify availability at the source."}</p></div><span>{jobInbox.length} {language === "he" ? "הצעות" : "leads"}</span></div><div className="job-inbox-list">{jobInbox.map((item) => { const saved = applications.some((application) => application.company.toLowerCase() === item.company.toLowerCase() && application.role.toLowerCase() === item.role.toLowerCase()); return <article className="job-inbox-card" key={item.id}><div className="job-inbox-logo">{item.company.slice(0, 1)}</div><div className="job-inbox-main"><div><strong>{item.role}</strong><span>{item.company} · {item.location}</span></div><p><span>🎯 {item.match}% {language === "he" ? "התאמה" : "match"}</span><span>🕒 {item.posted}</span><span>🔗 {item.source}</span></p><small>{item.reason}</small></div><div className="job-inbox-actions">{saved ? <span className="job-inbox-saved"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "במועמדויות" : "In Applications"}</span> : <><button onClick={() => saveInboxJob(item)} type="button"><Plus className="h-4 w-4" />{language === "he" ? "שמירה" : "Save"}</button><button onClick={() => saveInboxJob(item, true)} type="button">{language === "he" ? "כבר הגשתי" : "Already applied"}</button></>}<a href={item.url} rel="noreferrer" target="_blank">{language === "he" ? "בדיקה במקור" : "Verify & apply"}<ArrowUpRight className="h-4 w-4" /></a><button aria-label={language === "he" ? "הסתרת ההצעה" : "Hide lead"} onClick={() => setHiddenJobIds((items) => [...items, item.id])} type="button"><X className="h-4 w-4" /></button></div></article>; })}</div></section>}
+          <div className="search-honesty-note"><CircleAlert className="h-5 w-5" /><div><strong>{language === "he" ? "מדוע עדיין חשוב לבדוק את המשרה?" : "Why should you still verify the listing?"}</strong><p>{language === "he" ? "Carvio מחיל מסנני מיקום וטריות, אך LinkedIn ו-Google עשויים להציג גם המלצות ממומנות או מותאמות אישית. פתיחת אתר החברה היא הבדיקה הטובה ביותר לכך שהמשרה עדיין פעילה." : "Carvio applies location and freshness filters, but LinkedIn and Google may still insert sponsored or personalized suggestions. The company career page remains the strongest confirmation that a role is open."}</p></div></div></div>}
           </div>)}
         </section>
 
@@ -2723,6 +2957,53 @@ export default function Home() {
             <button className="quick-add-card" onClick={() => { setShowQuickAdd(false); openNewContact(); }} type="button"><span>🤝</span><strong>{language === "he" ? "איש קשר" : "Contact"}</strong><small>{language === "he" ? "שמירת קשר מקצועי חשוב" : "Save a warm connection"}</small></button>
             <button className="quick-add-card" onClick={() => { setShowQuickAdd(false); setEditingApplicationId(null); setApplicationDraft({ ...emptyApplication, status: "Interview", eventType: "Interview", nextStep: "Prepare for interview" }); setShowApplicationDetails(true); setShowApplicationModal(true); }} type="button"><span>📅</span><strong>{language === "he" ? "ראיון" : "Interview"}</strong><small>{language === "he" ? "הוספה והכנה רגועה" : "Add it and prepare calmly"}</small></button>
             <button className="quick-add-card" onClick={() => { setShowQuickAdd(false); setEditingApplicationId(null); setApplicationDraft({ ...emptyApplication, status: "Follow-up due", nextStep: "Send a thoughtful follow-up" }); setShowApplicationDetails(false); setShowApplicationModal(true); }} type="button"><span>✉️</span><strong>{language === "he" ? "פעולת המשך" : "Follow-up"}</strong><small>{language === "he" ? "תיעוד הצעד הבא" : "Capture the next move"}</small></button>
+          </div>
+        </Modal>
+      )}
+
+      {showSmartCapture && (
+        <Modal title={language === "he" ? "לכידה חכמה של משרה ✨" : "Smart job capture ✨"} description={language === "he" ? "הדביקו קישור למשרה. Carvio יחלץ בבטחה את מה שניתן ויפתח טופס לבדיקה." : "Paste a job link. Carvio will safely extract what it can and open a review form."} onClose={() => setShowSmartCapture(false)}>
+          <div className="smart-capture">
+            <div className="smart-capture-icon"><WandSparkles className="h-7 w-7" /></div>
+            <Field label={language === "he" ? "קישור למשרה" : "Job URL"}><input autoFocus className="form-control" onChange={(event) => { setSmartCaptureUrl(event.target.value); setSmartCaptureError(""); }} onKeyDown={(event) => { if (event.key === "Enter") smartCaptureApplication(); }} placeholder="https://company.com/careers/role…" type="url" value={smartCaptureUrl} /></Field>
+            {smartCaptureError && <p className="form-error">{smartCaptureError}</p>}
+            <p>{language === "he" ? "לא נמציא פרטים חסרים. לפני השמירה תוכלו להשלים חברה, תפקיד, תאריך ורמזור." : "Carvio never invents missing details. You can review company, role, timing, and signal before saving."}</p>
+            <button className="primary-button w-full" onClick={smartCaptureApplication} type="button"><Sparkles className="h-4 w-4" />{language === "he" ? "קליטה ופתיחת טופס" : "Capture and review"}</button>
+          </div>
+        </Modal>
+      )}
+
+      {workspaceApplication && (
+        <Modal title={`${workspaceApplication.role} · ${workspaceApplication.company}`} description={language === "he" ? "כל ההקשר, הפעולות וההיסטוריה של ההזדמנות במקום אחד." : "Every action, conversation, and milestone for this opportunity in one place."} onClose={() => setWorkspaceApplicationId(null)} wide>
+          <div className="application-workspace">
+            <header><span aria-hidden="true" className={`application-company-logo ${workspaceApplication.logoUrl ? "application-company-logo-image" : ""}`} style={workspaceApplication.logoUrl ? { backgroundImage: `url("${workspaceApplication.logoUrl}")` } : undefined}>{workspaceApplication.logoUrl ? "" : workspaceApplication.company.slice(0, 1)}</span><div><span className={statusStyles[workspaceApplication.status]}>{statusLabel(workspaceApplication.status)}</span><h3>{workspaceApplication.role}</h3><p>{workspaceApplication.company}{workspaceApplication.location ? ` · ${workspaceApplication.location}` : ""}</p></div><i className={trafficLightMeta[workspaceApplication.trafficLight].dot} /></header>
+            <section className="workspace-next-action"><div><span>⚡ {language === "he" ? "הפעולה הבאה" : "Next best action"}</span><strong>{workspaceApplication.nextStep || (language === "he" ? "הגדירו את הצעד הבא" : "Define the next move")}</strong><small>{workspaceApplication.nextStepDue ? formatDate(workspaceApplication.nextStepDue) : (language === "he" ? "ללא תאריך יעד" : "No due date")}</small></div><div><button onClick={() => completeApplicationAction(workspaceApplication)} type="button"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "בוצע" : "Done"}</button><button onClick={() => snoozeApplication(workspaceApplication)} type="button"><Clock3 className="h-4 w-4" />{language === "he" ? "דחייה" : "Snooze"}</button><button onClick={() => openOutreachForApplication(workspaceApplication)} type="button"><MessagesSquare className="h-4 w-4" />{language === "he" ? "הודעה" : "Message"}</button></div></section>
+            <div className="workspace-grid">
+              <section><h4>🧭 {language === "he" ? "ציר הזמן" : "Timeline"}</h4><div className="workspace-timeline">{workspaceApplication.appliedDate && <div><i /><span><strong>{language === "he" ? "המועמדות נוספה" : "Application tracked"}</strong><small>{formatDate(workspaceApplication.appliedDate)}</small></span></div>}{workspaceApplication.processStages.map((stage) => <div key={stage.id}><i className={trafficLightMeta[stage.trafficLight].dot} /><span><strong>{stage.name}</strong><small>{stage.date ? formatDate(stage.date) : (language === "he" ? "ללא תאריך" : "No date")}</small></span></div>)}{workspaceApplication.eventDateTime && <div><i /><span><strong>{workspaceApplication.eventType || (language === "he" ? "פגישה" : "Meeting")}</strong><small>{formatDate(workspaceApplication.eventDateTime, true)}</small></span></div>}</div></section>
+              <section><h4>🤝 {language === "he" ? "אנשים והקשר" : "People & context"}</h4>{contacts.filter((contact) => contact.company.toLowerCase() === workspaceApplication.company.toLowerCase() || contact.name === workspaceApplication.contactName).length ? contacts.filter((contact) => contact.company.toLowerCase() === workspaceApplication.company.toLowerCase() || contact.name === workspaceApplication.contactName).map((contact) => <button className="workspace-person" key={contact.id} onClick={() => { setWorkspaceApplicationId(null); switchView("networking"); }} type="button"><span>{contact.name.slice(0, 1)}</span><span><strong>{contact.name}</strong><small>{contact.role} · {contact.company}</small></span><ChevronRight className="h-4 w-4" /></button>) : <p className="workspace-empty">{language === "he" ? "עדיין אין איש קשר שמקושר לחברה הזו." : "No contact is linked to this company yet."}</p>}<button className="text-button" onClick={() => { setWorkspaceApplicationId(null); openNewContact(); }} type="button"><Plus className="h-4 w-4" />{language === "he" ? "הוספת איש קשר" : "Add contact"}</button></section>
+              <section><h4>📄 {language === "he" ? "קורות חיים" : "CV versions"}</h4>{resumes.length ? resumes.slice(0, 3).map((resume) => <div className="workspace-file" key={resume.id}><FileText className="h-4 w-4" /><span><strong>{resume.name}</strong><small>{new Date(resume.addedAt).toLocaleDateString()}</small></span></div>) : <p className="workspace-empty">{language === "he" ? "טרם נוספה גרסת קורות חיים." : "No CV version added yet."}</p>}<button className="text-button" onClick={() => { setWorkspaceApplicationId(null); navigateToSection("cv-lab"); }} type="button"><FileCheck2 className="h-4 w-4" />{language === "he" ? "פתיחת מעבדת קורות החיים" : "Open CV Lab"}</button></section>
+              <section><h4>📝 {language === "he" ? "הערות" : "Notes"}</h4><p className="workspace-notes">{workspaceApplication.notes || (language === "he" ? "אין עדיין הערות להזדמנות הזו." : "No notes for this opportunity yet.")}</p></section>
+            </div>
+            <footer><button className="secondary-button" onClick={() => { setWorkspaceApplicationId(null); openEditApplication(workspaceApplication); }} type="button"><Pencil className="h-4 w-4" />{language === "he" ? "עריכת המועמדות" : "Edit application"}</button>{workspaceApplication.eventDateTime && <button className="secondary-button" onClick={() => downloadICS(`${workspaceApplication.eventType}: ${workspaceApplication.role} at ${workspaceApplication.company}`, workspaceApplication.eventDateTime, workspaceApplication.notes, workspaceApplication.location)} type="button"><CalendarPlus className="h-4 w-4" />{language === "he" ? "הוספה ליומן" : "Add to calendar"}</button>}{workspaceApplication.jobUrl && <a className="primary-button" href={workspaceApplication.jobUrl} rel="noreferrer" target="_blank">{language === "he" ? "פתיחת המשרה" : "Open job"}<ArrowUpRight className="h-4 w-4" /></a>}</footer>
+          </div>
+        </Modal>
+      )}
+
+      {showCommandBar && (
+        <Modal title={language === "he" ? "מה תרצו לעשות?" : "What do you want to do?"} description={language === "he" ? "חפשו מועמדות או איש קשר, או עברו ישירות לפעולה." : "Find an application or contact, or jump directly to an action."} onClose={() => { setShowCommandBar(false); setCommandQuery(""); }}>
+          <div className="command-palette">
+            <label><Search className="h-5 w-5" /><input autoFocus onChange={(event) => setCommandQuery(event.target.value)} placeholder={language === "he" ? "חיפוש או פקודה…" : "Search or type a command…"} value={commandQuery} /><kbd>ESC</kbd></label>
+            <div className="command-results">
+              {[
+                { label: language === "he" ? "הוספת מועמדות" : "Add application", icon: "💼", action: () => openNewApplication() },
+                { label: language === "he" ? "לכידה חכמה מקישור" : "Smart capture from URL", icon: "✨", action: () => setShowSmartCapture(true) },
+                { label: language === "he" ? "הוספת איש קשר" : "Add networking contact", icon: "🤝", action: () => openNewContact() },
+                { label: language === "he" ? "חיפוש משרות" : "Search jobs", icon: "🔎", action: () => switchView("search") },
+                { label: language === "he" ? "מרכז התובנות" : "Open insights", icon: "📊", action: () => switchView("more") },
+              ].filter((item) => !commandQuery || item.label.toLowerCase().includes(commandQuery.toLowerCase())).map((item) => <button key={item.label} onClick={() => { setShowCommandBar(false); setCommandQuery(""); item.action(); }} type="button"><span>{item.icon}</span><strong>{item.label}</strong><ChevronRight className="h-4 w-4" /></button>)}
+              {applications.filter((item) => commandQuery && `${item.company} ${item.role}`.toLowerCase().includes(commandQuery.toLowerCase())).slice(0, 5).map((application) => <button key={application.id} onClick={() => { setShowCommandBar(false); setWorkspaceApplicationId(application.id); }} type="button"><span>🏢</span><span><strong>{application.role}</strong><small>{application.company}</small></span><ChevronRight className="h-4 w-4" /></button>)}
+              {contacts.filter((item) => commandQuery && `${item.name} ${item.company} ${item.role}`.toLowerCase().includes(commandQuery.toLowerCase())).slice(0, 4).map((contact) => <button key={contact.id} onClick={() => { setShowCommandBar(false); setCommandQuery(""); setContactQuery(contact.name); switchView("networking"); }} type="button"><span>👤</span><span><strong>{contact.name}</strong><small>{contact.role} · {contact.company}</small></span><ChevronRight className="h-4 w-4" /></button>)}
+            </div>
           </div>
         </Modal>
       )}
