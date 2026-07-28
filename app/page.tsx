@@ -28,6 +28,7 @@ import {
   LoaderCircle,
   Mail,
   MapPin,
+  Menu,
   MessageCircleMore,
   MessagesSquare,
   Pencil,
@@ -38,6 +39,7 @@ import {
   Search,
   Send,
   ShieldCheck,
+  SlidersHorizontal,
   Sparkles,
   Moon,
   Sun,
@@ -1061,6 +1063,11 @@ export default function Home() {
   const [contactMeetingFilter, setContactMeetingFilter] = useState<ContactMeetingFilter>("all");
   const [contactSort, setContactSort] = useState<ContactSort>("next-action");
   const [expandedContactId, setExpandedContactId] = useState<string | null>(null);
+  const [showMobileMore, setShowMobileMore] = useState(false);
+  const [showApplicationFilters, setShowApplicationFilters] = useState(false);
+  const [showContactFilters, setShowContactFilters] = useState(false);
+  const [searchStep, setSearchStep] = useState<1 | 2 | 3>(1);
+  const [mobileInsightCategory, setMobileInsightCategory] = useState<"pipeline" | "activity" | "networking">("pipeline");
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -1125,10 +1132,21 @@ export default function Home() {
     const isLight = theme === "light";
     const background = isLight ? "#ffffff" : "#08261f";
     document.documentElement.style.colorScheme = isLight ? "only light" : "dark";
-    document.documentElement.style.backgroundColor = background;
-    document.body.style.backgroundColor = background;
+    document.documentElement.style.setProperty("background", background, "important");
+    document.documentElement.style.setProperty("background-color", background, "important");
+    document.body.style.setProperty("background", background, "important");
+    document.body.style.setProperty("background-color", background, "important");
+    document.documentElement.classList.toggle("carvio-force-light", isLight);
+    document.body.classList.toggle("carvio-force-light", isLight);
     document.documentElement.dataset.carvioTheme = theme;
     document.body.dataset.carvioTheme = theme;
+    let colorScheme = document.querySelector<HTMLMetaElement>('meta[name="color-scheme"]');
+    if (!colorScheme) {
+      colorScheme = document.createElement("meta");
+      colorScheme.name = "color-scheme";
+      document.head.appendChild(colorScheme);
+    }
+    colorScheme.content = isLight ? "only light" : "dark light";
     let themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
     if (!themeColor) {
       themeColor = document.createElement("meta");
@@ -1224,6 +1242,7 @@ export default function Home() {
   }
 
   function switchView(view: AppView) {
+    setShowMobileMore(false);
     setActiveView(view);
     if (view === "more") {
       setExpandedTools((current) => ({ ...current, analytics: true }));
@@ -1923,6 +1942,11 @@ export default function Home() {
               <p className="eyebrow mt-5 text-emerald-300">{language === "he" ? "מרכז השליטה בחיפוש העבודה" : "Your job-search command center"}</p>
               <h1 className="mt-2 max-w-3xl text-3xl font-semibold tracking-tight sm:text-4xl">{language === "he" ? "פחות עומס. יותר תנועה קדימה." : "Less noise. More forward motion."}</h1>
               <p className="mt-3 max-w-2xl text-base leading-7 text-slate-300">{language === "he" ? "Carvio הופך מועמדויות, פגישות ופעולות המשך לתוכנית אחת ברורה — כדי שתמיד תדעו מה הצעד הבא." : "Carvio turns applications, meetings and follow-ups into one clear plan—so you always know what to do next."}</p>
+              <div className="hero-human-story hero-human-story-mobile">
+                <Image alt={language === "he" ? "מועמדת בתהליך חיפוש עבודה" : "A professional navigating her job search"} fill priority sizes="100vw" src="/carvio-customer-story.png" />
+                <div className="hero-human-story-shade" />
+                <div><span>{language === "he" ? "חיפוש עבודה הוא גם מסע רגשי" : "A job search is an emotional journey, too"}</span><strong>{language === "he" ? "Carvio עוזר להפוך עומס לצעד הבא ברור." : "Carvio turns overwhelm into one clear next move."}</strong></div>
+              </div>
               <div className="hero-application-actions">
                 <button className="hero-applications-primary" onClick={() => switchView("applications")} type="button"><BriefcaseBusiness className="h-5 w-5" /><span><strong>{language === "he" ? "לניהול המועמדויות" : "Manage applications"}</strong><small>{language === "he" ? `${applications.length} תהליכים שמורים` : `${applications.length} tracked opportunities`}</small></span><ArrowUpRight className="h-4 w-4" /></button>
                 <button className="hero-add-application" onClick={openNewApplication} type="button"><Plus className="h-4 w-4" /> {copy.addApplication}</button>
@@ -1934,7 +1958,7 @@ export default function Home() {
               </div>
             </div>
             <div className="hero-action-stack">
-              <div className="hero-human-story">
+              <div className="hero-human-story hero-human-story-desktop">
                 <Image alt={language === "he" ? "מועמדת בתהליך חיפוש עבודה" : "A professional navigating her job search"} fill priority sizes="(max-width: 768px) 100vw, 36vw" src="/carvio-customer-story.png" />
                 <div className="hero-human-story-shade" />
                 <div><span>{language === "he" ? "חיפוש עבודה הוא גם מסע רגשי" : "A job search is an emotional journey, too"}</span><strong>{language === "he" ? "Carvio עוזר להפוך עומס לצעד הבא ברור." : "Carvio turns overwhelm into one clear next move."}</strong></div>
@@ -2074,7 +2098,7 @@ export default function Home() {
               <button className="primary-button" onClick={openNewApplication} type="button"><Plus className="h-4 w-4" /> {copy.addApplication}</button>
             </div>
             {applications.length > 0 && (
-              <div className="application-toolbar" aria-label={language === "he" ? "סינון ומיון מועמדויות" : "Filter and sort applications"}>
+              <div className={`application-toolbar ${showApplicationFilters ? "mobile-filters-expanded" : ""}`} aria-label={language === "he" ? "סינון ומיון מועמדויות" : "Filter and sort applications"}>
                 <label className="application-search">
                   <Search aria-hidden="true" className="h-4 w-4" />
                   <span className="sr-only">{language === "he" ? "חיפוש מועמדות" : "Search applications"}</span>
@@ -2085,6 +2109,7 @@ export default function Home() {
                     value={applicationQuery}
                   />
                 </label>
+                <button aria-expanded={showApplicationFilters} className="mobile-filter-toggle" onClick={() => setShowApplicationFilters((current) => !current)} type="button"><SlidersHorizontal className="h-4 w-4" />{language === "he" ? "סינון ומיון" : "Filter & sort"}<ChevronDown className={`h-4 w-4 transition ${showApplicationFilters ? "rotate-180" : ""}`} /></button>
                 <select aria-label={language === "he" ? "סינון לפי שלב" : "Filter by stage"} className="application-filter" onChange={(event) => setApplicationStageFilter(event.target.value as "all" | ApplicationStatus)} value={applicationStageFilter}>
                   <option value="all">{language === "he" ? "כל השלבים" : "All stages"}</option>
                   {applicationStatuses.map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}
@@ -2121,7 +2146,28 @@ export default function Home() {
                   <button className="text-button" onClick={() => { setApplicationQuery(""); setApplicationStageFilter("all"); setApplicationMeetingFilter("all"); }} type="button">{language === "he" ? "ניקוי סינון" : "Clear filters"}</button>
                 </div>
               ) : (
-                <div className="application-table-shell">
+                <>
+                <div className="mobile-record-list">
+                  {visibleApplications.map((application) => {
+                    const isExpanded = expandedApplicationId === application.id;
+                    return <article className="mobile-record-card" key={application.id}>
+                      <div className="mobile-record-head">
+                        <span aria-hidden="true" className={`application-company-logo ${application.logoUrl ? "application-company-logo-image" : ""}`} style={application.logoUrl ? { backgroundImage: `url("${application.logoUrl}")` } : undefined}>{application.logoUrl ? "" : application.company.slice(0, 1).toUpperCase()}</span>
+                        <div><strong>{application.role}</strong><small>{application.company}{application.location ? ` · ${application.location}` : ""}</small></div>
+                        <span className={`mobile-signal mobile-signal-${application.trafficLight}`} aria-label={application.trafficLight} />
+                      </div>
+                      <div className="mobile-record-meta"><span className={statusStyles[application.status]}>{statusLabel(application.status)}</span><span>{application.eventDateTime ? `📅 ${formatDate(application.eventDateTime, true)}` : (application.nextStepDue ? `⏱ ${formatDate(application.nextStepDue)}` : (language === "he" ? "ללא מועד" : "No date"))}</span></div>
+                      <p className="mobile-record-next"><small>{language === "he" ? "הצעד הבא" : "Next move"}</small><strong>{application.nextStep || (language === "he" ? "לא הוגדר" : "Not set")}</strong></p>
+                      {isExpanded && <div className="mobile-record-details"><span>{application.source || "—"}</span><span>{application.salary ? `${application.salaryCurrency} ${application.salary}` : "—"}</span><p>{application.notes || (language === "he" ? "אין הערות" : "No notes")}</p></div>}
+                      <div className="mobile-record-actions">
+                        <button onClick={() => openEditApplication(application)} type="button"><Pencil className="h-4 w-4" />{language === "he" ? "עריכה" : "Edit"}</button>
+                        {application.eventDateTime && <button onClick={() => downloadICS(`${application.eventType || "Meeting"} — ${application.company}`, application.eventDateTime, application.notes || application.nextStep, application.location)} type="button"><CalendarPlus className="h-4 w-4" />{language === "he" ? "יומן" : "Calendar"}</button>}
+                        <button aria-expanded={isExpanded} onClick={() => setExpandedApplicationId(isExpanded ? null : application.id)} type="button">{language === "he" ? "פרטים" : "Details"}<ChevronDown className={`h-4 w-4 transition ${isExpanded ? "rotate-180" : ""}`} /></button>
+                      </div>
+                    </article>;
+                  })}
+                </div>
+                <div className="application-table-shell desktop-record-table">
                   <div className="application-table-scroll">
                     <table className="application-table">
                       <thead>
@@ -2191,7 +2237,7 @@ export default function Home() {
                     </table>
                   </div>
                   <p className="application-table-hint"><span>↔</span>{language === "he" ? "בטלפון ניתן להחליק לצדדים כדי לראות את כל העמודות." : "On mobile, swipe sideways to see every column."}</p>
-                </div>
+                </div></>
               )}
             </div>
           </div>
@@ -2248,8 +2294,9 @@ export default function Home() {
             <div><p className="eyebrow text-fuchsia-300">{copy.networking}</p><h2 className="section-title">{copy.networkingTitle}</h2><p className="mt-2 text-sm text-slate-400">{language === "he" ? "נהלו קשרים, פעולות המשך ופגישות בתצוגה אחת מסודרת." : "Manage relationships, follow-ups and meetings in one organized view."}</p></div>
             <button className="primary-button bg-fuchsia-500 hover:bg-fuchsia-400" onClick={openNewContact} type="button"><Plus className="h-4 w-4" /> {copy.addContact}</button>
           </div>
-          <div className="application-toolbar networking-table-toolbar" aria-label={language === "he" ? "סינון ומיון אנשי קשר" : "Filter and sort contacts"}>
+          <div className={`application-toolbar networking-table-toolbar ${showContactFilters ? "mobile-filters-expanded" : ""}`} aria-label={language === "he" ? "סינון ומיון אנשי קשר" : "Filter and sort contacts"}>
             <label className="application-search"><Search className="h-4 w-4" /><span className="sr-only">{language === "he" ? "חיפוש אנשי קשר" : "Search contacts"}</span><input aria-label={language === "he" ? "חיפוש אנשי קשר" : "Search contacts"} onChange={(event) => setContactQuery(event.target.value)} placeholder={language === "he" ? "חיפוש לפי שם, חברה, תפקיד או פעולה…" : "Search name, company, role or next action…"} type="search" value={contactQuery} /></label>
+            <button aria-expanded={showContactFilters} className="mobile-filter-toggle" onClick={() => setShowContactFilters((current) => !current)} type="button"><SlidersHorizontal className="h-4 w-4" />{language === "he" ? "סינון ומיון" : "Filter & sort"}<ChevronDown className={`h-4 w-4 transition ${showContactFilters ? "rotate-180" : ""}`} /></button>
             <select aria-label={language === "he" ? "סינון לפי מצב קשר" : "Filter by relationship health"} className="application-filter" onChange={(event) => setContactHealthFilter(event.target.value as "all" | TrafficLight)} value={contactHealthFilter}>
               <option value="all">{language === "he" ? "כל המצבים" : "All signals"}</option>
               <option value="green">{language === "he" ? "מתקדם" : "Progressing"}</option>
@@ -2282,7 +2329,20 @@ export default function Home() {
               <button className="text-button" onClick={() => { setContactQuery(""); setContactHealthFilter("all"); setContactMeetingFilter("all"); }} type="button">{language === "he" ? "ניקוי סינון" : "Clear filters"}</button>
             </div>
           ) : (
-            <div className="application-table-shell networking-table-shell">
+            <>
+            <div className="mobile-record-list">
+              {visibleContacts.map((contact) => {
+                const isExpanded = expandedContactId === contact.id;
+                return <article className="mobile-record-card mobile-contact-card" key={contact.id}>
+                  <div className="mobile-record-head"><span className="networking-avatar">{contact.name.slice(0, 1).toUpperCase()}</span><div><strong>{contact.name}</strong><small>{contact.role || contact.relationship || (language === "he" ? "קשר מקצועי" : "Professional contact")}{contact.company ? ` · ${contact.company}` : ""}</small></div><span className={`mobile-signal mobile-signal-${contact.trafficLight}`} /></div>
+                  <p className="mobile-record-next"><small>{language === "he" ? "הפעולה הבאה" : "Next move"}</small><strong>{contact.nextAction || (language === "he" ? "לא הוגדרה" : "Not set")}</strong></p>
+                  <div className="mobile-record-meta"><span>{contact.nextActionDue ? `⏱ ${formatDate(contact.nextActionDue)}` : (language === "he" ? "ללא מועד" : "No date")}</span>{contact.eventDateTime && <span>📅 {formatDate(contact.eventDateTime, true)}</span>}</div>
+                  {isExpanded && <div className="mobile-record-details"><span>{contact.email || contact.phone || "—"}</span><p>{contact.notes || (language === "he" ? "אין הערות" : "No notes")}</p></div>}
+                  <div className="mobile-record-actions"><button onClick={() => openEditContact(contact)} type="button"><Pencil className="h-4 w-4" />{language === "he" ? "עריכה" : "Edit"}</button>{contact.eventDateTime && <button onClick={() => downloadICS(`${contact.eventType} with ${contact.name}`, contact.eventDateTime, contact.notes || contact.nextAction, contact.company)} type="button"><CalendarPlus className="h-4 w-4" />{language === "he" ? "יומן" : "Calendar"}</button>}<button aria-expanded={isExpanded} onClick={() => setExpandedContactId(isExpanded ? null : contact.id)} type="button">{language === "he" ? "פרטים" : "Details"}<ChevronDown className={`h-4 w-4 transition ${isExpanded ? "rotate-180" : ""}`} /></button></div>
+                </article>;
+              })}
+            </div>
+            <div className="application-table-shell networking-table-shell desktop-record-table">
               <div className="application-table-scroll">
                 <table className="application-table networking-table">
                   <thead><tr>
@@ -2333,7 +2393,7 @@ export default function Home() {
                 </table>
               </div>
               <p className="application-table-hint"><span>↔</span>{language === "he" ? "בטלפון ניתן להחליק לצדדים כדי לראות את כל העמודות." : "On mobile, swipe sideways to see every column."}</p>
-            </div>
+            </div></>
           )}
         </section>
 
@@ -2341,7 +2401,7 @@ export default function Home() {
           <div className="pointer-events-none absolute -right-8 -top-8 text-8xl opacity-10">💬</div>
           <div className="section-heading relative">
             <div><p className="eyebrow flex items-center gap-2 text-pink-300"><span className="emoji-bounce">✍️</span> {copy.studio}</p><h2 className="section-title">{language === "he" ? "כתבו פנייה שאנשים באמת ירצו לענות עליה" : "Write outreach people will actually want to answer"}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">{language === "he" ? "בחרו למי פונים, את הטון ואת המטרה. Carvio יכין טיוטה מתחשבת שאפשר לערוך, להעתיק או לשלוח מיד." : "Choose who you’re contacting, the tone, and your goal. Carvio builds a thoughtful draft you can edit, copy, or send immediately."}</p></div>
-            <div className="flex items-center gap-2"><div className="message-sparkle" aria-hidden="true">✨</div><button aria-expanded={expandedTools.studio} className="secondary-button" onClick={() => setExpandedTools((current) => ({ ...current, studio: !current.studio }))} type="button">{language === "he" ? (expandedTools.studio ? "סגירת הסטודיו" : "פתיחת הסטודיו") : (expandedTools.studio ? "Close studio" : "Open studio")}<ChevronDown className={`h-4 w-4 transition ${expandedTools.studio ? "rotate-180" : ""}`} /></button></div>
+            <div className="flex items-center gap-2"><div className="message-sparkle" aria-hidden="true">✨</div><button aria-expanded={expandedTools.studio} className="secondary-button" onClick={() => setExpandedTools((current) => ({ ...current, studio: !current.studio, social: false, cv: false }))} type="button">{language === "he" ? (expandedTools.studio ? "סגירת הסטודיו" : "פתיחת הסטודיו") : (expandedTools.studio ? "Close studio" : "Open studio")}<ChevronDown className={`h-4 w-4 transition ${expandedTools.studio ? "rotate-180" : ""}`} /></button></div>
           </div>
           {expandedTools.studio && (
           <div className="relative mt-6 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
@@ -2369,7 +2429,7 @@ export default function Home() {
               <h2 className="section-title">{language === "he" ? "הפכו רעיון לפוסט שאנשים ירצו לקרוא" : "Turn an idea into a post people want to read"}</h2>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">{language === "he" ? "בחרו פלטפורמה, קהל, מטרה וטון. Carvio תיצור טיוטה מותאמת שתוכלו לערוך, לשתף ולפרסם." : "Choose the platform, audience, purpose and tone. Carvio creates a platform-aware draft you can edit, share and publish."}</p>
             </div>
-            <button aria-expanded={expandedTools.social} className="secondary-button" onClick={() => setExpandedTools((current) => ({ ...current, social: !current.social }))} type="button">{expandedTools.social ? (language === "he" ? "סגירת הסטודיו" : "Close studio") : (language === "he" ? "פתיחת הסטודיו" : "Open studio")}<ChevronDown className={`h-4 w-4 transition ${expandedTools.social ? "rotate-180" : ""}`} /></button>
+            <button aria-expanded={expandedTools.social} className="secondary-button" onClick={() => setExpandedTools((current) => ({ ...current, social: !current.social, studio: false, cv: false }))} type="button">{expandedTools.social ? (language === "he" ? "סגירת הסטודיו" : "Close studio") : (language === "he" ? "פתיחת הסטודיו" : "Open studio")}<ChevronDown className={`h-4 w-4 transition ${expandedTools.social ? "rotate-180" : ""}`} /></button>
           </div>
           {expandedTools.social && (
             <div className="relative mt-6 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
@@ -2406,7 +2466,7 @@ export default function Home() {
         <section className={`calm-view panel overflow-hidden ${activeView !== "tools" ? "calm-view-hidden" : ""}`} id="cv-lab">
           <div className="section-heading">
             <div><p className="eyebrow flex items-center gap-2 text-emerald-300"><span className="emoji-bounce">📄</span> {copy.cv}</p><h2 className="section-title">{language === "he" ? "הפכו כל גרסה של קורות החיים לסיפור מקצועי חזק יותר" : "Turn every CV version into a stronger story"}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">{language === "he" ? "שמרו עד שש גרסאות, קבלו בדיקת מבנה פרטית ובנו שכתוב אמין בלי להמציא ניסיון." : "Keep up to six versions, receive a private structure review, and build a grounded rewrite without inventing experience."}</p></div>
-            <div className="flex flex-wrap items-center gap-2"><label className={`primary-button ${resumes.length >= 6 || resumeProcessing ? "pointer-events-none opacity-50" : ""}`}>{resumeProcessing ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />} {language === "he" ? (resumeProcessing ? "קורא את קורות החיים…" : "העלאת קורות חיים") : (resumeProcessing ? "Reading CV…" : "Upload CV")}<input accept=".pdf,.docx,.txt,.md,.rtf,text/*,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="sr-only" disabled={resumes.length >= 6 || resumeProcessing} multiple onChange={(event) => { void uploadResumes(event.target.files); event.target.value = ""; }} type="file" /></label><button aria-expanded={expandedTools.cv} className="secondary-button" onClick={() => setExpandedTools((current) => ({ ...current, cv: !current.cv }))} type="button">{language === "he" ? (expandedTools.cv ? "הסתרת הבדיקה" : "פתיחת מעבדת קורות החיים") : (expandedTools.cv ? "Hide review" : "Explore CV Lab")}<ChevronDown className={`h-4 w-4 transition ${expandedTools.cv ? "rotate-180" : ""}`} /></button></div>
+            <div className="flex flex-wrap items-center gap-2"><label className={`primary-button ${resumes.length >= 6 || resumeProcessing ? "pointer-events-none opacity-50" : ""}`}>{resumeProcessing ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />} {language === "he" ? (resumeProcessing ? "קורא את קורות החיים…" : "העלאת קורות חיים") : (resumeProcessing ? "Reading CV…" : "Upload CV")}<input accept=".pdf,.docx,.txt,.md,.rtf,text/*,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className="sr-only" disabled={resumes.length >= 6 || resumeProcessing} multiple onChange={(event) => { void uploadResumes(event.target.files); event.target.value = ""; }} type="file" /></label><button aria-expanded={expandedTools.cv} className="secondary-button" onClick={() => setExpandedTools((current) => ({ ...current, cv: !current.cv, studio: false, social: false }))} type="button">{language === "he" ? (expandedTools.cv ? "הסתרת הבדיקה" : "פתיחת מעבדת קורות החיים") : (expandedTools.cv ? "Hide review" : "Explore CV Lab")}<ChevronDown className={`h-4 w-4 transition ${expandedTools.cv ? "rotate-180" : ""}`} /></button></div>
           </div>
           {expandedTools.cv && (
           <div className="mt-6 grid gap-5 xl:grid-cols-[0.8fr_1.2fr]">
@@ -2440,14 +2500,14 @@ export default function Home() {
             </div>
           </div>
 
-          {expandedTools.search && (<div className="advanced-section-body">
+          {expandedTools.search && (<div className={`advanced-section-body mobile-search-flow mobile-search-flow-${searchStep}`}>
 
           <div className="search-steps" aria-label={language === "he" ? "שלבי החיפוש" : "Search steps"}>
-            <div><span>1</span><p><strong>{language === "he" ? "מגדירים" : "Define"}</strong><small>{language === "he" ? "תפקיד ומיקום" : "Role and location"}</small></p></div>
+            <button aria-current={searchStep === 1 ? "step" : undefined} onClick={() => setSearchStep(1)} type="button"><span>1</span><p><strong>{language === "he" ? "מגדירים" : "Define"}</strong><small>{language === "he" ? "תפקיד ומיקום" : "Role and location"}</small></p></button>
             <i />
-            <div><span>2</span><p><strong>{language === "he" ? "מדייקים" : "Refine"}</strong><small>{language === "he" ? "טריות ומסננים" : "Freshness and filters"}</small></p></div>
+            <button aria-current={searchStep === 2 ? "step" : undefined} onClick={() => setSearchStep(2)} type="button"><span>2</span><p><strong>{language === "he" ? "מדייקים" : "Refine"}</strong><small>{language === "he" ? "טריות ומסננים" : "Freshness and filters"}</small></p></button>
             <i />
-            <div><span>3</span><p><strong>{language === "he" ? "מחפשים" : "Search"}</strong><small>{language === "he" ? "פותחים מקור אמין" : "Open a trusted source"}</small></p></div>
+            <button aria-current={searchStep === 3 ? "step" : undefined} onClick={() => setSearchStep(3)} type="button"><span>3</span><p><strong>{language === "he" ? "מחפשים" : "Search"}</strong><small>{language === "he" ? "מקור אמין" : "Trusted source"}</small></p></button>
           </div>
 
           <div className="search-lock-card">
@@ -2464,7 +2524,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="search-form-grid mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" id="search-form-fields">
+          <div className={`search-form-grid search-step-${searchStep} mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3`} id="search-form-fields">
             <Field label="Target role"><input className="form-control" list="carvio-role-options" onChange={(event) => setSearchProfile({ ...searchProfile, role: event.target.value })} placeholder="e.g. HR Business Partner" value={searchProfile.role} /><datalist id="carvio-role-options">{roleSuggestions.map((role) => <option key={role} value={role} />)}</datalist></Field>
             <Field label="Country"><select className="form-control" onChange={(event) => setSearchProfile({ ...searchProfile, country: event.target.value, location: "" })} value={searchProfile.country}>{countryOptions.map((country) => <option key={country}>{country}</option>)}</select></Field>
             <Field label="City / area"><input className="form-control" list="carvio-city-options" onChange={(event) => setSearchProfile({ ...searchProfile, location: event.target.value })} placeholder="e.g. Amsterdam" value={searchProfile.location} /><datalist id="carvio-city-options">{(citySuggestions[searchProfile.country] || []).map((city) => <option key={city} value={city} />)}</datalist></Field>
@@ -2475,6 +2535,7 @@ export default function Home() {
             <Field label={language === "he" ? "מועד פרסום" : "Date posted"}><select className="form-control" onChange={(event) => setSearchProfile({ ...searchProfile, datePosted: event.target.value })} value={searchProfile.datePosted}><option>Past 24 hours</option><option>Past week</option><option>Past month</option><option>Any time</option></select></Field>
             <Field label="Industry"><input className="form-control" onChange={(event) => setSearchProfile({ ...searchProfile, industry: event.target.value })} placeholder="SaaS, healthcare, retail…" value={searchProfile.industry} /></Field>
           </div>
+          <div className="mobile-step-actions"><button className="secondary-button" disabled={searchStep === 1} onClick={() => setSearchStep((current) => Math.max(1, current - 1) as 1 | 2 | 3)} type="button">{language === "he" ? "חזרה" : "Back"}</button>{searchStep < 3 && <button className="primary-button" onClick={() => setSearchStep((current) => Math.min(3, current + 1) as 1 | 2 | 3)} type="button">{language === "he" ? "המשך" : "Continue"}<ChevronRight className="h-4 w-4" /></button>}</div>
 
           <fieldset className="mt-5"><legend className="text-sm font-medium text-slate-200">Skills — select or type your own</legend><div className="mt-3 flex flex-wrap gap-2">{skillSuggestions.map((skill) => { const selected = searchProfile.skills.split(",").map((item) => item.trim().toLowerCase()).includes(skill.toLowerCase()); return <button aria-pressed={selected} className={`skill-chip ${selected ? "skill-chip-selected" : ""}`} key={skill} onClick={() => toggleSearchSkill(skill)} type="button">{selected ? "✓ " : "+ "}{skill}</button>; })}</div><input aria-label="Additional skills" className="form-control mt-3" onChange={(event) => setSearchProfile({ ...searchProfile, skills: event.target.value })} placeholder="Additional skills, separated by commas" value={searchProfile.skills} /></fieldset>
 
@@ -2519,8 +2580,11 @@ export default function Home() {
             <div><p className="eyebrow text-cyan-300">{language === "he" ? "ניתוח מעמיק" : "Deeper analysis"}</p><h3 className="section-title">{language === "he" ? "כל גרף מוביל לתובנה ולפעולה" : "Every chart leads to an insight and action"}</h3></div>
             <div className="flex flex-wrap items-center gap-2"><span className="rounded-full border border-violet-400/20 bg-violet-400/10 px-3 py-1 text-xs text-violet-200">{language === "he" ? "חי · מבוסס על המכשיר הזה" : "Live · based on this device"}</span><button aria-expanded={expandedTools.analytics} className="secondary-button" onClick={() => setExpandedTools((current) => ({ ...current, analytics: !current.analytics }))} type="button">{expandedTools.analytics ? (language === "he" ? "הסתרת הגרפים" : "Hide charts") : (language === "he" ? "הצגת כל הניתוחים" : "Explore analytics")}<ChevronDown className={`h-4 w-4 transition ${expandedTools.analytics ? "rotate-180" : ""}`} /></button></div>
           </div>
+          <div className="mobile-insight-tabs" role="tablist" aria-label={language === "he" ? "קטגוריית תובנות" : "Insight category"}>
+            {([["pipeline", language === "he" ? "משפך" : "Pipeline"], ["activity", language === "he" ? "פעילות" : "Activity"], ["networking", language === "he" ? "קשרים" : "Network"]] as const).map(([value, label]) => <button aria-selected={mobileInsightCategory === value} key={value} onClick={() => setMobileInsightCategory(value)} role="tab" type="button">{label}</button>)}
+          </div>
           {expandedTools.analytics && (
-          <div className="analytics-grid mt-6">
+          <div className={`analytics-grid mobile-insights-${mobileInsightCategory} mt-6`}>
             <AnalyticsCard title="Pipeline distribution" subtitle="Where every application currently sits" icon={<BarChart3 className="h-5 w-5" />} insight={applications.length ? `${analytics.pipeline.reduce((best, item) => item.value > best.value ? item : best, analytics.pipeline[0]).label} is currently your largest pipeline stage.` : "Add applications to reveal your pipeline shape."} recommendation={applications.some((item) => item.status === "Follow-up due") ? "Start with follow-ups before adding more applications." : "Focus on moving the strongest active applications one stage forward."}>
               <BarRows data={analytics.pipeline} colors={["#38bdf8", "#a78bfa", "#34d399", "#fbbf24", "#fb7185", "#94a3b8"]} />
             </AnalyticsCard>
@@ -2631,11 +2695,11 @@ export default function Home() {
           ["applications", BriefcaseBusiness, copy.applications],
           ["search", Search, copy.search],
           ["networking", Users2, copy.networking],
-          ["tools", Wrench, copy.tools],
-          ["more", BarChart3, copy.insights],
         ] as [AppView, typeof House, string][]).map(([view, Icon, label]) => <button aria-current={activeView === view ? "page" : undefined} className={`${view === "applications" ? "calm-mobile-applications" : ""} ${activeView === view ? "calm-mobile-tab-active" : ""}`} key={view} onClick={() => switchView(view)} type="button"><Icon className="h-5 w-5" /><span>{label}</span></button>)}
-        <button aria-label={language === "he" ? "הוספה מהירה" : "Quick add"} className="calm-quick-add" onClick={() => setShowQuickAdd(true)} type="button"><Plus className="h-6 w-6" /></button>
+        <button aria-expanded={showMobileMore} className={activeView === "tools" || activeView === "more" ? "calm-mobile-tab-active" : ""} onClick={() => setShowMobileMore((current) => !current)} type="button"><Menu className="h-5 w-5" /><span>{language === "he" ? "עוד" : "More"}</span></button>
+        <button aria-label={language === "he" ? "הוספה מהירה" : "Quick add"} className="calm-quick-add" onClick={() => setShowQuickAdd(true)} type="button"><Plus className="h-5 w-5" /></button>
       </nav>
+      {showMobileMore && <div className="mobile-more-menu"><button onClick={() => switchView("tools")} type="button"><Wrench className="h-5 w-5" /><span><strong>{copy.tools}</strong><small>{language === "he" ? "הודעות, פוסטים וקורות חיים" : "Messages, posts and CV"}</small></span></button><button onClick={() => switchView("more")} type="button"><BarChart3 className="h-5 w-5" /><span><strong>{copy.insights}</strong><small>{language === "he" ? "תובנות והפעולה הבאה" : "Insights and next actions"}</small></span></button></div>}
 
       {notice && <div aria-atomic="true" aria-live="polite" className="toast" role="status"><CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-300" /><span>{notice}</span><button aria-label="Dismiss notification" className="ml-1 rounded-full p-1 text-slate-400 transition hover:bg-white/10 hover:text-white" onClick={() => setNotice("")} type="button"><X className="h-4 w-4" /></button></div>}
 

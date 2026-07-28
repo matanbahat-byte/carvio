@@ -644,6 +644,22 @@ html[data-carvio-theme="light"] body {
   color: #172033;
 }
 
+html.carvio-force-light,
+html.carvio-force-light body,
+body.carvio-force-light {
+  color-scheme: only light !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+}
+
+html.carvio-force-light input,
+html.carvio-force-light textarea,
+html.carvio-force-light select,
+html.carvio-force-light button {
+  color-scheme: only light;
+}
+
 html[data-carvio-theme="light"] {
   --background: #ffffff;
   --foreground: #172033;
@@ -3209,6 +3225,531 @@ html[data-carvio-theme="light"] {
   }
 }
 
+/* IKEA-inspired mobile pass: persistent choices, compact content, progressive disclosure. */
+.mobile-record-list,
+.mobile-filter-toggle,
+.mobile-step-actions,
+.mobile-insight-tabs,
+.mobile-more-menu {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .carvio-shell {
+    padding: calc(4.8rem + env(safe-area-inset-top)) 0.65rem 2.2rem;
+  }
+
+  .calm-content {
+    gap: 0.75rem;
+  }
+
+  /* The product map stays visible at the top, like IKEA Kreativ's persistent navigation. */
+  .calm-mobile-nav {
+    top: max(0.45rem, env(safe-area-inset-top));
+    right: 0.5rem;
+    bottom: auto;
+    left: 0.5rem;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) 2.5rem;
+    gap: 0.12rem;
+    padding: 0.28rem;
+    border-radius: 1.05rem;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.22);
+  }
+
+  .calm-mobile-nav > button:not(.calm-quick-add) {
+    min-height: 3.25rem;
+    padding: 0.25rem 0.12rem;
+    font-size: 0.55rem;
+  }
+
+  .calm-mobile-nav > button:not(.calm-quick-add) span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .calm-quick-add {
+    position: static;
+    width: 2.35rem;
+    height: 2.35rem;
+    align-self: center;
+    border-width: 0;
+    transform: none;
+  }
+
+  .mobile-more-menu {
+    position: fixed;
+    z-index: 69;
+    top: calc(4.15rem + env(safe-area-inset-top));
+    right: 0.65rem;
+    display: grid;
+    width: min(19rem, calc(100vw - 1.3rem));
+    gap: 0.4rem;
+    padding: 0.55rem;
+    border: 1px solid rgba(103, 232, 249, 0.18);
+    border-radius: 1rem;
+    background: rgba(7, 17, 22, 0.98);
+    box-shadow: 0 18px 45px rgba(2, 6, 23, 0.35);
+    backdrop-filter: blur(18px);
+  }
+
+  .mobile-more-menu button {
+    display: grid;
+    grid-template-columns: 2rem 1fr;
+    align-items: center;
+    gap: 0.55rem;
+    min-height: 3.6rem;
+    padding: 0.55rem 0.7rem;
+    border-radius: 0.8rem;
+    color: #e2e8f0;
+    text-align: left;
+  }
+
+  .mobile-more-menu button:hover {
+    background: rgba(34, 211, 238, 0.09);
+  }
+
+  .mobile-more-menu strong,
+  .mobile-more-menu small {
+    display: block;
+  }
+
+  .mobile-more-menu small {
+    margin-top: 0.1rem;
+    color: #94a3b8;
+    font-size: 0.68rem;
+  }
+
+  .carvio-light .mobile-more-menu {
+    border-color: #dbe6ef;
+    background: rgba(255, 255, 255, 0.99);
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.16);
+  }
+
+  .carvio-light .mobile-more-menu button {
+    color: #172033;
+  }
+
+  /* Home becomes a quick start, not a long marketing page. */
+  .carvio-hero {
+    padding: 0.8rem;
+  }
+
+  .carvio-hero-top {
+    padding-bottom: 0.55rem;
+  }
+
+  .carvio-hero-main {
+    gap: 0.65rem;
+    padding-top: 0.7rem;
+  }
+
+  .carvio-hero-main h1 {
+    font-size: 1.65rem;
+    line-height: 1.85rem;
+  }
+
+  .carvio-hero-main p {
+    display: none;
+  }
+
+  .hero-trust-row,
+  .hero-search-secondary {
+    display: none;
+  }
+
+  .hero-human-story {
+    min-height: 7.25rem;
+    max-height: 7.25rem;
+  }
+
+  .hero-human-story > img {
+    object-position: 50% 30%;
+  }
+
+  .hero-action-stack {
+    gap: 0.55rem;
+  }
+
+  .hero-momentum {
+    display: none;
+  }
+
+  .dashboard-overview {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+
+  .dashboard-overview > article,
+  .dashboard-overview .metric-card {
+    min-height: 5.3rem;
+    padding: 0.65rem;
+  }
+
+  .dashboard-overview .momentum-card {
+    grid-column: 1 / -1;
+    min-height: 8rem;
+  }
+
+  .today-panel {
+    display: none;
+  }
+
+  /* Search first, then reveal the choices that matter. */
+  .search-steps {
+    gap: 0.2rem;
+  }
+
+  .search-steps > button {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem;
+    border-radius: 0.75rem;
+    color: #94a3b8;
+    text-align: left;
+  }
+
+  .search-steps > button[aria-current="step"] {
+    color: #ecfeff;
+    background: rgba(34, 211, 238, 0.12);
+  }
+
+  .search-steps > button > span {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.14);
+    font-size: 0.7rem;
+    font-weight: 800;
+  }
+
+  .search-steps > button p,
+  .search-steps > button strong,
+  .search-steps > button small {
+    display: block;
+    min-width: 0;
+  }
+
+  .search-steps > button strong {
+    font-size: 0.68rem;
+  }
+
+  .search-steps > button small {
+    display: none;
+  }
+
+  .search-form-grid > label {
+    display: none;
+  }
+
+  .search-step-1 > label:nth-child(-n+3),
+  .search-step-2 > label:nth-child(n+4),
+  .search-step-3 > label:nth-child(-n+3) {
+    display: block;
+  }
+
+  .mobile-search-flow-1 > fieldset,
+  .mobile-search-flow-1 > .freshness-shortcuts,
+  .mobile-search-flow-1 > div:has(> label[for]),
+  .mobile-search-flow-2 .search-results-shell,
+  .mobile-search-flow-3 > fieldset,
+  .mobile-search-flow-3 > .freshness-shortcuts {
+    display: none;
+  }
+
+  .mobile-search-flow-1 > .mt-5.grid,
+  .mobile-search-flow-2 > .mt-5.grid {
+    display: none;
+  }
+
+  .mobile-step-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.6rem;
+    margin-top: 1rem;
+  }
+
+  .mobile-step-actions button {
+    flex: 1;
+  }
+
+  /* Compact records replace wide desktop tables on phones. */
+  .desktop-record-table {
+    display: none;
+  }
+
+  .mobile-record-list {
+    display: grid;
+    gap: 0.55rem;
+    max-height: min(31rem, 63dvh);
+    overflow-y: auto;
+    padding: 0.1rem 0.15rem 0.35rem;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+
+  .mobile-record-card {
+    padding: 0.75rem;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.035);
+  }
+
+  .mobile-record-head {
+    display: grid;
+    grid-template-columns: 2.35rem minmax(0, 1fr) 0.7rem;
+    align-items: center;
+    gap: 0.55rem;
+  }
+
+  .mobile-record-head > div {
+    min-width: 0;
+  }
+
+  .mobile-record-head strong,
+  .mobile-record-head small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-record-head strong {
+    font-size: 0.9rem;
+  }
+
+  .mobile-record-head small {
+    margin-top: 0.12rem;
+    color: #94a3b8;
+    font-size: 0.7rem;
+  }
+
+  .mobile-signal {
+    width: 0.65rem;
+    height: 0.65rem;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    border-radius: 999px;
+    background: #e2e8f0;
+  }
+
+  .mobile-signal-green { background: #10d6a0; }
+  .mobile-signal-yellow { background: #ffb000; }
+  .mobile-signal-red { background: #ff6682; }
+
+  .mobile-record-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.6rem;
+  }
+
+  .mobile-record-meta > span {
+    padding: 0.25rem 0.45rem;
+    border-radius: 999px;
+    color: #cbd5e1;
+    background: rgba(148, 163, 184, 0.1);
+    font-size: 0.64rem;
+  }
+
+  .mobile-record-next {
+    display: grid;
+    gap: 0.1rem;
+    margin-top: 0.55rem;
+  }
+
+  .mobile-record-next small {
+    color: #64748b;
+    font-size: 0.6rem;
+    text-transform: uppercase;
+  }
+
+  .mobile-record-next strong {
+    font-size: 0.76rem;
+  }
+
+  .mobile-record-details {
+    display: grid;
+    gap: 0.25rem;
+    margin-top: 0.55rem;
+    padding: 0.55rem;
+    border-radius: 0.7rem;
+    color: #94a3b8;
+    background: rgba(148, 163, 184, 0.07);
+    font-size: 0.68rem;
+  }
+
+  .mobile-record-actions {
+    display: flex;
+    gap: 0.3rem;
+    margin-top: 0.65rem;
+    padding-top: 0.55rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.12);
+  }
+
+  .mobile-record-actions button {
+    display: inline-flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    gap: 0.28rem;
+    min-height: 2.2rem;
+    border-radius: 0.65rem;
+    color: #cbd5e1;
+    background: rgba(148, 163, 184, 0.08);
+    font-size: 0.66rem;
+    font-weight: 700;
+  }
+
+  .mobile-filter-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    min-height: 2.75rem;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 0.75rem;
+    color: #cbd5e1;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
+  .application-toolbar > .application-filter,
+  .application-toolbar > .application-sort-control,
+  .application-toolbar > .application-results-count {
+    display: none;
+  }
+
+  .application-toolbar.mobile-filters-expanded > .application-filter,
+  .application-toolbar.mobile-filters-expanded > .application-sort-control,
+  .application-toolbar.mobile-filters-expanded > .application-results-count {
+    display: flex;
+  }
+
+  .application-toolbar.mobile-filters-expanded > select.application-filter {
+    display: block;
+  }
+
+  .application-toolbar {
+    grid-template-columns: 1fr auto;
+  }
+
+  .application-toolbar .application-search {
+    min-width: 0;
+  }
+
+  .application-toolbar.mobile-filters-expanded > .application-filter,
+  .application-toolbar.mobile-filters-expanded > .application-sort-control,
+  .application-toolbar.mobile-filters-expanded > .application-results-count {
+    grid-column: 1 / -1;
+  }
+
+  .carvio-light .mobile-record-card,
+  .carvio-light .mobile-record-details,
+  .carvio-light .mobile-record-actions button {
+    border-color: #dbe6ef;
+    color: #172033;
+    background: #ffffff;
+  }
+
+  .carvio-light .mobile-record-head small,
+  .carvio-light .mobile-record-meta > span,
+  .carvio-light .mobile-record-details {
+    color: #526277;
+  }
+
+  .carvio-light .mobile-record-meta > span,
+  .carvio-light .mobile-record-actions button {
+    background: #f1f5f9;
+  }
+
+  /* Insights are browsed by decision, not as one 9,000px report. */
+  .mobile-insight-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.35rem;
+    margin-top: 1rem;
+    padding: 0.25rem;
+    border-radius: 0.85rem;
+    background: rgba(148, 163, 184, 0.08);
+  }
+
+  .mobile-insight-tabs button {
+    min-height: 2.5rem;
+    border-radius: 0.65rem;
+    color: #94a3b8;
+    font-size: 0.7rem;
+    font-weight: 750;
+  }
+
+  .mobile-insight-tabs button[aria-selected="true"] {
+    color: #ecfeff;
+    background: rgba(34, 211, 238, 0.14);
+  }
+
+  .analytics-grid > .analytics-card {
+    display: none;
+  }
+
+  .analytics-grid.mobile-insights-pipeline > .analytics-card:nth-child(1),
+  .analytics-grid.mobile-insights-pipeline > .analytics-card:nth-child(10),
+  .analytics-grid.mobile-insights-pipeline > .analytics-card:nth-child(11),
+  .analytics-grid.mobile-insights-activity > .analytics-card:nth-child(3),
+  .analytics-grid.mobile-insights-activity > .analytics-card:nth-child(4),
+  .analytics-grid.mobile-insights-activity > .analytics-card:nth-child(7),
+  .analytics-grid.mobile-insights-networking > .analytics-card:nth-child(2),
+  .analytics-grid.mobile-insights-networking > .analytics-card:nth-child(8),
+  .analytics-grid.mobile-insights-networking > .analytics-card:nth-child(9) {
+    display: block;
+  }
+
+  .analytics-card {
+    padding: 0.85rem;
+  }
+
+  .analytics-card > div:nth-child(2) {
+    max-height: 13rem;
+  }
+
+  .insights-hub,
+  .reset-panel,
+  #preferences,
+  #pilot-feedback {
+    display: none;
+  }
+
+  /* Tool cards are three clear ways to start; only one workspace opens at a time. */
+  #message-studio,
+  #social-studio,
+  #cv-lab {
+    padding: 0.8rem;
+  }
+
+  #message-studio .section-heading,
+  #social-studio .section-heading,
+  #cv-lab .section-heading {
+    align-items: center;
+    gap: 0.55rem;
+  }
+
+  #message-studio .section-title,
+  #social-studio .section-title,
+  #cv-lab .section-title {
+    font-size: 1rem;
+  }
+
+  #message-studio .section-heading p,
+  #social-studio .section-heading p,
+  #cv-lab .section-heading p {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .promo-film-playing .promo-film-image {
     transform: none;
@@ -4648,5 +5189,746 @@ html[data-carvio-theme="light"] {
 
   .smart-secondary-action small {
     -webkit-line-clamp: 1;
+  }
+}
+
+/* Mobile experience: compact content, reliable navigation and readable forms. */
+.hero-human-story-mobile {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  .carvio-shell {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: clip;
+    padding: 0.65rem 0.65rem calc(6.5rem + env(safe-area-inset-bottom));
+  }
+
+  .calm-content {
+    width: 100%;
+    min-width: 0;
+    gap: 0.7rem;
+  }
+
+  .calm-mobile-nav {
+    position: fixed !important;
+    z-index: 1000;
+    right: 0.45rem;
+    bottom: max(0.45rem, env(safe-area-inset-bottom));
+    left: 0.45rem;
+    min-width: 0;
+    padding: 0.35rem 0.25rem;
+    border-radius: 1.15rem;
+    opacity: 1;
+    visibility: visible;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+  }
+
+  .calm-mobile-nav > button:not(.calm-quick-add) {
+    min-width: 0;
+    min-height: 3rem;
+    gap: 0.18rem;
+    padding-inline: 0.1rem;
+    border-radius: 0.75rem;
+    font-size: clamp(0.48rem, 2.15vw, 0.58rem);
+    line-height: 0.7rem;
+  }
+
+  .calm-mobile-nav > button:not(.calm-quick-add) svg {
+    width: 1.05rem;
+    height: 1.05rem;
+  }
+
+  .calm-quick-add {
+    top: -2.7rem;
+    width: 2.85rem;
+    height: 2.85rem;
+  }
+
+  .calm-page-header {
+    align-items: center;
+    min-width: 0;
+    padding: 0.25rem 0.1rem 0.15rem;
+  }
+
+  .calm-page-header > div {
+    min-width: 0;
+  }
+
+  .calm-page-header .eyebrow {
+    font-size: 0.58rem;
+  }
+
+  .calm-page-header h1 {
+    margin-top: 0.1rem;
+    font-size: 1.35rem;
+    line-height: 1.6rem;
+  }
+
+  .calm-page-header p:last-child {
+    display: -webkit-box;
+    margin-top: 0.2rem;
+    overflow: hidden;
+    font-size: 0.72rem;
+    line-height: 1.05rem;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .calm-page-header > button {
+    flex: 0 0 auto;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    padding-inline: 0.7rem;
+  }
+
+  .panel,
+  .message-studio-panel,
+  .social-studio-panel,
+  .reset-panel,
+  .pilot-banner,
+  .analytics-card {
+    min-width: 0;
+    border-radius: 1.1rem;
+    padding: 0.85rem;
+  }
+
+  .section-heading {
+    gap: 0.55rem;
+    padding-bottom: 0.65rem;
+  }
+
+  .section-heading .eyebrow,
+  .eyebrow {
+    font-size: 0.6rem;
+    letter-spacing: 0.17em;
+  }
+
+  .section-title {
+    margin-top: 0.25rem;
+    font-size: 1.12rem;
+    line-height: 1.4rem;
+  }
+
+  .carvio-hero {
+    padding: 0.8rem;
+    border-radius: 1.15rem;
+  }
+
+  .carvio-hero-top {
+    gap: 0.55rem;
+    padding-bottom: 0.65rem;
+  }
+
+  .profile-welcome-row {
+    gap: 0.55rem;
+  }
+
+  .profile-photo-control {
+    width: 3.35rem;
+    height: 3.35rem;
+  }
+
+  .profile-photo-badge {
+    width: 1.15rem;
+    height: 1.15rem;
+  }
+
+  .profile-welcome-copy p {
+    max-width: 8.5rem;
+    overflow: hidden;
+    font-size: 0.72rem;
+    line-height: 1rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .hero-utility-actions {
+    align-self: flex-start;
+    gap: 0.2rem;
+  }
+
+  .hero-icon-button,
+  .hero-language-button {
+    min-width: 2.25rem;
+    min-height: 2.25rem;
+    border-radius: 0.7rem;
+  }
+
+  .hero-language-button {
+    width: 2.25rem;
+    overflow: hidden;
+    padding: 0;
+    gap: 0;
+    font-size: 0;
+  }
+
+  .hero-language-button svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .carvio-hero-main {
+    gap: 0.75rem;
+    padding-top: 0.75rem;
+  }
+
+  .hero-status-pill {
+    padding: 0.3rem 0.55rem;
+    font-size: 0.62rem;
+  }
+
+  .carvio-hero-main .eyebrow {
+    margin-top: 0.75rem;
+  }
+
+  .carvio-hero-main h1 {
+    margin-top: 0.3rem;
+    font-size: 1.65rem;
+    line-height: 1.85rem;
+  }
+
+  .carvio-hero-main p:not(.eyebrow) {
+    display: -webkit-box;
+    margin-top: 0.45rem;
+    overflow: hidden;
+    font-size: 0.82rem;
+    line-height: 1.25rem;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .hero-human-story-mobile {
+    display: block;
+    height: 7.25rem;
+    margin-top: 0.7rem;
+    aspect-ratio: auto;
+  }
+
+  .hero-human-story-desktop {
+    display: none;
+  }
+
+  .hero-application-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.45rem;
+    margin-top: 0.8rem;
+  }
+
+  .hero-applications-primary {
+    min-width: 0;
+    min-height: 3.35rem;
+    gap: 0.55rem;
+    padding: 0.55rem 0.7rem;
+    border-radius: 0.85rem;
+  }
+
+  .hero-applications-primary strong {
+    font-size: 0.82rem;
+  }
+
+  .hero-applications-primary small {
+    font-size: 0.62rem;
+  }
+
+  .hero-add-application {
+    width: 3.35rem;
+    min-height: 3.35rem;
+    overflow: hidden;
+    padding: 0;
+    gap: 0;
+    font-size: 0;
+  }
+
+  .hero-add-application svg {
+    width: 1.2rem;
+    height: 1.2rem;
+  }
+
+  .hero-trust-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.3rem;
+    margin-top: 0.55rem;
+  }
+
+  .hero-trust-row > span,
+  .hero-trust-row > button {
+    min-width: 0;
+    min-height: 2rem;
+    padding: 0 0.45rem;
+    font-size: 0.6rem;
+  }
+
+  .hero-trust-row > span:nth-child(2) {
+    display: none;
+  }
+
+  .hero-human-story {
+    aspect-ratio: 16 / 5.7;
+    border-radius: 1rem 2.4rem 1rem 2.4rem;
+  }
+
+  .hero-human-story::after {
+    inset: 0.3rem;
+    border-radius: 0.8rem 2.1rem 0.8rem 2.1rem;
+  }
+
+  .hero-human-story > img {
+    object-position: center 38%;
+  }
+
+  .hero-human-story > div:last-child {
+    right: 0.75rem;
+    bottom: 0.55rem;
+    left: 0.75rem;
+  }
+
+  .hero-human-story span {
+    display: none;
+  }
+
+  .hero-human-story strong {
+    max-width: 16rem;
+    margin: 0;
+    font-size: 0.72rem;
+    line-height: 1rem;
+  }
+
+  .hero-action-stack {
+    gap: 0.5rem;
+  }
+
+  .carvio-hero .focus-card {
+    padding: 0.75rem;
+    border-radius: 0.85rem;
+  }
+
+  .carvio-hero .focus-card > span:first-child {
+    font-size: 0.58rem;
+  }
+
+  .carvio-hero .focus-card > span:nth-child(2) {
+    margin-top: 0.4rem;
+    font-size: 0.56rem;
+  }
+
+  .carvio-hero .focus-card > span:nth-child(3) {
+    margin-top: 0.1rem;
+    font-size: 0.88rem;
+  }
+
+  .carvio-hero .focus-card > span:last-child {
+    margin-top: 0.1rem;
+    font-size: 0.68rem;
+  }
+
+  .hero-momentum {
+    padding: 0.6rem 0.7rem;
+    border-radius: 0.8rem;
+  }
+
+  .hero-momentum small {
+    display: none;
+  }
+
+  .checkin-card-compact {
+    align-items: center;
+    flex-direction: row;
+    gap: 0.5rem;
+    padding: 0.65rem;
+  }
+
+  .checkin-compact-copy {
+    gap: 0.4rem;
+  }
+
+  .checkin-compact-copy > span {
+    font-size: 1.15rem;
+  }
+
+  .checkin-compact-copy .eyebrow {
+    display: none;
+  }
+
+  .checkin-compact-copy h2 {
+    max-width: 7.5rem;
+    margin: 0;
+    font-size: 0.68rem;
+    line-height: 0.95rem;
+  }
+
+  .checkin-compact-options {
+    display: grid;
+    flex: 1;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.25rem;
+  }
+
+  .checkin-card-compact .checkin-choice {
+    min-width: 0;
+    min-height: 2.55rem;
+    padding: 0.25rem;
+    font-size: 0;
+  }
+
+  .checkin-card-compact .checkin-choice > span:first-child {
+    font-size: 1.05rem;
+  }
+
+  .dashboard-overview {
+    gap: 0.55rem;
+  }
+
+  .dashboard-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.35rem;
+  }
+
+  .dashboard-metric {
+    display: flex;
+    min-width: 0;
+    min-height: 3.9rem;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.45rem;
+    padding: 0.55rem;
+    border-radius: 0.85rem;
+  }
+
+  .dashboard-metric-icon {
+    width: 1.55rem;
+    height: 1.55rem;
+    border-radius: 0.55rem;
+  }
+
+  .dashboard-metric-value {
+    min-width: 0;
+    font-size: 1.05rem;
+    line-height: 1.05rem;
+  }
+
+  .dashboard-metric-label {
+    overflow: hidden;
+    font-size: 0.55rem;
+    line-height: 0.72rem;
+    text-overflow: ellipsis;
+  }
+
+  .dashboard-overview .momentum-card {
+    min-height: 0;
+    padding: 0.75rem;
+    border-radius: 1rem;
+  }
+
+  .dashboard-overview .momentum-card h2 {
+    font-size: 0.98rem;
+  }
+
+  .dashboard-overview .momentum-card .mt-4 {
+    margin-top: 0.65rem;
+  }
+
+  .momentum-breakdown {
+    margin-top: 0.65rem;
+    gap: 0.35rem;
+  }
+
+  .momentum-breakdown strong {
+    font-size: 1rem;
+  }
+
+  .momentum-breakdown span {
+    font-size: 0.55rem;
+    line-height: 0.72rem;
+  }
+
+  .momentum-wins {
+    gap: 0.25rem;
+    margin-top: 0.6rem;
+  }
+
+  .momentum-wins span {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.55rem;
+  }
+
+  .dashboard-overview .momentum-card > p:last-child {
+    display: none;
+  }
+
+  .today-panel {
+    min-width: 0;
+    padding: 0.8rem;
+  }
+
+  .today-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+    min-width: 0;
+    margin-top: 0.65rem;
+  }
+
+  .today-primary,
+  .today-item {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    min-height: 4.6rem;
+    gap: 0.5rem;
+    overflow: hidden;
+    padding: 0.65rem;
+    border-radius: 0.85rem;
+  }
+
+  .today-primary {
+    grid-column: 1 / -1;
+  }
+
+  .today-primary > span:nth-child(2),
+  .today-item > span {
+    width: 0;
+    min-width: 0;
+  }
+
+  .today-primary strong,
+  .today-item strong,
+  .today-primary em {
+    overflow: hidden;
+    font-size: 0.7rem;
+    line-height: 1rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .today-primary small,
+  .today-item small {
+    font-size: 0.55rem;
+  }
+
+  .today-icon {
+    flex: 0 0 auto;
+    font-size: 1rem;
+  }
+
+  .pilot-stories {
+    padding-top: 0.2rem;
+  }
+
+  .pilot-stories-heading {
+    display: none;
+  }
+
+  .pilot-stories-grid {
+    gap: 0.55rem;
+  }
+
+  .pilot-story-card {
+    flex-basis: 78%;
+    min-height: 7.5rem;
+    padding: 0.75rem;
+  }
+
+  .pilot-story-card blockquote {
+    display: -webkit-box;
+    margin-top: 0.55rem;
+    overflow: hidden;
+    font-size: 0.72rem;
+    line-height: 1.05rem;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  .application-table-panel,
+  .networking-table-panel {
+    padding: 0.75rem;
+  }
+
+  .application-toolbar,
+  .networking-toolbar {
+    gap: 0.4rem;
+  }
+
+  .application-toolbar .form-control,
+  .networking-toolbar .form-control {
+    min-height: 2.75rem;
+    font-size: 0.82rem;
+  }
+
+  .application-table-scroll,
+  .networking-table-scroll {
+    max-height: min(25rem, 58dvh);
+  }
+
+  .analytics-grid {
+    gap: 0.7rem;
+  }
+
+  .analytics-card {
+    min-height: 0;
+  }
+
+  .analytics-card h3 {
+    font-size: 1rem;
+  }
+}
+
+/* Form contrast must remain readable in every palette. */
+.modal-dialog-shell label,
+.modal-dialog-shell legend,
+.modal-dialog-shell .process-stage-heading strong,
+.modal-dialog-shell .application-stage-signal p,
+.modal-dialog-shell .company-logo-picker-compact p {
+  color: #e2e8f0;
+}
+
+.carvio-light .modal-dialog-shell label,
+.carvio-light .modal-dialog-shell legend,
+.carvio-light .modal-dialog-shell .process-stage-heading strong,
+.carvio-light .modal-dialog-shell .application-stage-signal p,
+.carvio-light .modal-dialog-shell .company-logo-picker-compact p {
+  color: #172033;
+}
+
+.carvio-ocean .modal-dialog-shell label,
+.carvio-ocean .modal-dialog-shell legend,
+.carvio-ocean .modal-dialog-shell .process-stage-heading strong,
+.carvio-ocean .modal-dialog-shell .application-stage-signal p,
+.carvio-plum .modal-dialog-shell label,
+.carvio-plum .modal-dialog-shell legend,
+.carvio-plum .modal-dialog-shell .process-stage-heading strong,
+.carvio-plum .modal-dialog-shell .application-stage-signal p {
+  color: #f1f5f9;
+}
+
+/* When the virtual keyboard is open, the modal owns the screen and its actions. */
+@media (max-width: 767px) {
+  body:has(.modal-overlay) .calm-mobile-nav,
+  body:has(.modal-overlay) .back-to-top {
+    display: none !important;
+  }
+
+  .modal-overlay {
+    align-items: stretch;
+    padding: max(0.35rem, env(safe-area-inset-top)) 0.35rem 0.35rem;
+  }
+
+  .modal-dialog-shell {
+    width: 100%;
+    max-height: calc(100dvh - max(0.7rem, env(safe-area-inset-top)));
+    border-radius: 1rem;
+  }
+
+  .modal-dialog-header {
+    padding: 0.75rem 0.85rem 0.65rem;
+  }
+
+  .modal-dialog-header h2 {
+    font-size: 1.05rem;
+  }
+
+  .modal-dialog-header p {
+    display: none;
+  }
+
+  .modal-dialog-body {
+    scroll-padding-bottom: 5.5rem;
+    padding: 0.7rem 0.85rem 0.85rem;
+  }
+
+  .modal-dialog-body .modal-actions {
+    bottom: -0.85rem;
+    margin: 0.75rem -0.85rem -0.85rem;
+    padding: 0.65rem 0.85rem max(0.65rem, env(safe-area-inset-bottom));
+  }
+
+  .modal-actions .primary-button,
+  .modal-actions .secondary-button {
+    min-height: 2.75rem;
+  }
+
+  .application-form-compact {
+    gap: 0.75rem;
+  }
+
+  .application-stage-signal {
+    gap: 0.65rem;
+    padding: 0.7rem;
+  }
+
+  .traffic-options {
+    gap: 0.35rem;
+  }
+
+  .traffic-option {
+    min-height: 3.1rem;
+    padding: 0.45rem 0.35rem;
+    font-size: 0.72rem;
+  }
+}
+
+/* Final mobile precedence: keep the feature rail at the top on every phone. */
+@media (max-width: 767px) {
+  .carvio-shell {
+    padding-top: calc(4.8rem + env(safe-area-inset-top));
+    padding-bottom: 2.2rem;
+  }
+
+  .calm-mobile-nav {
+    top: max(0.45rem, env(safe-area-inset-top));
+    right: 0.5rem;
+    bottom: auto;
+    left: 0.5rem;
+    height: auto;
+    min-height: 0;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) 2.5rem;
+    gap: 0.12rem;
+    padding: 0.28rem;
+    border-radius: 1.05rem;
+  }
+
+  .calm-mobile-nav > button:not(.calm-quick-add) {
+    min-height: 3.25rem;
+    padding: 0.25rem 0.12rem;
+  }
+
+  .calm-quick-add {
+    position: static;
+    width: 2.35rem;
+    height: 2.35rem;
+    align-self: center;
+    border-width: 0;
+    transform: none;
+  }
+
+  .carvio-hero {
+    min-height: 0;
+    padding: 0.8rem;
+  }
+
+  .carvio-hero-main {
+    gap: 0.65rem;
+    padding-top: 0.7rem;
+  }
+
+  .carvio-hero-main h1 {
+    font-size: 1.65rem;
+    line-height: 1.85rem;
+  }
+
+  .hero-trust-row,
+  .hero-search-secondary,
+  .today-panel {
+    display: none;
   }
 }
