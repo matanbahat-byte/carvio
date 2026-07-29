@@ -2382,10 +2382,10 @@ export default function Home() {
                       <p className="mobile-record-next"><small>{language === "he" ? "הצעד הבא" : "Next move"}</small><strong>{application.nextStep || (language === "he" ? "לא הוגדר" : "Not set")}</strong></p>
                       {isExpanded && <div className="mobile-record-details"><span>{application.source || "—"}</span><span>{application.salary ? `${application.salaryCurrency} ${application.salary}` : "—"}</span><p>{application.notes || (language === "he" ? "אין הערות" : "No notes")}</p></div>}
                       <div className="mobile-record-actions">
-                        <button onClick={() => setWorkspaceApplicationId(application.id)} type="button"><BriefcaseBusiness className="h-4 w-4" />{language === "he" ? "סביבה" : "Workspace"}</button>
                         <button onClick={() => openEditApplication(application)} type="button"><Pencil className="h-4 w-4" />{language === "he" ? "עריכה" : "Edit"}</button>
-                        {application.eventDateTime && <button onClick={() => downloadICS(`${application.eventType || "Meeting"} — ${application.company}`, application.eventDateTime, application.notes || application.nextStep, application.location)} type="button"><CalendarPlus className="h-4 w-4" />{language === "he" ? "יומן" : "Calendar"}</button>}
+                        <button onClick={() => { openEditApplication(application); setNotice(language === "he" ? "הוסיפו או עדכנו את פרטי הראיון והפגישה." : "Add or update the interview and meeting details."); }} type="button"><CalendarClock className="h-4 w-4" />{language === "he" ? "פגישה" : "Meeting"}</button>
                         <button aria-expanded={isExpanded} onClick={() => setExpandedApplicationId(isExpanded ? null : application.id)} type="button">{language === "he" ? "פרטים" : "Details"}<ChevronDown className={`h-4 w-4 transition ${isExpanded ? "rotate-180" : ""}`} /></button>
+                        <button aria-label={language === "he" ? `מחיקת ${application.role}` : `Delete ${application.role}`} className="mobile-record-delete" onClick={() => deleteApplication(application)} type="button"><Trash2 className="h-4 w-4" /><span>{language === "he" ? "מחיקה" : "Delete"}</span></button>
                       </div>
                     </article>;
                   })}
