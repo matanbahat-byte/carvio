@@ -1422,6 +1422,42 @@ export default function Home() {
     return { title, support, urgency, target: "applications" };
   }, [actionApplication, language]);
 
+  const careerJourney = useMemo(() => {
+    const interviewApplications = applications.filter((application) => application.status === "Interview" || application.processStages.some((stage) => /interview|ראיון|screen|portfolio|panel|שיחת סינון/i.test(stage.name)));
+    const activeApplications = applications.filter((application) => !["Rejected", "Withdrawn"].includes(application.status));
+    const blockedApplications = applications.filter((application) => application.status === "Rejected" || application.trafficLight === "red");
+    const activeStation = applications.length === 0
+      ? "applications"
+      : actionApplication?.status === "Interview" || actionApplication?.processStages.some((stage) => /interview|ראיון|screen|portfolio|panel/i.test(stage.name))
+        ? "interviews"
+        : contacts.length === 0 && applications.length > 0
+          ? "conversations"
+          : "next";
+    const sentence = applications.length === 0
+      ? (language === "he" ? "התחילו בהזדמנות אחת — נוסיף יחד את המועמדות הראשונה." : "Start with one opportunity—add your first application.")
+      : blockedApplications.length > 0 && activeApplications.length === 0
+        ? (language === "he" ? "התוצאות אינן מגדירות אתכם. הצעד הבא יכול להיות קטן ובשליטתכם." : "Outcomes do not define you. Your next move can be small and within your control.")
+        : interviewApplications.length > 0
+          ? (language === "he"
+              ? `${contacts.length} ${contacts.length === 1 ? "שיחה מקדמת" : "שיחות מקדמות"} אתכם לעבר ${interviewApplications.length} ${interviewApplications.length === 1 ? "ראיון" : "ראיונות"}. הצעד הבא: ${homepageAction.title}`
+              : `${contacts.length} ${contacts.length === 1 ? "conversation is" : "conversations are"} moving you toward ${interviewApplications.length} ${interviewApplications.length === 1 ? "interview" : "interviews"}. Next: ${homepageAction.title}`)
+          : (language === "he"
+              ? `${activeApplications.length} ${activeApplications.length === 1 ? "מועמדות פעילה" : "מועמדויות פעילות"} נמצאות במסלול. הצעד הבא: ${homepageAction.title}`
+              : `${activeApplications.length} active ${activeApplications.length === 1 ? "application is" : "applications are"} on your path. Next: ${homepageAction.title}`);
+    return {
+      activeStation,
+      sentence,
+      isEmpty: applications.length === 0,
+      isRecovery: blockedApplications.length > 0 && activeApplications.length === 0,
+      stations: [
+        { id: "applications", label: language === "he" ? "מועמדויות" : "Applications", value: applications.length, Icon: BriefcaseBusiness },
+        { id: "conversations", label: language === "he" ? "שיחות וקשרים" : "Conversations", value: contacts.length, Icon: MessagesSquare },
+        { id: "interviews", label: language === "he" ? "ראיונות" : "Interviews", value: interviewApplications.length, Icon: CalendarClock },
+        { id: "next", label: language === "he" ? "הצעד הבא" : "Next move", value: actionApplication ? 1 : 0, Icon: Target },
+      ],
+    };
+  }, [actionApplication, applications, contacts.length, homepageAction.title, language]);
+
 
   function enterWorkspace() {
     window.history.pushState({ carvioView: "workspace" }, "", "/?workspace=1");
@@ -2301,6 +2337,25 @@ export default function Home() {
               <div className="home-momentum"><span>{language === "he" ? "התנופה השבועית" : "Weekly momentum"}</span><strong>{weeklyMomentum.total}/{weeklyMomentum.goal}</strong><i><b style={{ width: `${weeklyMomentum.progress}%` }} /></i></div>
             </aside>
           </div>
+          <section aria-label={language === "he" ? "מסע הקריירה" : "Career journey"} className={`career-journey ${careerJourney.isEmpty ? "career-journey-empty" : ""} ${careerJourney.isRecovery ? "career-journey-recovery" : ""}`}>
+            <div className="career-journey-intro">
+              <div><span className="eyebrow">{language === "he" ? "מסע הקריירה" : "Career journey"}</span><h2>{language === "he" ? "החיפוש שלכם במבט אחד" : "Your search at a glance"}</h2></div>
+              <p>{careerJourney.sentence}</p>
+            </div>
+            <div className="career-journey-canvas">
+              <div aria-hidden="true" className="career-journey-motif"><Image alt="" fill sizes="150px" src="/carvio-landing-warm-accents-v8.png" /></div>
+              <div aria-hidden="true" className="career-journey-path"><i /><i /><i /></div>
+              <div className="career-journey-stations">
+                {careerJourney.stations.map(({ id, label, value, Icon }, index) => <button aria-current={careerJourney.activeStation === id ? "step" : undefined} className={`${careerJourney.activeStation === id ? "career-station-active" : ""} ${id === "next" && todaySnapshot.overdue > 0 ? "career-station-attention" : ""}`} key={id} onClick={() => {
+                  if (id === "applications") { setApplicationStageFilter("all"); switchView("applications"); }
+                  if (id === "conversations") switchView("networking");
+                  if (id === "interviews") { setApplicationStageFilter("Interview"); switchView("applications"); }
+                  if (id === "next") { if (actionApplication) setWorkspaceApplicationId(actionApplication.id); else openNewApplication(); }
+                }} type="button"><span className="career-station-node"><Icon className="h-4 w-4" /><b>{String(index + 1).padStart(2, "0")}</b></span><strong>{value}</strong><small>{label}</small></button>)}
+              </div>
+            </div>
+            {careerJourney.isEmpty && <button className="career-journey-cta" onClick={openNewApplication} type="button"><Plus className="h-4 w-4" />{language === "he" ? "הוספת המועמדות הראשונה" : "Add your first application"}</button>}
+          </section>
           <div className="home-quick-actions" aria-label={language === "he" ? "פעולות מהירות" : "Quick actions"}>
             <span>{language === "he" ? "פעולות מהירות" : "Quick actions"}</span>
             <button onClick={openNewApplication} type="button"><Plus className="h-4 w-4" />{copy.addApplication}</button>

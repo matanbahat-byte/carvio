@@ -6968,3 +6968,60 @@ html[data-carvio-theme="light"] {
   .application-table-panel { padding:.75rem !important; }
   .home-human-support > div { aspect-ratio:2.55/1; }
 }
+
+/* Data-driven Career Journey Canvas. */
+.career-journey { position:relative; display:grid; grid-template-columns:minmax(13rem,.42fr) minmax(0,1fr); align-items:center; gap:clamp(.9rem,2vw,1.5rem); min-height:10.5rem; margin-top:.8rem; padding:.9rem 1rem; overflow:hidden; border:1px solid var(--cv-border); border-radius:1rem; background:color-mix(in srgb,var(--cv-cream) 58%,var(--cv-surface)); box-shadow:0 5px 16px rgba(30,74,62,.045); }
+.career-journey::after { position:absolute; inset:auto -2.5rem -3rem auto; width:9rem; height:9rem; border:1px solid color-mix(in srgb,var(--cv-primary) 24%,transparent); border-radius:50%; content:""; pointer-events:none; }
+.career-journey-intro { position:relative; z-index:2; min-width:0; padding-inline-end:.3rem; }
+.career-journey-intro h2 { margin-top:.25rem; color:var(--cv-text); font-size:clamp(1rem,1.7vw,1.28rem); font-weight:800; letter-spacing:-.025em; }
+.career-journey-intro p { max-width:26rem; margin-top:.55rem; color:var(--cv-body); font-size:.74rem; font-weight:650; line-height:1.15rem; text-wrap:balance; }
+.career-journey-canvas { position:relative; min-width:0; min-height:8rem; padding:1.15rem .65rem .45rem; }
+.career-journey-motif { position:absolute; z-index:0; inset-block:0; inset-inline-start:0; width:8.5rem; overflow:hidden; border-radius:1rem 3rem 1rem 3rem; opacity:.14; -webkit-mask-image:linear-gradient(to right,#000,transparent); mask-image:linear-gradient(to right,#000,transparent); pointer-events:none; }
+.career-journey-motif img { object-fit:cover; object-position:20% 48%; filter:saturate(.85); }
+[dir="rtl"] .career-journey-motif { -webkit-mask-image:linear-gradient(to left,#000,transparent); mask-image:linear-gradient(to left,#000,transparent); }
+.career-journey-path { position:absolute; z-index:0; top:3rem; right:8%; left:8%; height:2.5rem; border-top:2px solid color-mix(in srgb,var(--cv-primary) 56%,var(--cv-border)); border-radius:50%; transform:skewY(-2deg); transform-origin:left center; animation:career-path-reveal .9s cubic-bezier(.2,.75,.25,1) 1.45s both; pointer-events:none; }
+.career-journey-path::after { position:absolute; top:-.3rem; right:-.1rem; width:.55rem; height:.55rem; border:2px solid var(--cv-surface); border-radius:50%; background:var(--cv-primary); content:""; }
+[dir="rtl"] .career-journey-path::after { right:auto; left:-.1rem; }
+[dir="rtl"] .career-journey-path { transform-origin:right center; }
+.career-journey-path i { position:absolute; top:-.25rem; width:.45rem; height:.45rem; border:2px solid var(--cv-surface); border-radius:50%; background:var(--cv-teal-soft); }
+.career-journey-path i:first-child { left:24%; }.career-journey-path i:nth-child(2) { left:49%; }.career-journey-path i:last-child { left:74%; }
+.career-journey-stations { position:relative; z-index:2; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.45rem; }
+.career-journey-stations button { display:flex; min-width:0; min-height:6.2rem; align-items:center; flex-direction:column; justify-content:flex-start; padding:.45rem .25rem; border:1px solid transparent; border-radius:.8rem; color:var(--cv-muted); background:transparent; text-align:center; transition:border-color .2s ease,background-color .2s ease; animation:career-station-organize 1.45s cubic-bezier(.2,.78,.24,1) both; }
+.career-journey-stations button:nth-child(1) { --journey-scatter-x:-1.2rem; --journey-scatter-y:1rem; --journey-scatter-r:-5deg; animation-delay:.08s; }
+.career-journey-stations button:nth-child(2) { --journey-scatter-x:.75rem; --journey-scatter-y:-.8rem; --journey-scatter-r:4deg; animation-delay:.2s; }
+.career-journey-stations button:nth-child(3) { --journey-scatter-x:-.55rem; --journey-scatter-y:1.15rem; --journey-scatter-r:-3deg; animation-delay:.32s; }
+.career-journey-stations button:nth-child(4) { --journey-scatter-x:1rem; --journey-scatter-y:-.6rem; --journey-scatter-r:5deg; animation-delay:.44s; }
+.career-journey-stations button:hover,.career-journey-stations button:focus-visible { border-color:var(--cv-border-strong); background:color-mix(in srgb,var(--cv-surface) 84%,transparent); transform:translateY(-2px); }
+.career-station-node { display:grid; position:relative; width:2.35rem; height:2.35rem; place-items:center; border:1px solid var(--cv-border-strong); border-radius:.72rem; color:var(--cv-body); background:var(--cv-surface); box-shadow:0 4px 10px rgba(30,74,62,.06); }
+.career-station-node b { position:absolute; top:-.45rem; inset-inline-end:-.42rem; display:grid; width:1.05rem; height:1.05rem; place-items:center; border-radius:50%; color:var(--cv-muted); background:var(--cv-surface-soft); font-size:.45rem; }
+.career-journey-stations strong { margin-top:.42rem; color:var(--cv-text); font-size:1.05rem; font-variant-numeric:tabular-nums; transition:color .25s ease; }
+.career-journey-stations small { max-width:100%; margin-top:.05rem; overflow:hidden; color:var(--cv-muted); font-size:.58rem; font-weight:750; text-overflow:ellipsis; white-space:nowrap; }
+.career-journey-stations .career-station-active .career-station-node { border-color:var(--cv-primary); color:var(--cv-primary-ink); background:var(--cv-primary); animation:career-node-pulse 1.05s ease-in-out 2 1.9s; }
+.career-journey-stations .career-station-active strong { color:var(--cv-primary); }
+.career-journey-stations .career-station-attention:not(.career-station-active) .career-station-node { border-color:color-mix(in srgb,var(--cv-mustard) 70%,var(--cv-border)); color:#8c5b0b; background:color-mix(in srgb,var(--cv-mustard) 19%,var(--cv-surface)); }
+.career-journey-recovery { border-color:color-mix(in srgb,var(--cv-coral) 32%,var(--cv-border)); }
+.career-journey-recovery .career-journey-intro p { color:color-mix(in srgb,var(--cv-coral) 64%,var(--cv-body)); }
+.career-journey-cta { position:relative; z-index:3; display:inline-flex; grid-column:1/-1; align-items:center; justify-content:center; gap:.4rem; min-height:2.55rem; margin-top:-.35rem; border:0; border-radius:.7rem; color:var(--cv-primary-ink); background:var(--cv-primary); font-size:.72rem; font-weight:800; }
+@keyframes career-station-organize { 0% { opacity:.45; transform:translate(var(--journey-scatter-x),var(--journey-scatter-y)) rotate(var(--journey-scatter-r)); } 45% { opacity:1; } 100% { opacity:1; transform:translate(0,0) rotate(0); } }
+@keyframes career-path-reveal { from { opacity:0; transform:scaleX(.08) skewY(-2deg); } to { opacity:1; transform:scaleX(1) skewY(-2deg); } }
+@keyframes career-node-pulse { 0%,100% { box-shadow:0 0 0 0 color-mix(in srgb,var(--cv-primary) 24%,transparent); } 50% { box-shadow:0 0 0 .42rem transparent; } }
+.carvio-shell:not(.carvio-light) .career-journey { background:color-mix(in srgb,var(--cv-surface) 92%,var(--cv-cream)); }
+@media (prefers-reduced-motion:reduce) { .career-journey-path,.career-journey-stations button,.career-journey-stations .career-station-active .career-station-node { animation:none !important; } .career-journey-stations button { transition:none; } }
+@media (max-width:767px) {
+  .career-journey { grid-template-columns:1fr; min-height:0; gap:.45rem; margin-top:.6rem; padding:.75rem; }
+  .career-journey-intro { padding:0; }
+  .career-journey-intro p { margin-top:.35rem; font-size:.68rem; line-height:1rem; }
+  .career-journey-canvas { min-height:9.6rem; padding:.35rem 0 0; }
+  .career-journey-stations { grid-template-columns:repeat(2,minmax(0,1fr)); gap:.35rem; }
+  .career-journey-stations::before { position:absolute; z-index:-1; inset:.75rem 12%; border:1px solid color-mix(in srgb,var(--cv-primary) 34%,var(--cv-border)); border-radius:1.1rem; content:""; opacity:.62; }
+  .career-journey-stations button { min-height:4.25rem; align-items:center; display:grid; grid-template-columns:auto 1fr; grid-template-rows:auto auto; gap:0 .5rem; padding:.35rem .45rem; text-align:start; }
+  .career-station-node { grid-row:1/3; width:2.15rem; height:2.15rem; }
+  .career-journey-stations strong { margin-top:0; font-size:.9rem; }
+  .career-journey-stations small { margin-top:-.05rem; font-size:.56rem; }
+  .career-journey-path { display:none; }
+  .career-journey-motif { width:6rem; opacity:.1; }
+}
+
+/* The public brand reads as a wordmark, while remaining quieter than the promise. */
+.welcome-nav strong { font-size:clamp(1.12rem,1.35vw,1.28rem); font-weight:850; letter-spacing:.26em; line-height:1; }
+@media (max-width:767px) { .welcome-nav strong { font-size:1.02rem; letter-spacing:.23em; } }
