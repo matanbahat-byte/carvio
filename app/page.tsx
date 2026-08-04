@@ -61,6 +61,7 @@ const RESUMES_KEY = "carvio.resumes.v1";
 const SEARCH_PROFILE_KEY = "carvio.search-profile.v1";
 const RECOVERY_KEY = "carvio.recovery.v1";
 const THEME_KEY = "carvio.theme.v1";
+const THEME_EXPLICIT_KEY = "carvio.theme-explicit.v1";
 const PROFILE_KEY = "carvio.profile.v1";
 const CHECKIN_KEY = "carvio.checkin.v1";
 const LANGUAGE_KEY = "carvio.language.v1";
@@ -694,6 +695,12 @@ function isPast(dateValue: string) {
   return endOfDay.getTime() < Date.now();
 }
 
+function landingVisibleForUrl(search: string) {
+  const params = new URLSearchParams(search);
+  if (params.get("welcome") === "1") return true;
+  return params.get("workspace") !== "1";
+}
+
 function formatDate(value: string, includeTime = false) {
   if (!value) return "";
   const date = new Date(includeTime ? value : `${value}T12:00:00`);
@@ -1220,16 +1227,33 @@ export default function Home() {
       setResumes(readStored<ResumeFile[]>(RESUMES_KEY, []));
       setSearchProfile({ ...emptySearchProfile, ...readStored<Partial<SearchProfile>>(SEARCH_PROFILE_KEY, emptySearchProfile) });
       setRecoveryEntries(readStored<RecoveryEntry[]>(RECOVERY_KEY, []));
-      setTheme(readStored<ColorTheme>(THEME_KEY, "light"));
+      const savedTheme = readStored<ColorTheme>(THEME_KEY, "light");
+      const hasExplicitTheme = readStored<boolean>(THEME_EXPLICIT_KEY, false);
+      const validTheme = (["light", "dark", "ocean", "plum"] as ColorTheme[]).includes(savedTheme);
+      setTheme(hasExplicitTheme && validTheme ? savedTheme : "light");
+      if (!hasExplicitTheme || !validTheme) window.localStorage.setItem(THEME_KEY, JSON.stringify("light"));
       setLanguage(readStored<Language>(LANGUAGE_KEY, "en"));
       const savedProfile = { ...emptyUserProfile, ...readStored<Partial<UserProfile>>(PROFILE_KEY, emptyUserProfile) };
       setUserProfile(savedProfile);
       const checkIn = readStored<{ date: string; mood: DailyMood }>(CHECKIN_KEY, { date: "", mood: "" });
       setDailyMood(checkIn.date === new Date().toISOString().slice(0, 10) ? checkIn.mood : "");
-      setShowLanding(new URLSearchParams(window.location.search).get("welcome") === "1" || !readStored<boolean>(LANDING_KEY, false));
+      window.localStorage.removeItem(LANDING_KEY);
+      setShowLanding(landingVisibleForUrl(window.location.search));
       setHydrated(true);
     }, 0);
     return () => window.clearTimeout(timeout);
+  }, []);
+
+  useEffect(() => {
+    const syncRoute = () => {
+      setShowLanding(landingVisibleForUrl(window.location.search));
+      setShowAppearance(false);
+      setShowMobileMore(false);
+      setActiveCalendarMenu(null);
+      window.scrollTo({ top: 0 });
+    };
+    window.addEventListener("popstate", syncRoute);
+    return () => window.removeEventListener("popstate", syncRoute);
   }, []);
 
   useEffect(() => {
@@ -1400,9 +1424,14 @@ export default function Home() {
 
 
   function enterWorkspace() {
-    window.localStorage.setItem(LANDING_KEY, JSON.stringify(true));
+    window.history.pushState({ carvioView: "workspace" }, "", "/?workspace=1");
     setShowLanding(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function selectTheme(nextTheme: ColorTheme) {
+    window.localStorage.setItem(THEME_EXPLICIT_KEY, JSON.stringify(true));
+    setTheme(nextTheme);
   }
 
   function navigateToSection(target: string) {
@@ -2224,10 +2253,10 @@ export default function Home() {
               <div className="profile-welcome-copy"><p className="text-sm font-medium text-slate-400">{copy.welcome}{userProfile.name ? `, ${userProfile.name}` : ""} <span className="inline-block animate-wave">👋</span></p><div className="profile-career-tag mt-1.5 inline-flex items-center gap-2 text-xs font-medium text-cyan-200"><Compass className="h-3.5 w-3.5" /> {copy.careerTag}</div></div>
             </div>
             <div className="hero-utility-actions">
-              <button aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} className="hero-icon-button" onClick={() => setTheme(theme === "light" ? "dark" : "light")} title={theme === "light" ? copy.dark : copy.light} type="button">{theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}</button>
+              <button aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} className="hero-icon-button" onClick={() => selectTheme(theme === "light" ? "dark" : "light")} title={theme === "light" ? copy.dark : copy.light} type="button">{theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}</button>
               <div className="relative">
                 <button aria-expanded={showAppearance} aria-haspopup="dialog" aria-label={language === "he" ? "צבעים ונגישות" : "Colors and accessibility"} className="hero-icon-button" onClick={() => setShowAppearance((current) => !current)} title={language === "he" ? "צבעים ונגישות" : "Colors & accessibility"} type="button"><Palette className="h-4 w-4" /></button>
-                {showAppearance && <div aria-label={language === "he" ? "בחירת פלטת צבעים" : "Choose a color palette"} className="appearance-menu" role="dialog"><p className="text-sm font-semibold">{copy.choosePalette}</p><div className="mt-3 grid grid-cols-2 gap-2">{([{ value: "dark", label: copy.darkForest, colors: ["#07110d", "#166534", "#14b8a6"] }, { value: "light", label: copy.cleanLight, colors: ["#ffffff", "#e0f2fe", "#059669"] }, { value: "ocean", label: copy.deepOcean, colors: ["#071827", "#075985", "#22d3ee"] }, { value: "plum", label: copy.warmPlum, colors: ["#211126", "#7e22ce", "#fb7185"] }] as { value: ColorTheme; label: string; colors: string[] }[]).map((option) => <button aria-pressed={theme === option.value} className={`palette-option ${theme === option.value ? "palette-option-active" : ""}`} key={option.value} onClick={() => { setTheme(option.value); setShowAppearance(false); }} type="button"><span className="flex" aria-hidden="true">{option.colors.map((color) => <span className="h-5 w-5 border border-white/20 first:rounded-s-full last:rounded-e-full" key={color} style={{ backgroundColor: color }} />)}</span><span>{option.label}</span></button>)}</div></div>}
+                {showAppearance && <div aria-label={language === "he" ? "בחירת פלטת צבעים" : "Choose a color palette"} className="appearance-menu" role="dialog"><p className="text-sm font-semibold">{copy.choosePalette}</p><div className="mt-3 grid grid-cols-2 gap-2">{([{ value: "dark", label: copy.darkForest, colors: ["#07110d", "#166534", "#14b8a6"] }, { value: "light", label: copy.cleanLight, colors: ["#ffffff", "#e0f2fe", "#059669"] }, { value: "ocean", label: copy.deepOcean, colors: ["#071827", "#075985", "#22d3ee"] }, { value: "plum", label: copy.warmPlum, colors: ["#211126", "#7e22ce", "#fb7185"] }] as { value: ColorTheme; label: string; colors: string[] }[]).map((option) => <button aria-pressed={theme === option.value} className={`palette-option ${theme === option.value ? "palette-option-active" : ""}`} key={option.value} onClick={() => { selectTheme(option.value); setShowAppearance(false); }} type="button"><span className="flex" aria-hidden="true">{option.colors.map((color) => <span className="h-5 w-5 border border-white/20 first:rounded-s-full last:rounded-e-full" key={color} style={{ backgroundColor: color }} />)}</span><span>{option.label}</span></button>)}</div></div>}
               </div>
               <button aria-label={language === "en" ? "Switch to Hebrew" : "Switch to English"} className="hero-language-button" onClick={() => setLanguage(language === "en" ? "he" : "en")} type="button"><Languages className="h-4 w-4" /> {copy.hebrew}</button>
             </div>
@@ -3016,7 +3045,7 @@ export default function Home() {
             { value: "light", label: copy.cleanLight, colors: ["#ffffff", "#e0f2fe", "#059669"] },
             { value: "ocean", label: copy.deepOcean, colors: ["#071827", "#075985", "#22d3ee"] },
             { value: "plum", label: copy.warmPlum, colors: ["#211126", "#7e22ce", "#fb7185"] },
-          ] as { value: ColorTheme; label: string; colors: string[] }[]).map((option) => <button aria-pressed={theme === option.value} className={`palette-option ${theme === option.value ? "palette-option-active" : ""}`} key={option.value} onClick={() => { setTheme(option.value); setShowAppearance(false); }} type="button"><span className="flex" aria-hidden="true">{option.colors.map((color) => <span className="h-5 w-5 border border-white/20 first:rounded-s-full last:rounded-e-full" key={color} style={{ backgroundColor: color }} />)}</span><span>{option.label}</span></button>)}</div></div>}
+          ] as { value: ColorTheme; label: string; colors: string[] }[]).map((option) => <button aria-pressed={theme === option.value} className={`palette-option ${theme === option.value ? "palette-option-active" : ""}`} key={option.value} onClick={() => { selectTheme(option.value); setShowAppearance(false); }} type="button"><span className="flex" aria-hidden="true">{option.colors.map((color) => <span className="h-5 w-5 border border-white/20 first:rounded-s-full last:rounded-e-full" key={color} style={{ backgroundColor: color }} />)}</span><span>{option.label}</span></button>)}</div></div>}
         </section>
 
         <section className={`calm-view compact-feedback-card ${activeView !== "more" ? "calm-view-hidden" : ""}`} id="pilot-feedback">
