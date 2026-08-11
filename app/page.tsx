@@ -53,6 +53,7 @@ import {
   WandSparkles,
   Wrench,
 } from "lucide-react";
+import { CloudAccount, WelcomeAccountAccess, type CloudWorkspacePayload } from "@/components/cloud-account";
 
 const APPLICATIONS_KEY = "carvio.applications.v1";
 const CONTACTS_KEY = "carvio.contacts.v1";
@@ -67,6 +68,7 @@ const CHECKIN_KEY = "carvio.checkin.v1";
 const LANGUAGE_KEY = "carvio.language.v1";
 const LANDING_KEY = "carvio.landing-seen.v1";
 const ANALYTICS_SAMPLE_PACK_KEY = "carvio.analytics-sample-pack.v1";
+const ACTION_EVENTS_KEY = "carvio.action-events.v1";
 
 const applicationStatuses = [
   "Applied",
@@ -219,6 +221,13 @@ type UserProfile = {
 };
 
 type DailyMood = "" | "ready" | "low" | "difficult";
+type ActionEvent = {
+  id: string;
+  name: "application_created" | "application_updated" | "application_action_completed" | "application_snoozed" | "contact_created" | "contact_updated";
+  targetId: string;
+  occurredAt: string;
+  properties: Record<string, string | number | boolean>;
+};
 type JobInboxItem = {
   id: string;
   company: string;
@@ -1343,6 +1352,7 @@ export default function Home() {
   const [commandQuery, setCommandQuery] = useState("");
   const [hiddenJobIds, setHiddenJobIds] = useState<string[]>([]);
   const [activeCalendarMenu, setActiveCalendarMenu] = useState<string | null>(null);
+  const [actionEvents, setActionEvents] = useState<ActionEvent[]>([]);
   const messageDraftRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
@@ -1379,6 +1389,7 @@ export default function Home() {
       setResumes(readStored<ResumeFile[]>(RESUMES_KEY, []));
       setSearchProfile(migrateSearchProfile(readStored<Partial<SearchProfile>>(SEARCH_PROFILE_KEY, emptySearchProfile)));
       setRecoveryEntries(readStored<RecoveryEntry[]>(RECOVERY_KEY, []));
+      setActionEvents(readStored<ActionEvent[]>(ACTION_EVENTS_KEY, []));
       const savedTheme = readStored<ColorTheme>(THEME_KEY, "light");
       const hasExplicitTheme = readStored<boolean>(THEME_EXPLICIT_KEY, false);
       const validTheme = (["light", "dark", "ocean", "plum"] as ColorTheme[]).includes(savedTheme);
@@ -1427,6 +1438,10 @@ export default function Home() {
   useEffect(() => {
     if (hydrated) window.localStorage.setItem(RECOVERY_KEY, JSON.stringify(recoveryEntries));
   }, [recoveryEntries, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) window.localStorage.setItem(ACTION_EVENTS_KEY, JSON.stringify(actionEvents.slice(-500)));
+  }, [actionEvents, hydrated]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -2047,6 +2062,7 @@ export default function Home() {
 
   function completeApplicationAction(application: Application) {
     setApplications((items) => items.map((item) => item.id === application.id ? { ...item, nextStep: "", nextStepDue: "", lastActivityAt: new Date().toISOString(), trafficLight: item.trafficLight === "red" ? "yellow" : item.trafficLight } : item));
+    recordActionEvent("application_action_completed", application.id, { company: application.company, status: application.status });
     setNotice(language === "he" ? "הפעולה הושלמה — מצוין 🌱" : "Action completed — momentum saved 🌱");
   }
 
@@ -2054,7 +2070,12 @@ export default function Home() {
     const date = new Date();
     date.setDate(date.getDate() + days);
     setApplications((items) => items.map((item) => item.id === application.id ? { ...item, nextStepDue: date.toISOString().slice(0, 10), lastActivityAt: new Date().toISOString(), trafficLight: "yellow" } : item));
+    recordActionEvent("application_snoozed", application.id, { company: application.company, days });
     setNotice(language === "he" ? `נדחה בעוד ${days} ימים.` : `Snoozed for ${days} days.`);
+  }
+
+  function recordActionEvent(name: ActionEvent["name"], targetId: string, properties: ActionEvent["properties"] = {}) {
+    setActionEvents((events) => [...events.slice(-499), { id: makeId("event"), name, targetId, occurredAt: new Date().toISOString(), properties }]);
   }
 
   function openQuickUpdate(application: Application) {
@@ -2137,9 +2158,11 @@ export default function Home() {
     const savedApplication = normalizeApplication({ ...applicationDraft, id: editingApplicationId || makeId("app"), lastActivityAt: new Date().toISOString() });
     if (editingApplicationId) {
       setApplications((items) => items.map((item) => item.id === editingApplicationId ? savedApplication : item));
+      recordActionEvent("application_updated", savedApplication.id, { company: savedApplication.company, status: savedApplication.status });
       setNotice(language === "he" ? "המועמדות עודכנה." : "Application updated.");
     } else {
       setApplications((items) => [savedApplication, ...items]);
+      recordActionEvent("application_created", savedApplication.id, { company: savedApplication.company, status: savedApplication.status });
       setNotice(language === "he" ? "המועמדות נוספה — צעד אחד ברור קדימה." : "Application added — one clear step forward.");
     }
     setShowApplicationModal(false);
@@ -2186,9 +2209,11 @@ export default function Home() {
     const savedContact = normalizeContact({ ...contactDraft, id: contactId });
     if (editingContactId) {
       setContacts((items) => items.map((item) => item.id === editingContactId ? savedContact : item));
+      recordActionEvent("contact_updated", savedContact.id, { company: savedContact.company, relationship: savedContact.relationship });
       setNotice(language === "he" ? "איש הקשר עודכן." : "Contact updated.");
     } else {
       setContacts((items) => [savedContact, ...items]);
+      recordActionEvent("contact_created", savedContact.id, { company: savedContact.company, relationship: savedContact.relationship });
       setNotice(language === "he" ? "השיחה נשמרה ב־Networking." : "Connection saved in Networking.");
     }
     if (savedContact.linkedApplicationId) setApplications((items) => items.map((item) => item.id === savedContact.linkedApplicationId ? { ...item, linkedContactIds: Array.from(new Set([...(item.linkedContactIds || []), savedContact.id])), lastActivityAt: new Date().toISOString() } : item));
@@ -2579,6 +2604,34 @@ export default function Home() {
     setNotice("Gmail is ready with your feedback. Please press Send 💛");
   }
 
+  const cloudWorkspace = useMemo<CloudWorkspacePayload>(() => ({
+    schemaVersion: 1,
+    applications,
+    contacts,
+    resumes,
+    searchProfile,
+    recoveryEntries,
+    userProfile,
+    dailyMood,
+    language,
+    theme,
+    actionEvents,
+  }), [applications, contacts, resumes, searchProfile, recoveryEntries, userProfile, dailyMood, language, theme, actionEvents]);
+
+  function restoreCloudWorkspace(payload: CloudWorkspacePayload) {
+    if (Array.isArray(payload.applications)) setApplications((payload.applications as Partial<Application>[]).map(normalizeApplication));
+    if (Array.isArray(payload.contacts)) setContacts((payload.contacts as Partial<Contact>[]).map(normalizeContact));
+    if (Array.isArray(payload.resumes)) setResumes(payload.resumes as ResumeFile[]);
+    if (payload.searchProfile) setSearchProfile(migrateSearchProfile(payload.searchProfile as Partial<SearchProfile>));
+    if (Array.isArray(payload.recoveryEntries)) setRecoveryEntries(payload.recoveryEntries as RecoveryEntry[]);
+    if (payload.userProfile) setUserProfile({ ...emptyUserProfile, ...(payload.userProfile as Partial<UserProfile>) });
+    if (Array.isArray(payload.actionEvents)) setActionEvents(payload.actionEvents as ActionEvent[]);
+    if (["", "ready", "low", "difficult"].includes(payload.dailyMood)) setDailyMood(payload.dailyMood as DailyMood);
+    if (["en", "he"].includes(payload.language)) setLanguage(payload.language);
+    if (["light", "dark", "ocean", "plum"].includes(payload.theme)) setTheme(payload.theme as ColorTheme);
+    setNotice(language === "he" ? "סביבת העבודה נטענה מהענן בהצלחה." : "Your workspace was restored from the cloud.");
+  }
+
   const copy = uiCopy[language];
   const statusLabel = (status: ApplicationStatus) => language === "he" ? ({
     Applied: "הוגשה מועמדות",
@@ -2615,10 +2668,7 @@ export default function Home() {
             <span className="welcome-kicker"><Sparkles className="h-4 w-4" />{language === "he" ? "חיפוש עבודה, עם פחות עומס" : "A calmer way to move your career forward"}</span>
             <h1>{language === "he" ? "כל חיפוש העבודה שלכם. צעד ברור אחד בכל פעם." : "Your whole job search. One clear next move at a time."}</h1>
             <p>{language === "he" ? "רכזו מועמדויות, קשרים, פגישות ופעולות המשך במקום אחד — וקבלו בכל יום הכוונה שמקדמת אתכם." : "Bring applications, conversations, interviews and follow-ups into one focused workspace—and know what matters today."}</p>
-            <div className="welcome-actions">
-              <button onClick={enterWorkspace} type="button">{language === "he" ? "כניסה לסביבת העבודה" : "Open my Carvio workspace"}<ArrowUpRight className="h-5 w-5" /></button>
-              <span><ShieldCheck className="h-4 w-4" />{language === "he" ? "המידע נשמר במכשיר הזה" : "Your data stays on this device"}</span>
-            </div>
+            <WelcomeAccountAccess language={language} onContinueLocal={enterWorkspace} />
           </div>
           <figure className="landing-hero-visual">
             <div className="landing-hero-image"><Image alt={language === "he" ? "איור של אדם שהופך חלקים מפוזרים למסלול ברור של צעדים בחיפוש העבודה" : "An illustration of a person turning scattered pieces into a clear job-search path"} fill priority sizes="(max-width: 760px) min(calc(100vw - 2rem), 336px), 448px" src="/carvio-landing-warm-accents-v8.png" /></div>
@@ -2666,6 +2716,7 @@ export default function Home() {
               <div className="profile-welcome-copy"><p className="text-sm font-medium text-slate-400">{copy.welcome}{userProfile.name ? `, ${userProfile.name}` : ""} <span className="inline-block animate-wave">👋</span></p><div className="profile-career-tag mt-1.5 inline-flex items-center gap-2 text-xs font-medium text-cyan-200"><Compass className="h-3.5 w-3.5" /> {copy.careerTag}</div></div>
             </div>
             <div className="hero-utility-actions">
+              <CloudAccount language={language} onRestore={restoreCloudWorkspace} workspace={cloudWorkspace} />
               <button aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} className="hero-icon-button" onClick={() => selectTheme(theme === "light" ? "dark" : "light")} title={theme === "light" ? copy.dark : copy.light} type="button">{theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}</button>
               <div className="relative">
                 <button aria-expanded={showAppearance} aria-haspopup="dialog" aria-label={language === "he" ? "צבעים ונגישות" : "Colors and accessibility"} className="hero-icon-button" onClick={() => setShowAppearance((current) => !current)} title={language === "he" ? "צבעים ונגישות" : "Colors & accessibility"} type="button"><Palette className="h-4 w-4" /></button>

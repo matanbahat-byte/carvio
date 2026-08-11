@@ -5,6 +5,63 @@
   --foreground: #171717;
 }
 
+/* Optional cloud account: deliberately compact so local-first users are not interrupted. */
+.cloud-account { position: relative; }
+.welcome-account-access { display: grid; gap: .7rem; margin-top: 1.6rem; max-width: 30rem; }
+.welcome-account-access button { align-items: center; border-radius: 14px; display: flex; font-size: .9rem; font-weight: 800; gap: .65rem; justify-content: center; min-height: 52px; padding: .8rem 1rem; transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; width: 100%; }
+.welcome-account-access button:not(:disabled):hover { transform: translateY(-1px); }
+.welcome-google-button { background: #fff; border: 1px solid #cbdcd6; box-shadow: 0 8px 20px rgba(25, 72, 60, .08); color: #163a32; }
+.welcome-google-button svg { height: 1.25rem; width: 1.25rem; }
+.welcome-email-toggle { background: transparent; border: 0; color: #547068; min-height: 34px !important; padding: .25rem !important; }
+.welcome-email-toggle svg { height: 1rem; width: 1rem; }
+.welcome-email-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; }
+.welcome-email-form input { background: #fff; border: 1px solid #cbdcd6; border-radius: 13px; color: #163a32; min-height: 46px; outline: none; padding: .7rem .85rem; width: 100%; }
+.welcome-email-form input:focus { border-color: #27cbbb; box-shadow: 0 0 0 3px rgba(39, 203, 187, .15); }
+.welcome-email-form button { background: #2ccfbd; color: #092f29; min-height: 46px; width: auto; }
+.welcome-auth-message { color: #527068; font-size: .76rem; line-height: 1.45; }
+.welcome-access-divider { align-items: center; color: #82958f; display: flex; font-size: .72rem; gap: .7rem; }
+.welcome-access-divider::before, .welcome-access-divider::after { background: #d9e7e2; content: ""; flex: 1; height: 1px; }
+.welcome-local-button { background: transparent; border: 1px solid #cbdcd6; color: #315c52; min-height: 46px !important; }
+.welcome-account-access > small { align-items: flex-start; color: #6b817a; display: flex; font-size: .7rem; gap: .45rem; line-height: 1.45; }
+.welcome-account-access > small svg { flex: 0 0 auto; height: 1rem; margin-top: .05rem; width: 1rem; }
+.welcome-account-session > span { align-items: center; color: #41655c; display: flex; flex-wrap: wrap; font-size: .78rem; gap: .4rem; }
+.welcome-account-session > span svg { height: 1rem; width: 1rem; }
+.hero-cloud-button { align-items: center; background: var(--surface-soft, rgba(255,255,255,.72)); border: 1px solid var(--border, #d9e8e3); border-radius: 14px; color: var(--text, #173b33); display: inline-flex; font-size: .78rem; font-weight: 750; gap: .45rem; min-height: 42px; padding: .65rem .8rem; }
+.cloud-account-panel { background: #fffdf8; border: 1px solid #d7e7e1; border-radius: 22px; box-shadow: 0 24px 70px rgba(13, 54, 45, .18); color: #173b33; direction: ltr; inset-inline-end: 0; padding: 1rem; position: absolute; text-align: start; top: calc(100% + .7rem); width: min(360px, calc(100vw - 2rem)); z-index: 80; }
+[dir="rtl"] .cloud-account-panel { direction: rtl; }
+.cloud-account-heading, .cloud-account-heading > div, .cloud-local-note, .cloud-session-email, .cloud-account-actions, .cloud-autosync { align-items: center; display: flex; }
+.cloud-account-heading { justify-content: space-between; margin-bottom: .9rem; }
+.cloud-account-heading > div { gap: .65rem; }
+.cloud-account-heading span, .cloud-local-note p, .cloud-autosync span { display: grid; gap: .12rem; }
+.cloud-account-heading small, .cloud-local-note span, .cloud-autosync small { color: #70877f; font-size: .72rem; font-weight: 500; }
+.cloud-account-heading > button { border-radius: 50%; padding: .45rem; }
+.cloud-local-note { background: #f2f8f5; border-radius: 16px; gap: .75rem; padding: .9rem; }
+.cloud-account-panel form { display: grid; gap: .75rem; }
+.cloud-account-panel form > label { display: grid; font-size: .78rem; font-weight: 750; gap: .4rem; }
+.cloud-account-panel form label > span { align-items: center; background: white; border: 1px solid #cedfd9; border-radius: 13px; display: flex; gap: .5rem; padding-inline: .7rem; }
+.cloud-account-panel input[type="email"] { background: transparent; color: #173b33; min-height: 42px; outline: none; width: 100%; }
+.cloud-account-panel form > button, .cloud-account-actions button { align-items: center; background: #2ccfbd; border-radius: 13px; color: #092f29; display: flex; font-size: .8rem; font-weight: 800; gap: .45rem; justify-content: center; min-height: 42px; padding: .65rem .8rem; }
+.cloud-account-panel form > p { color: #70877f; font-size: .72rem; line-height: 1.5; }
+.cloud-session { display: grid; gap: .75rem; }
+.cloud-session-email { gap: .4rem; font-size: .76rem; font-weight: 750; }
+.cloud-choice { background: #fff4df; border: 1px solid #f0c66f; border-radius: 14px; display: grid; font-size: .76rem; gap: .2rem; padding: .75rem; }
+.cloud-choice span { color: #765d35; }
+.cloud-account-actions { gap: .5rem; }
+.cloud-account-actions button { flex: 1; }
+.cloud-account-actions button:nth-child(2) { background: #fff; border: 1px solid #cedfd9; }
+.cloud-account-actions button:disabled { cursor: not-allowed; opacity: .45; }
+.cloud-autosync { background: #f2f8f5; border-radius: 14px; cursor: pointer; gap: .65rem; padding: .75rem; }
+.cloud-autosync input { accent-color: #12a994; height: 18px; width: 18px; }
+.cloud-signout { align-items: center; color: #6b7f78; display: flex; font-size: .76rem; gap: .4rem; justify-self: start; }
+.cloud-message { background: #edf9f5; border-radius: 11px; color: #126e60; font-size: .72rem; line-height: 1.45; margin-top: .75rem; padding: .65rem .75rem; }
+.cloud-message-error { background: #fff0ed; color: #a23d31; }
+
+@media (max-width: 720px) {
+  .hero-cloud-button span { display: none; }
+  .hero-cloud-button { border-radius: 12px; justify-content: center; min-width: 42px; padding: .6rem; }
+  .cloud-account-panel { position: fixed; inset: auto 1rem 1rem; width: auto; }
+}
+
 /* Desktop power workflow */
 .command-trigger {
   align-self: center;
