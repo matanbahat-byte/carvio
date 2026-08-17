@@ -6,7 +6,7 @@
 }
 
 /* Optional cloud account: deliberately compact so local-first users are not interrupted. */
-.cloud-account { position: relative; }
+.cloud-account { position: relative; z-index: 10; }
 .welcome-account-access { display: grid; gap: .7rem; margin-top: 1.6rem; max-width: 30rem; }
 .welcome-account-access button { align-items: center; border-radius: 14px; display: flex; font-size: .9rem; font-weight: 800; gap: .65rem; justify-content: center; min-height: 52px; padding: .8rem 1rem; transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; width: 100%; }
 .welcome-account-access button:not(:disabled):hover { transform: translateY(-1px); }
@@ -26,8 +26,10 @@
 .welcome-account-access > small svg { flex: 0 0 auto; height: 1rem; margin-top: .05rem; width: 1rem; }
 .welcome-account-session > span { align-items: center; color: #41655c; display: flex; flex-wrap: wrap; font-size: .78rem; gap: .4rem; }
 .welcome-account-session > span svg { height: 1rem; width: 1rem; }
-.hero-cloud-button { align-items: center; background: var(--surface-soft, rgba(255,255,255,.72)); border: 1px solid var(--border, #d9e8e3); border-radius: 14px; color: var(--text, #173b33); display: inline-flex; font-size: .78rem; font-weight: 750; gap: .45rem; min-height: 42px; padding: .65rem .8rem; }
-.cloud-account-panel { background: #fffdf8; border: 1px solid #d7e7e1; border-radius: 22px; box-shadow: 0 24px 70px rgba(13, 54, 45, .18); color: #173b33; direction: ltr; inset-inline-end: 0; padding: 1rem; position: absolute; text-align: start; top: calc(100% + .7rem); width: min(360px, calc(100vw - 2rem)); z-index: 80; }
+.hero-cloud-button { -webkit-tap-highlight-color: transparent; align-items: center; background: var(--surface-soft, rgba(255,255,255,.72)); border: 1px solid var(--border, #d9e8e3); border-radius: 14px; color: var(--text, #173b33); display: inline-flex; font-size: .78rem; font-weight: 750; gap: .45rem; min-height: 42px; padding: .65rem .8rem; pointer-events: auto; position: relative; touch-action: manipulation; z-index: 1; }
+.cloud-account-layer { align-items: flex-start; display: flex; inset: 0; justify-content: flex-end; padding: 5.5rem 1.25rem 1.25rem; pointer-events: none; position: fixed; z-index: 3000; }
+.cloud-account-backdrop { appearance: none; background: rgba(7, 31, 27, .2); border: 0; border-radius: 0; cursor: default; height: 100%; inset: 0; min-height: 0; padding: 0; pointer-events: auto; position: absolute; width: 100%; }
+.cloud-account-panel { -webkit-overflow-scrolling: touch; background: #fffdf8; border: 1px solid #d7e7e1; border-radius: 22px; box-shadow: 0 24px 70px rgba(13, 54, 45, .18); box-sizing: border-box; color: #173b33; direction: ltr; margin: 0; max-height: calc(100dvh - 7rem); overflow-y: auto; overscroll-behavior: contain; padding: 1rem; pointer-events: auto; position: relative; text-align: start; width: min(390px, calc(100vw - 2.5rem)); z-index: 1; }
 [dir="rtl"] .cloud-account-panel { direction: rtl; }
 .cloud-account-heading, .cloud-account-heading > div, .cloud-local-note, .cloud-session-email, .cloud-account-actions, .cloud-autosync { align-items: center; display: flex; }
 .cloud-account-heading { justify-content: space-between; margin-bottom: .9rem; }
@@ -59,7 +61,8 @@
 @media (max-width: 720px) {
   .hero-cloud-button span { display: none; }
   .hero-cloud-button { border-radius: 12px; justify-content: center; min-width: 42px; padding: .6rem; }
-  .cloud-account-panel { position: fixed; inset: auto 1rem 1rem; width: auto; }
+  .cloud-account-layer { align-items: flex-end; justify-content: center; padding: 1rem; }
+  .cloud-account-panel { max-height: calc(100dvh - 2rem); width: 100%; }
 }
 
 /* Desktop power workflow */

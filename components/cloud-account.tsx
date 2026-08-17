@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ArrowUpRight, CheckCircle2, Cloud, CloudOff, Download, LoaderCircle, LogOut, Mail, ShieldCheck, UploadCloud, X } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
@@ -106,6 +107,17 @@ export function CloudAccount({
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [syncState, setSyncState] = useState<SyncState>("idle");
+
+  useEffect(() => {
+    if (!open) return;
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [open]);
   const [remoteExists, setRemoteExists] = useState<boolean | null>(null);
   const [autoSync, setAutoSync] = useState(false);
 
@@ -213,15 +225,42 @@ export function CloudAccount({
       ? syncState === "saving" ? (language === "he" ? "שומר…" : "Saving…") : (language === "he" ? "ענן" : "Cloud")
       : language === "he" ? "גיבוי בענן" : "Cloud backup";
 
-  return <div className="cloud-account">
-    <button aria-expanded={open} className="hero-cloud-button" onClick={() => setOpen((current) => !current)} type="button">
+  return <>
+    <div className="cloud-account">
+    <button
+      aria-controls="cloud-account-dialog"
+      aria-expanded={open}
+      aria-haspopup="dialog"
+      className="hero-cloud-button"
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setOpen((current) => !current);
+      }}
+      type="button"
+    >
       {syncState === "saving" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : configured ? <Cloud className="h-4 w-4" /> : <CloudOff className="h-4 w-4" />}
       <span>{buttonLabel}</span>
     </button>
-    {open && <section aria-label={language === "he" ? "חשבון וגיבוי בענן" : "Account and cloud backup"} className="cloud-account-panel" role="dialog">
+    </div>
+    {open && typeof document !== "undefined" ? createPortal(<div className="cloud-account-layer">
+      <button
+        aria-label={language === "he" ? "סגירת חלון הגיבוי" : "Close cloud backup"}
+        className="cloud-account-backdrop"
+        onClick={() => setOpen(false)}
+        type="button"
+      />
+      <section
+        aria-label={language === "he" ? "חשבון וגיבוי בענן" : "Account and cloud backup"}
+        aria-modal="true"
+        className="cloud-account-panel"
+        id="cloud-account-dialog"
+        role="dialog"
+      >
       <div className="cloud-account-heading"><div><ShieldCheck className="h-5 w-5" /><span><strong>{language === "he" ? "המידע שלכם, בשליטתכם" : "Your data, under your control"}</strong><small>{language === "he" ? "המשך מקומי או סנכרון אופציונלי" : "Stay local or add optional sync"}</small></span></div><button aria-label="Close" onClick={() => setOpen(false)} type="button"><X className="h-4 w-4" /></button></div>
       {!configured ? <div className="cloud-local-note"><CloudOff className="h-5 w-5" /><p><strong>{language === "he" ? "מצב מקומי פעיל" : "Local mode is active"}</strong><span>{language === "he" ? "הכול ממשיך לעבוד ולהישמר בדפדפן. בעל האתר יכול להפעיל Supabase Free בהמשך." : "Everything keeps working in this browser. The owner can enable Supabase Free later."}</span></p></div> : !session ? <form onSubmit={sendMagicLink}><label>{language === "he" ? "מייל לקבלת קישור כניסה" : "Email for a secure sign-in link"}<span><Mail className="h-4 w-4" /><input autoComplete="email" onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" type="email" value={email} /></span></label><button disabled={syncState === "saving"} type="submit">{language === "he" ? "שליחת קישור כניסה" : "Email me a sign-in link"}</button><p>{language === "he" ? "אין סיסמה לזכור. החשבון דרוש רק לסנכרון בין מכשירים." : "No password to remember. An account is only needed for cross-device sync."}</p></form> : <div className="cloud-session"><p className="cloud-session-email"><CheckCircle2 className="h-4 w-4" />{session.user.email}</p>{remoteExists === false && <div className="cloud-choice"><strong>{language === "he" ? "זהו החשבון הראשון שלכם" : "This is your first cloud backup"}</strong><span>{language === "he" ? "שמרו את המידע שכבר נמצא במכשיר הזה." : "Start by backing up the data already on this device."}</span></div>}<div className="cloud-account-actions"><button onClick={() => void saveToCloud()} type="button"><UploadCloud className="h-4 w-4" />{language === "he" ? "גיבוי המכשיר לענן" : "Back up this device"}</button><button disabled={!remoteExists} onClick={() => void restoreFromCloud()} type="button"><Download className="h-4 w-4" />{language === "he" ? "טעינה מהענן" : "Restore from cloud"}</button></div><label className="cloud-autosync"><input checked={autoSync} disabled={!remoteExists} onChange={toggleAutoSync} type="checkbox" /><span><strong>{language === "he" ? "סנכרון אוטומטי" : "Automatic sync"}</strong><small>{language === "he" ? "שינויים יגובו לאחר השמירה המקומית" : "Changes are backed up after local save"}</small></span></label><button className="cloud-signout" onClick={() => void signOut()} type="button"><LogOut className="h-4 w-4" />{language === "he" ? "יציאה מהחשבון" : "Sign out"}</button></div>}
       {message && <p className={`cloud-message ${syncState === "error" ? "cloud-message-error" : ""}`}>{message}</p>}
-    </section>}
-  </div>;
+      </section>
+    </div>, document.body) : null}
+  </>;
 }
