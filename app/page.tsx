@@ -3,6 +3,8 @@
 import Image from "next/image";
 import { ChangeEvent, FormEvent, Fragment, ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import {
+  ArrowDown,
+  ArrowRight,
   ArrowUpRight,
   ArrowUp,
   BarChart3,
@@ -1352,8 +1354,10 @@ export default function Home() {
   const [commandQuery, setCommandQuery] = useState("");
   const [hiddenJobIds, setHiddenJobIds] = useState<string[]>([]);
   const [activeCalendarMenu, setActiveCalendarMenu] = useState<string | null>(null);
+  const [showTodayOverflow, setShowTodayOverflow] = useState(false);
   const [actionEvents, setActionEvents] = useState<ActionEvent[]>([]);
   const messageDraftRef = useRef<HTMLTextAreaElement | null>(null);
+  const todayOverflowRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!activeCalendarMenu) return;
@@ -1363,6 +1367,23 @@ export default function Home() {
     document.addEventListener("keydown", closeCalendarMenu);
     return () => document.removeEventListener("keydown", closeCalendarMenu);
   }, [activeCalendarMenu]);
+
+  useEffect(() => {
+    if (!showTodayOverflow) return;
+    const closeTodayOverflow = (event: MouseEvent | KeyboardEvent) => {
+      if (event instanceof KeyboardEvent && event.key === "Escape") {
+        setShowTodayOverflow(false);
+        return;
+      }
+      if (event instanceof MouseEvent && todayOverflowRef.current && !todayOverflowRef.current.contains(event.target as Node)) setShowTodayOverflow(false);
+    };
+    document.addEventListener("mousedown", closeTodayOverflow);
+    document.addEventListener("keydown", closeTodayOverflow);
+    return () => {
+      document.removeEventListener("mousedown", closeTodayOverflow);
+      document.removeEventListener("keydown", closeTodayOverflow);
+    };
+  }, [showTodayOverflow]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -1553,16 +1574,36 @@ export default function Home() {
     return [...applications].sort((a, b) => score(b) - score(a))[0];
   }, [applications, contacts]);
 
-  const metrics = useMemo(() => {
-    const activeStatuses: ApplicationStatus[] = ["Applied", "Interview", "Follow-up due"];
-    return [
-      { label: language === "he" ? "מועמדויות פעילות" : "Active applications", value: applications.filter((item) => activeStatuses.includes(item.status)).length, icon: BriefcaseBusiness },
-      { label: language === "he" ? "בשלב ראיון" : "Interview stage", value: applications.filter((item) => item.status === "Interview").length, icon: CalendarClock },
-      { label: language === "he" ? "הצעות עבודה" : "Offers", value: applications.filter((item) => item.status === "Offer").length, icon: CheckCircle2 },
-      { label: language === "he" ? "אנשי קשר" : "Networking contacts", value: contacts.length, icon: Users2 },
-      { label: language === "he" ? "פעולות המשך לביצוע" : "Follow-ups due", value: applications.filter((item) => item.status === "Follow-up due" || isPast(item.nextStepDue)).length + contacts.filter((item) => isPast(item.nextActionDue)).length, icon: CircleAlert },
-    ];
-  }, [applications, contacts, language]);
+  const searchProgress = useMemo(() => {
+    const activeOpportunities = applications.filter((item) => !["Rejected", "Withdrawn"].includes(item.status)).length;
+    const conversations = contacts.filter((item) => item.lastContactDate || item.eventDateTime).length;
+    const interviews = applications.filter((item) => item.status === "Interview" || item.status === "Offer" || item.processStages.some((stage) => /interview|ראיון|screen|portfolio|panel|שיחת סינון/i.test(stage.name))).length;
+    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const meaningfulEntities = new Set<string>();
+    applications.forEach((item) => {
+      if (item.appliedDate && !Number.isNaN(new Date(item.appliedDate).getTime()) && new Date(item.appliedDate).getTime() >= weekAgo) meaningfulEntities.add(`application-${item.id}`);
+    });
+    contacts.forEach((item) => {
+      if (item.lastContactDate && !Number.isNaN(new Date(item.lastContactDate).getTime()) && new Date(item.lastContactDate).getTime() >= weekAgo) meaningfulEntities.add(`contact-${item.id}`);
+    });
+    actionEvents.forEach((event) => {
+      if (Number.isNaN(new Date(event.occurredAt).getTime()) || new Date(event.occurredAt).getTime() < weekAgo) return;
+      if (["application_created", "application_action_completed"].includes(event.name)) meaningfulEntities.add(`application-${event.targetId}`);
+      if (event.name === "contact_created") meaningfulEntities.add(`contact-${event.targetId}`);
+    });
+    const meaningfulMoves = meaningfulEntities.size;
+    const isEmpty = applications.length === 0 && contacts.length === 0;
+    const statement = isEmpty
+      ? (language === "he" ? "ההתקדמות תופיע כאן לאחר הוספת ההזדמנות או השיחה הראשונה." : "Progress will appear here after you add your first opportunity or conversation.")
+      : meaningfulMoves > 0
+        ? (language === "he" ? `${meaningfulMoves} ${meaningfulMoves === 1 ? "התקדמות משמעותית תועדה" : "התקדמויות משמעותיות תועדו"} השבוע` : `${meaningfulMoves} meaningful ${meaningfulMoves === 1 ? "move" : "moves"} recorded this week`)
+        : interviews > 0
+          ? (language === "he" ? `${interviews} ${interviews === 1 ? "תהליך נמצא" : "תהליכים נמצאים"} בשלב ראיון` : `${interviews} ${interviews === 1 ? "opportunity is" : "opportunities are"} currently at interview stage`)
+          : activeOpportunities > 0
+            ? (language === "he" ? `${activeOpportunities} ${activeOpportunities === 1 ? "הזדמנות פעילה מוכנה" : "הזדמנויות פעילות מוכנות"} לצעד הבא` : `${activeOpportunities} active ${activeOpportunities === 1 ? "opportunity is" : "opportunities are"} ready for a next move`)
+            : (language === "he" ? "השיחות שתועדו ממשיכות לבנות את החיפוש." : "Your recorded conversations are continuing to build the search.");
+    return { activeOpportunities, conversations, interviews, meaningfulMoves, isEmpty, statement };
+  }, [actionEvents, applications, contacts, language]);
 
   const weeklyMomentum = useMemo(() => {
     const now = Date.now();
@@ -1574,16 +1615,6 @@ export default function Home() {
     const goal = Math.max(1, Number(userProfile.weeklyGoal) || 5);
     return { recentApplications, recentConversations, plannedMoves, total, goal, progress: Math.min(100, (total / goal) * 100) };
   }, [applications, contacts, userProfile.weeklyGoal]);
-
-  const todaySnapshot = useMemo(() => {
-    const now = Date.now();
-    const upcomingInterview = applications
-      .filter((item) => item.eventDateTime && new Date(item.eventDateTime).getTime() >= now)
-      .sort((a, b) => new Date(a.eventDateTime).getTime() - new Date(b.eventDateTime).getTime())[0];
-    const overdue = applications.filter((item) => item.status === "Follow-up due" || isPast(item.nextStepDue)).length
-      + contacts.filter((item) => isPast(item.nextActionDue)).length;
-    return { upcomingInterview, overdue };
-  }, [applications, contacts]);
 
   const homepageAction = useMemo(() => {
     if (!actionApplication) return { title: language === "he" ? "להוסיף את ההזדמנות הבאה" : "Add your next opportunity", support: language === "he" ? "הוסיפו מועמדות כדי ש־Carvio יוכל להציע את הצעד הבא המדויק ביותר." : "Add an application so Carvio can recommend the most useful next step.", urgency: "", target: "applications" };
@@ -1612,43 +1643,6 @@ export default function Home() {
       : "";
     return { title, support, urgency, target: "applications" };
   }, [actionApplication, language]);
-
-  const careerJourney = useMemo(() => {
-    const interviewApplications = applications.filter((application) => application.status === "Interview" || application.processStages.some((stage) => /interview|ראיון|screen|portfolio|panel|שיחת סינון/i.test(stage.name)));
-    const activeApplications = applications.filter((application) => !["Rejected", "Withdrawn"].includes(application.status));
-    const blockedApplications = applications.filter((application) => application.status === "Rejected" || application.trafficLight === "red");
-    const activeStation = applications.length === 0
-      ? "applications"
-      : actionApplication?.status === "Interview" || actionApplication?.processStages.some((stage) => /interview|ראיון|screen|portfolio|panel/i.test(stage.name))
-        ? "interviews"
-        : contacts.length === 0 && applications.length > 0
-          ? "conversations"
-          : "next";
-    const sentence = applications.length === 0
-      ? (language === "he" ? "התחילו בהזדמנות אחת — נוסיף יחד את המועמדות הראשונה." : "Start with one opportunity—add your first application.")
-      : blockedApplications.length > 0 && activeApplications.length === 0
-        ? (language === "he" ? "התוצאות אינן מגדירות אתכם. הצעד הבא יכול להיות קטן ובשליטתכם." : "Outcomes do not define you. Your next move can be small and within your control.")
-        : interviewApplications.length > 0
-          ? (language === "he"
-              ? `${contacts.length} ${contacts.length === 1 ? "שיחה מקדמת" : "שיחות מקדמות"} אתכם לעבר ${interviewApplications.length} ${interviewApplications.length === 1 ? "ראיון" : "ראיונות"}. הצעד הבא: ${homepageAction.title}`
-              : `${contacts.length} ${contacts.length === 1 ? "conversation is" : "conversations are"} moving you toward ${interviewApplications.length} ${interviewApplications.length === 1 ? "interview" : "interviews"}. Next: ${homepageAction.title}`)
-          : (language === "he"
-              ? `${activeApplications.length} ${activeApplications.length === 1 ? "מועמדות פעילה" : "מועמדויות פעילות"} נמצאות במסלול. הצעד הבא: ${homepageAction.title}`
-              : `${activeApplications.length} active ${activeApplications.length === 1 ? "application is" : "applications are"} on your path. Next: ${homepageAction.title}`);
-    return {
-      activeStation,
-      sentence,
-      isEmpty: applications.length === 0,
-      isRecovery: blockedApplications.length > 0 && activeApplications.length === 0,
-      stations: [
-        { id: "applications", label: language === "he" ? "מועמדויות" : "Applications", value: applications.length, Icon: BriefcaseBusiness },
-        { id: "conversations", label: language === "he" ? "שיחות וקשרים" : "Conversations", value: contacts.length, Icon: MessagesSquare },
-        { id: "interviews", label: language === "he" ? "ראיונות" : "Interviews", value: interviewApplications.length, Icon: CalendarClock },
-        { id: "next", label: language === "he" ? "הצעד הבא" : "Next move", value: actionApplication ? 1 : 0, Icon: Target },
-      ],
-    };
-  }, [actionApplication, applications, contacts.length, homepageAction.title, language]);
-
 
   function enterWorkspace() {
     window.history.pushState({ carvioView: "workspace" }, "", "/?workspace=1");
@@ -1742,12 +1736,166 @@ export default function Home() {
     const inactiveDays = lastMeaningfulActivity ? Math.floor((now - lastMeaningfulActivity) / 86400000) : 0;
     if (inactiveDays >= 4) actions.push({ id: "restart-momentum", score: 62 + inactiveDays, label: language === "he" ? "בחירת פעולה קטנה לחידוש התנופה" : "Choose one small action to restart momentum", detail: language === "he" ? `לא תועדה פעילות משמעותית כבר ${inactiveDays} ימים. אין צורך להשלים הכול היום.` : `No meaningful activity has been recorded for ${inactiveDays} days. You do not need to catch up all at once.`, target: "applications", kind: language === "he" ? "חידוש תנופה" : "Restart", intent: "open" });
     if (actions.length === 0) actions.push({ id: "healthy", score: 10, label: language === "he" ? "התהליך בשליטה" : "Your pipeline is under control", detail: language === "he" ? "הוסיפו הזדמנות או קבעו שיחת נטוורקינג כדי לשמור על תנופה רגועה." : "Add an opportunity or schedule a networking conversation to maintain calm momentum.", target: "applications", kind: language === "he" ? "תנופה" : "Momentum", intent: "open" });
-    return actions.sort((a, b) => b.score - a.score).slice(0, 3);
+    const seenEntities = new Set<string>();
+    return actions.sort((a, b) => b.score - a.score).filter((action) => {
+      const entityKey = action.applicationId ? `application-${action.applicationId}` : action.contactId ? `contact-${action.contactId}` : action.id;
+      if (seenEntities.has(entityKey)) return false;
+      seenEntities.add(entityKey);
+      return true;
+    });
   }, [applications, contacts, dailyMood, language, recoveryEntries]);
 
   const primaryActionApplication = nextBestActions[0]?.applicationId
     ? applications.find((item) => item.id === nextBestActions[0].applicationId) || null
     : null;
+  const primaryActionContact = nextBestActions[0]?.contactId
+    ? contacts.find((item) => item.id === nextBestActions[0].contactId) || null
+    : null;
+
+  const todayActionPresentation = useMemo(() => {
+    const action = nextBestActions[0];
+    const joinContext = (...parts: string[]) => parts.filter((part) => part.trim()).join(language === "he" ? " ב־" : " at ");
+    if (!action || (!applications.length && !contacts.length)) return {
+      headline: language === "he" ? "הוספת ההזדמנות הראשונה" : "Add your first opportunity",
+      reason: language === "he" ? "הוסיפו הזדמנות כדי ש־CARVIO יוכל להמליץ על הצעד הבא." : "Add an opportunity so CARVIO can recommend a useful next move.",
+      cta: language === "he" ? "הוספת הזדמנות" : "Add opportunity",
+      canComplete: false,
+    };
+    if (primaryActionApplication) {
+      const application = primaryActionApplication;
+      const roleAtCompany = joinContext(application.role, application.company) || (language === "he" ? "המועמדות" : "your application");
+      if (action.id.startsWith("app-event-")) return {
+        headline: language === "he" ? `הכנה ל${application.eventType || "ראיון"} עבור ${roleAtCompany}` : `Prepare for your ${application.eventType?.toLowerCase() || "interview"} for ${roleAtCompany}`,
+        reason: application.eventDateTime ? (language === "he" ? `המועד נקבע ל־${formatDate(application.eventDateTime, true)}. כדאי להשלים את ההכנה לפניו.` : `Scheduled for ${formatDate(application.eventDateTime, true)} · complete your preparation beforehand.`) : action.detail,
+        cta: language === "he" ? "פתיחת ההכנה" : "Open preparation",
+        canComplete: false,
+      };
+      if (action.id.startsWith("app-due-") || action.id.startsWith("app-wait-")) return {
+        headline: language === "he" ? `ביצוע פעולת המשך עבור ${roleAtCompany}` : `Follow up on your ${roleAtCompany} application`,
+        reason: application.nextStepDue ? (language === "he" ? `פעולת ההמשך הייתה מיועדת ל־${formatDate(application.nextStepDue)}.` : `The follow-up was due ${formatDate(application.nextStepDue)}.`) : action.detail,
+        cta: language === "he" ? "כתיבת הודעת המשך" : "Send follow-up",
+        canComplete: true,
+      };
+      if (action.id.startsWith("app-contact-")) return {
+        headline: language === "he" ? `הוספת קשר רלוונטי עבור ${roleAtCompany}` : `Add a relevant contact for ${roleAtCompany}`,
+        reason: language === "he" ? "להזדמנות בעדיפות גבוהה עדיין אין איש קשר מקושר." : "This high-priority opportunity does not have a linked contact yet.",
+        cta: language === "he" ? "הוספת קשר" : "Add contact",
+        canComplete: false,
+      };
+      if (action.id.startsWith("app-plan-")) return {
+        headline: language === "he" ? `הגדרת הצעד הבא עבור ${roleAtCompany}` : `Define the next step for ${roleAtCompany}`,
+        reason: language === "he" ? "למועמדות הפעילה עדיין אין פעולה ברורה." : "This active application does not have a clear next step yet.",
+        cta: language === "he" ? "הגדרת צעד הבא" : "Set next step",
+        canComplete: false,
+      };
+      if (action.intent === "recover") return {
+        headline: language === "he" ? `איפוס עדין לאחר התהליך עבור ${roleAtCompany}` : `Take a gentle reset after ${roleAtCompany}`,
+        reason: action.detail,
+        cta: language === "he" ? "פתיחת האיפוס" : "Open reset",
+        canComplete: false,
+      };
+      return { headline: homepageAction.title, reason: action.detail || homepageAction.support, cta: language === "he" ? "בדיקת המועמדות" : "Review application", canComplete: true };
+    }
+    if (primaryActionContact) {
+      const contactContext = [primaryActionContact.name, primaryActionContact.company].filter(Boolean).join(language === "he" ? " · " : " at ");
+      return {
+        headline: language === "he" ? `חזרה אל ${contactContext}` : `Follow up with ${contactContext}`,
+        reason: primaryActionContact.nextActionDue ? (language === "he" ? `פעולת הנטוורקינג הייתה מיועדת ל־${formatDate(primaryActionContact.nextActionDue)}.` : `The networking follow-up was due ${formatDate(primaryActionContact.nextActionDue)}.`) : action.detail,
+        cta: language === "he" ? "פתיחת השיחה" : "Open conversation",
+        canComplete: false,
+      };
+    }
+    if (action.intent === "recover") return { headline: action.label, reason: action.detail, cta: language === "he" ? "פתיחת האיפוס" : "Open reset", canComplete: false };
+    return { headline: action.label, reason: action.detail, cta: language === "he" ? "לבדיקת המועמדויות" : "Review applications", canComplete: false };
+  }, [applications.length, contacts.length, homepageAction.support, homepageAction.title, language, nextBestActions, primaryActionApplication, primaryActionContact]);
+
+  const attentionPresentations = useMemo(() => nextBestActions.slice(1).map((action) => {
+    const application = action.applicationId ? applications.find((item) => item.id === action.applicationId) || null : null;
+    const contact = action.contactId ? contacts.find((item) => item.id === action.contactId) || null : null;
+    const validDate = (value: string) => value && !Number.isNaN(new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T12:00:00` : value).getTime());
+    const applicationContext = application
+      ? [application.role.trim(), application.company.trim()].filter(Boolean).join(language === "he" ? " ב־" : " at ") || (language === "he" ? "המועמדות" : "the application")
+      : "";
+    if (application && action.id.startsWith("app-event-")) return {
+      action,
+      headline: language === "he" ? `הכנה ל${application.eventType || "ראיון"} עבור ${applicationContext}` : `Prepare for the ${application.eventType?.toLowerCase() || "interview"} for ${applicationContext}`,
+      reason: language === "he" ? "כדאי להשלים את ההכנה לפני המפגש." : "Complete the preparation before the meeting.",
+      urgency: validDate(application.eventDateTime) ? formatDate(application.eventDateTime, true) : "",
+      tone: "soon",
+      cta: language === "he" ? "פתיחת ההכנה" : "Prepare",
+      icon: "meeting",
+    };
+    if (application && action.id.startsWith("app-due-")) return {
+      action,
+      headline: language === "he" ? `ביצוע פעולת המשך עבור ${applicationContext}` : `Follow up on ${applicationContext}`,
+      reason: validDate(application.nextStepDue) ? (language === "he" ? `פעולת ההמשך הייתה מיועדת ל־${formatDate(application.nextStepDue)}.` : `The follow-up was due ${formatDate(application.nextStepDue)}.`) : (language === "he" ? "פעולת ההמשך עדיין ממתינה לטיפול." : "The follow-up is still waiting for action."),
+      urgency: language === "he" ? "באיחור" : "Overdue",
+      tone: "overdue",
+      cta: language === "he" ? "כתיבת הודעה" : "Follow up",
+      icon: "overdue",
+    };
+    if (application && action.id.startsWith("app-wait-")) {
+      const activityDate = application.lastActivityAt || application.appliedDate;
+      const staleDays = validDate(activityDate) ? Math.max(0, Math.floor((Date.now() - new Date(activityDate).getTime()) / 86400000)) : 0;
+      return {
+        action,
+        headline: language === "he" ? `בדיקת התהליך עבור ${applicationContext}` : `Review ${applicationContext}`,
+        reason: staleDays ? (language === "he" ? `לא תועדה פעילות כבר ${staleDays} ימים.` : `No activity has been recorded for ${staleDays} days.`) : (language === "he" ? "התהליך ממתין ללא תנועה מתועדת." : "The process is waiting without recorded activity."),
+        urgency: staleDays ? (language === "he" ? `${staleDays} ימים` : `${staleDays} days`) : "",
+        tone: "neutral",
+        cta: language === "he" ? "בדיקה" : "Review",
+        icon: "review",
+      };
+    }
+    if (application && action.id.startsWith("app-contact-")) return {
+      action,
+      headline: language === "he" ? `הוספת קשר רלוונטי עבור ${applicationContext}` : `Add a relevant contact for ${applicationContext}`,
+      reason: language === "he" ? "להזדמנות בעדיפות גבוהה עדיין אין איש קשר מקושר." : "This high-priority opportunity does not have a linked contact.",
+      urgency: language === "he" ? "עדיפות גבוהה" : "High priority",
+      tone: "neutral",
+      cta: language === "he" ? "הוספת קשר" : "Add contact",
+      icon: "contact",
+    };
+    if (application && action.id.startsWith("app-plan-")) return {
+      action,
+      headline: language === "he" ? `הגדרת הצעד הבא עבור ${applicationContext}` : `Define the next step for ${applicationContext}`,
+      reason: language === "he" ? "למועמדות הפעילה עדיין אין פעולה ברורה." : "This active application does not have a clear next step.",
+      urgency: language === "he" ? "נדרש צעד הבא" : "Needs a next step",
+      tone: "neutral",
+      cta: language === "he" ? "הגדרת צעד" : "Set next step",
+      icon: "plan",
+    };
+    if (contact) {
+      const contactContext = [contact.name.trim(), contact.company.trim()].filter(Boolean).join(language === "he" ? " · " : " at ") || (language === "he" ? "איש הקשר" : "this contact");
+      return {
+        action,
+        headline: language === "he" ? `חזרה אל ${contactContext}` : `Follow up with ${contactContext}`,
+        reason: validDate(contact.nextActionDue) ? (language === "he" ? `פעולת הנטוורקינג הייתה מיועדת ל־${formatDate(contact.nextActionDue)}.` : `The networking follow-up was due ${formatDate(contact.nextActionDue)}.`) : (language === "he" ? "פעולת הנטוורקינג עדיין ממתינה." : "The networking follow-up is still waiting."),
+        urgency: language === "he" ? "באיחור" : "Overdue",
+        tone: "overdue",
+        cta: language === "he" ? "פתיחת השיחה" : "Open conversation",
+        icon: "contact",
+      };
+    }
+    if (application && action.intent === "recover") return {
+      action,
+      headline: language === "he" ? `איפוס עדין לאחר התהליך עבור ${applicationContext}` : `Take a gentle reset after ${applicationContext}`,
+      reason: action.detail,
+      urgency: "",
+      tone: "neutral",
+      cta: language === "he" ? "פתיחת האיפוס" : "Open reset",
+      icon: "recover",
+    };
+    return {
+      action,
+      headline: action.label,
+      reason: action.detail,
+      urgency: "",
+      tone: "neutral",
+      cta: language === "he" ? "פתיחה" : "Open",
+      icon: "review",
+    };
+  }), [applications, contacts, language, nextBestActions]);
 
   const analytics = useMemo(() => {
     const pipeline = applicationStatuses.map((status) => ({ label: status, value: applications.filter((item) => item.status === status).length }));
@@ -1947,39 +2095,6 @@ export default function Home() {
       return first - second || a.name.localeCompare(b.name);
     });
   }, [contactHealthFilter, contactMeetingFilter, contactQuery, contactSort, contacts]);
-
-  function uploadProfilePhoto(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setNotice("Please choose an image file.");
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      setNotice("Please choose an image smaller than 10 MB.");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const image = new window.Image();
-      image.onload = () => {
-        const size = Math.min(image.naturalWidth, image.naturalHeight);
-        const canvas = document.createElement("canvas");
-        canvas.width = 320;
-        canvas.height = 320;
-        const context = canvas.getContext("2d");
-        if (!context) return;
-        context.drawImage(image, (image.naturalWidth - size) / 2, (image.naturalHeight - size) / 2, size, size, 0, 0, 320, 320);
-        setUserProfile((current) => ({ ...current, avatarDataUrl: canvas.toDataURL("image/jpeg", 0.84) }));
-        setNotice("Profile photo updated ✨");
-      };
-      image.onerror = () => setNotice("Carvio could not read that image.");
-      image.src = String(reader.result);
-    };
-    reader.onerror = () => setNotice("Carvio could not read that image.");
-    reader.readAsDataURL(file);
-  }
 
   function uploadCompanyLogo(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -2387,7 +2502,20 @@ export default function Home() {
   }
 
   function openOutreachForApplication(application: Application) {
-    setMessageProfile({ ...emptyMessageProfile, recipientType: application.contactName ? "Recruiter" : "Hiring manager", intent: application.status === "Applied" ? "Follow up after applying" : "Introduce myself", recipientName: application.contactName, company: application.company, role: application.role });
+    const linkedContact = contacts.find((contact) =>
+      contact.id === application.linkedContactIds?.[0]
+      || (application.contactName && contact.name === application.contactName)
+      || (contact.linkedApplicationId === application.id && contact.company === application.company)
+    );
+    setMessageProfile({
+      ...emptyMessageProfile,
+      recipientType: application.contactName || linkedContact ? "Recruiter" : "Hiring manager",
+      intent: "Follow up after applying",
+      recipientName: application.contactName || linkedContact?.name || "",
+      recipientEmail: linkedContact?.email || "",
+      company: application.company,
+      role: application.role,
+    });
     setGeneratedMessage("");
     setMessageSubjectDraft("");
     setShowEmailHandoff(false);
@@ -2404,6 +2532,28 @@ export default function Home() {
     if (application) { setWorkspaceApplicationId(application.id); return; }
     if (contact) { setContactQuery(contact.name); switchView("networking"); return; }
     navigateToSection(action.target);
+  }
+
+  function executeTodayPrimaryAction() {
+    const action = nextBestActions[0];
+    if (!applications.length && !contacts.length) { openNewApplication(); return; }
+    if (primaryActionApplication && action?.id.startsWith("app-plan-")) { openEditApplication(primaryActionApplication); return; }
+    if (action) { executeNextBestAction(action); return; }
+    navigateToSection(homepageAction.target);
+  }
+
+  function executeAttentionAction(action: NextBestAction) {
+    const application = action.applicationId ? applications.find((item) => item.id === action.applicationId) || null : null;
+    if (application && action.id.startsWith("app-plan-")) { openEditApplication(application); return; }
+    executeNextBestAction(action);
+  }
+
+  function viewAllAttention() {
+    const attentionActions = nextBestActions.slice(1);
+    const contactsOnly = attentionActions.length > 0 && attentionActions.every((action) => action.contactId);
+    if (contactsOnly) { switchView("networking"); return; }
+    setApplicationStageFilter("all");
+    switchView("applications");
   }
 
   function updateMessageProfile(patch: Partial<MessageProfile>) {
@@ -2702,18 +2852,11 @@ export default function Home() {
           <button aria-label={language === "he" ? "חיפוש או מעבר מהיר, קיצור מקשים Command K" : "Search or jump, keyboard shortcut Command K"} className="nav-command-trigger" onClick={() => setShowCommandBar(true)} type="button"><Search className="h-4 w-4" /><span>{language === "he" ? "חיפוש או מעבר מהיר…" : "Search or jump…"}</span><kbd>⌘K</kbd></button>
         </nav>
 
-        <header className={`calm-view carvio-hero relative scroll-mt-28 overflow-visible rounded-3xl border border-white/10 bg-slate-900/70 p-6 shadow-2xl shadow-cyan-950/30 backdrop-blur xl:p-8 ${activeView !== "home" ? "calm-view-hidden" : ""}`} id="dashboard">
+        <header className={`calm-view dashboard-v2 ${activeView !== "home" ? "calm-view-hidden" : ""}`} id="dashboard">
           <div className="carvio-hero-top">
-            <div className="profile-welcome-row">
-              <div className="profile-photo-wrap">
-                <label className="profile-photo-control" title={language === "he" ? "הוספה או שינוי תמונת פרופיל" : "Add or change your profile photo"}>
-                  {userProfile.avatarDataUrl ? <Image alt="Your profile" height={320} src={userProfile.avatarDataUrl} unoptimized width={320} /> : <span>{userProfile.name.trim().slice(0, 1).toUpperCase() || "👤"}</span>}
-                  <span className="profile-photo-badge"><UploadCloud className="h-3.5 w-3.5" /></span>
-                  <input accept="image/*" className="sr-only" onChange={uploadProfilePhoto} type="file" />
-                </label>
-                {userProfile.avatarDataUrl && <button aria-label="Remove profile photo" className="profile-photo-remove" onClick={() => setUserProfile((current) => ({ ...current, avatarDataUrl: "" }))} type="button"><X className="h-3 w-3" /></button>}
-              </div>
-              <div className="profile-welcome-copy"><p className="text-sm font-medium text-slate-400">{copy.welcome}{userProfile.name ? `, ${userProfile.name}` : ""} <span className="inline-block animate-wave">👋</span></p><div className="profile-career-tag mt-1.5 inline-flex items-center gap-2 text-xs font-medium text-cyan-200"><Compass className="h-3.5 w-3.5" /> {copy.careerTag}</div></div>
+            <div className="dashboard-v2-greeting">
+              <p>{language === "he" ? "בוקר טוב" : "Good morning"}{userProfile.name ? `, ${userProfile.name}` : ""}</p>
+              <span>{language === "he" ? "זה מה שחשוב היום." : "Here’s what matters today."}</span>
             </div>
             <div className="hero-utility-actions">
               <CloudAccount language={language} onRestore={restoreCloudWorkspace} workspace={cloudWorkspace} />
@@ -2725,158 +2868,60 @@ export default function Home() {
               <button aria-label={language === "en" ? "Switch to Hebrew" : "Switch to English"} className="hero-language-button" onClick={() => setLanguage(language === "en" ? "he" : "en")} type="button"><Languages className="h-4 w-4" /> {copy.hebrew}</button>
             </div>
           </div>
-          <div className="carvio-hero-main">
-            <section className="home-focus" aria-labelledby="home-focus-title">
-              <div className="home-focus-heading">
-                <div>
-                  <p className="eyebrow"><Zap className="h-4 w-4" />{copy.todayFocus} / {copy.nextBestAction}</p>
-                  <span>{todayFocus.eyebrow}</span>
+          <section className="dashboard-v2-today" aria-labelledby="dashboard-v2-today-title">
+            <div className="dashboard-v2-today-layout">
+              <div className="dashboard-v2-today-content">
+                <p className="dashboard-v2-label"><Zap className="h-4 w-4" />{language === "he" ? "היום" : "Today"}</p>
+                <div className="dashboard-v2-today-copy">
+                  <span>{nextBestActions[0]?.kind || todayFocus.eyebrow}</span>
+                  <h1 id="dashboard-v2-today-title">{todayActionPresentation.headline}</h1>
+                  <p>{todayActionPresentation.reason}</p>
                 </div>
+                <div className="dashboard-v2-today-actions">
+                  <button className="dashboard-v2-primary" onClick={executeTodayPrimaryAction} type="button">{todayActionPresentation.cta}<ArrowUpRight className="h-4 w-4" /></button>
+                  {primaryActionApplication && todayActionPresentation.canComplete && <button onClick={() => completeApplicationAction(primaryActionApplication)} type="button"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "בוצע" : "Done"}</button>}
+                  {(primaryActionApplication || primaryActionContact) && <div className="dashboard-v2-overflow" ref={todayOverflowRef}>
+                    <button aria-expanded={showTodayOverflow} aria-haspopup="menu" aria-label={language === "he" ? "פעולות נוספות להמלצה" : "More recommendation actions"} className="dashboard-v2-more" onClick={() => setShowTodayOverflow((current) => !current)} type="button">•••</button>
+                    {showTodayOverflow && <div className="dashboard-v2-overflow-menu" role="menu">
+                      {primaryActionApplication && nextBestActions[0]?.intent !== "recover" && <button onClick={() => { snoozeApplication(primaryActionApplication, 2); setShowTodayOverflow(false); }} role="menuitem" type="button"><Clock3 className="h-4 w-4" />{language === "he" ? "דחייה ביומיים" : "Snooze 2 days"}</button>}
+                      {primaryActionApplication && nextBestActions[0]?.intent !== "recover" && <button onClick={() => { snoozeApplication(primaryActionApplication, 7); setShowTodayOverflow(false); }} role="menuitem" type="button"><Clock3 className="h-4 w-4" />{language === "he" ? "דחייה בשבוע" : "Snooze 1 week"}</button>}
+                      {primaryActionApplication && <button onClick={() => { setWorkspaceApplicationId(primaryActionApplication.id); setShowTodayOverflow(false); }} role="menuitem" type="button"><BriefcaseBusiness className="h-4 w-4" />{language === "he" ? "פתיחת סביבת המועמדות" : "Open workspace"}</button>}
+                      {primaryActionApplication && <button onClick={() => { openEditApplication(primaryActionApplication); setShowTodayOverflow(false); }} role="menuitem" type="button"><Pencil className="h-4 w-4" />{language === "he" ? "עריכת המועמדות" : "Edit application"}</button>}
+                      {primaryActionContact && <button onClick={() => { setContactQuery(primaryActionContact.name); switchView("networking"); setShowTodayOverflow(false); }} role="menuitem" type="button"><MessagesSquare className="h-4 w-4" />{language === "he" ? "פתיחת השיחה" : "Open conversation"}</button>}
+                      {primaryActionContact && <button onClick={() => { openEditContact(primaryActionContact); setShowTodayOverflow(false); }} role="menuitem" type="button"><Pencil className="h-4 w-4" />{language === "he" ? "עריכת איש הקשר" : "Edit contact"}</button>}
+                    </div>}
+                  </div>}
+                </div>
+                {nextBestActions.length > 1 && <button className="dashboard-v2-attention-link" onClick={() => document.getElementById("dashboard-attention")?.scrollIntoView({ behavior: "smooth", block: "center" })} type="button">{language === "he" ? `${nextBestActions.length - 1} פריטים נוספים דורשים תשומת לב` : `${nextBestActions.length - 1} other ${nextBestActions.length === 2 ? "item needs" : "items need"} attention`}<ArrowDown className="h-4 w-4" /></button>}
               </div>
-              <h1 id="home-focus-title">{nextBestActions[0]?.label || homepageAction.title}</h1>
-              <p>{nextBestActions[0]?.detail || homepageAction.support}</p>
-              {primaryActionApplication?.id === actionApplication?.id && homepageAction.urgency && <span className={`home-action-urgency ${homepageAction.urgency.startsWith("Overdue") || homepageAction.urgency.startsWith("באיחור") ? "home-action-overdue" : ""}`}><Clock3 className="h-3.5 w-3.5" />{homepageAction.urgency}</span>}
-              <div className="home-focus-actions">
-                <button className="home-primary-action" onClick={() => nextBestActions[0] ? executeNextBestAction(nextBestActions[0]) : navigateToSection(homepageAction.target)} type="button"><span>{language === "he" ? "לביצוע הפעולה" : "Take this action"}</span><ArrowUpRight className="h-5 w-5" /></button>
-                {primaryActionApplication && <button onClick={() => setWorkspaceApplicationId(primaryActionApplication.id)} type="button"><BriefcaseBusiness className="h-4 w-4" />{language === "he" ? "פתיחת סביבת העבודה" : "Open workspace"}</button>}
-                {primaryActionApplication && <div className="focus-calendar-control">
-                  <button aria-expanded={activeCalendarMenu === `focus-${primaryActionApplication.id}`} aria-haspopup="dialog" aria-label={language === "he" ? "אפשרויות יומן לפעולה המומלצת" : "Calendar options for the recommended action"} className="focus-calendar-trigger" onClick={() => setActiveCalendarMenu((current) => current === `focus-${primaryActionApplication.id}` ? null : `focus-${primaryActionApplication.id}`)} type="button"><CalendarPlus className="h-4 w-4" /><span>{language === "he" ? "יומן" : "Calendar"}</span></button>
-                  {activeCalendarMenu === `focus-${primaryActionApplication.id}` && <ApplicationCalendarMenu application={primaryActionApplication} language={language} onClose={() => setActiveCalendarMenu(null)} onEdit={() => { setActiveCalendarMenu(null); openEditApplication(primaryActionApplication); setNotice(language === "he" ? "הוסיפו תאריך ושעה לפרטי הפגישה." : "Add a stage or meeting date, then return to the calendar action."); }} />}
-                </div>}
-              </div>
-              {primaryActionApplication && <div className="home-action-tools" aria-label={language === "he" ? "כלים לפעולה המומלצת" : "Recommended action tools"}>
-                <button onClick={() => completeApplicationAction(primaryActionApplication)} type="button"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "בוצע" : "Mark done"}</button>
-                <button onClick={() => snoozeApplication(primaryActionApplication, 2)} type="button"><Clock3 className="h-4 w-4" />{language === "he" ? "דחייה ביומיים" : "Snooze 2 days"}</button>
-                <button onClick={() => snoozeApplication(primaryActionApplication, 7)} type="button"><Clock3 className="h-4 w-4" />{language === "he" ? "דחייה בשבוע" : "Snooze 1 week"}</button>
-                <button onClick={() => openOutreachForApplication(primaryActionApplication)} type="button"><MessagesSquare className="h-4 w-4" />{language === "he" ? "כתיבת הודעה" : "Write follow-up"}</button>
-              </div>}
-              {nextBestActions.length > 1 && <div className="home-secondary-actions" aria-label={language === "he" ? "פעולות מומלצות נוספות" : "Secondary recommended actions"}>{nextBestActions.slice(1, 3).map((action) => <button key={action.id} onClick={() => executeNextBestAction(action)} type="button"><span><small>{action.kind}</small><strong>{action.label}</strong><em>{action.detail}</em></span><ChevronRight className="h-4 w-4" /></button>)}</div>}
-            </section>
-            <aside className="home-now" aria-label={language === "he" ? "תמונת מצב" : "Current snapshot"}>
-              <figure className="home-human-support">
-                <div><Image alt={language === "he" ? "איור של בחירת הצעד הבא ברוגע מתוך אפשרויות שונות" : "Illustration of calmly choosing the next move from several options"} fill priority sizes="(max-width: 767px) 104px, 220px" src="/carvio-next-action-recovery-v1.jpg" /></div>
-                <figcaption><HeartHandshake className="h-4 w-4" /><span>{language === "he" ? "התמקדו בצעדים שבשליטתכם, לא בהחלטות שאינן בידיכם." : "Focus on the actions you control—not the decisions you can’t."}</span></figcaption>
-              </figure>
-              <div className="home-now-cards">
-                <button onClick={() => switchView("applications")} type="button"><CalendarClock className="h-5 w-5" /><span><small>{language === "he" ? "הפגישה הקרובה" : "Upcoming meeting"}</small><strong>{todaySnapshot.upcomingInterview ? todaySnapshot.upcomingInterview.company : (language === "he" ? "לא נקבעה פגישה" : "Nothing scheduled")}</strong><em>{todaySnapshot.upcomingInterview ? formatDate(todaySnapshot.upcomingInterview.eventDateTime, true) : (language === "he" ? "היומן פנוי" : "Your calendar is clear")}</em></span><ChevronRight className="h-4 w-4" /></button>
-                <div className={todaySnapshot.overdue > 0 ? "home-now-alert" : ""}><CircleAlert className="h-5 w-5" /><span><small>{language === "he" ? "פעולות המשך באיחור" : "Overdue follow-ups"}</small><strong>{todaySnapshot.overdue}</strong><em>{todaySnapshot.overdue ? (language === "he" ? "דורשות תשומת לב" : "Need attention") : (language === "he" ? "הכול מעודכן" : "All caught up")}</em></span>{todaySnapshot.overdue > 0 && <button onClick={() => switchView("applications")} type="button">{language === "he" ? "לבדיקת פעולות ההמשך" : "Review follow-ups"}<ChevronRight className="h-3.5 w-3.5" /></button>}</div>
-              </div>
-              <div className="home-mini-metrics">
-                {[metrics[0], metrics[1], metrics[3]].map((metric) => <div key={metric.label}><strong>{metric.value}</strong><span>{metric.label}</span></div>)}
-              </div>
-              <div className="home-momentum"><span>{language === "he" ? "התנופה השבועית" : "Weekly momentum"}</span><strong>{weeklyMomentum.total}/{weeklyMomentum.goal}</strong><i><b style={{ width: `${weeklyMomentum.progress}%` }} /></i></div>
-            </aside>
-          </div>
-          <section aria-label={language === "he" ? "מסע הקריירה" : "Career journey"} className={`career-journey ${careerJourney.isEmpty ? "career-journey-empty" : ""} ${careerJourney.isRecovery ? "career-journey-recovery" : ""}`}>
-            <div className="career-journey-intro">
-              <div><span className="eyebrow">{language === "he" ? "מסע הקריירה" : "Career journey"}</span><h2>{language === "he" ? "החיפוש שלכם במבט אחד" : "Your search at a glance"}</h2></div>
-              <p>{careerJourney.sentence}</p>
+              <figure aria-hidden="true" className="dashboard-v2-today-visual"><Image alt="" fill priority sizes="(max-width: 420px) 0px, (max-width: 700px) calc(100vw - 3rem), 320px" src="/carvio-next-action-recovery-v1.jpg" /></figure>
             </div>
-            <div className="career-journey-canvas">
-              <div aria-hidden="true" className="career-journey-motif"><Image alt="" fill sizes="150px" src="/carvio-application-timeline-v1.jpg" /></div>
-              <div aria-hidden="true" className="career-journey-path"><i /><i /><i /></div>
-              <div className="career-journey-stations">
-                {careerJourney.stations.map(({ id, label, value, Icon }, index) => <button aria-current={careerJourney.activeStation === id ? "step" : undefined} className={`${careerJourney.activeStation === id ? "career-station-active" : ""} ${id === "next" && todaySnapshot.overdue > 0 ? "career-station-attention" : ""}`} key={id} onClick={() => {
-                  if (id === "applications") { setApplicationStageFilter("all"); switchView("applications"); }
-                  if (id === "conversations") switchView("networking");
-                  if (id === "interviews") { setApplicationStageFilter("Interview"); switchView("applications"); }
-                  if (id === "next") { if (actionApplication) setWorkspaceApplicationId(actionApplication.id); else openNewApplication(); }
-                }} type="button"><span className="career-station-node"><Icon className="h-4 w-4" /><b>{String(index + 1).padStart(2, "0")}</b></span><strong>{value}</strong><small>{label}</small></button>)}
-              </div>
-            </div>
-            {careerJourney.isEmpty && <button className="career-journey-cta" onClick={openNewApplication} type="button"><Plus className="h-4 w-4" />{language === "he" ? "הוספת המועמדות הראשונה" : "Add your first application"}</button>}
           </section>
-          <div className="home-quick-actions" aria-label={language === "he" ? "פעולות מהירות" : "Quick actions"}>
-            <span>{language === "he" ? "פעולות מהירות" : "Quick actions"}</span>
-            <button onClick={openNewApplication} type="button"><Plus className="h-4 w-4" />{copy.addApplication}</button>
-            <button onClick={() => switchView("search")} type="button"><Search className="h-4 w-4" />{copy.search}</button>
-            <button onClick={openNewContact} type="button"><Users2 className="h-4 w-4" />{copy.addContact}</button>
-            <button onClick={() => switchView("applications")} type="button"><CalendarClock className="h-4 w-4" />{language === "he" ? "יומן" : "Calendar"}</button>
-          </div>
+
+          <section className="dashboard-v2-section dashboard-v2-attention" id="dashboard-attention" aria-labelledby="dashboard-attention-title">
+            <div className="dashboard-v2-section-heading"><div><p className="dashboard-v2-label"><CircleAlert className="h-4 w-4" />{language === "he" ? "דורש תשומת לב" : "Needs attention"}</p><h2 id="dashboard-attention-title">{language === "he" ? "דברים שלא כדאי שייפלו בין הכיסאות" : "Keep these from falling through the cracks"}</h2></div>{attentionPresentations.length > 3 && <button onClick={viewAllAttention} type="button">{language === "he" ? `לכל ${attentionPresentations.length} הפריטים` : `View all ${attentionPresentations.length}`}<ArrowUpRight className="h-4 w-4" /></button>}</div>
+            {attentionPresentations.length > 0 ? <div className="dashboard-v2-attention-list">{attentionPresentations.slice(0, 3).map((item) => {
+              const AttentionIcon = item.icon === "meeting" ? CalendarClock : item.icon === "contact" ? Users2 : item.icon === "plan" ? Target : item.icon === "recover" ? HeartHandshake : item.icon === "overdue" ? Clock3 : BriefcaseBusiness;
+              return <article className="dashboard-v2-attention-row" key={item.action.id}>
+                <span className={`dashboard-v2-attention-icon dashboard-v2-attention-icon-${item.tone}`}><AttentionIcon className="h-4 w-4" /></span>
+                <span className="dashboard-v2-attention-copy"><strong>{item.headline}</strong><em>{item.reason}</em></span>
+                <span className="dashboard-v2-attention-controls">{item.urgency && <small className={`dashboard-v2-urgency dashboard-v2-urgency-${item.tone}`}>{item.urgency}</small>}<button onClick={() => executeAttentionAction(item.action)} type="button">{item.cta}<ChevronRight className="h-3.5 w-3.5" /></button></span>
+              </article>;
+            })}</div> : <div className="dashboard-v2-empty"><CheckCircle2 className="h-5 w-5" /><span><strong>{language === "he" ? "שום דבר נוסף לא דורש תשומת לב" : "Nothing else needs attention"}</strong><small>{language === "he" ? "הכול ברור לעת עתה." : "You’re clear for now."}</small></span></div>}
+          </section>
+
+          <section className={`dashboard-v2-section dashboard-v2-progress ${searchProgress.isEmpty ? "dashboard-v2-progress-empty" : ""}`} aria-labelledby="dashboard-progress-title">
+            <div className="dashboard-v2-section-heading"><div><p className="dashboard-v2-label"><TrendingUp className="h-4 w-4" />{language === "he" ? "התקדמות בחיפוש" : "Search progress"}</p><h2 id="dashboard-progress-title">{searchProgress.isEmpty ? (language === "he" ? "ההתקדמות מתחילה כאן" : "Progress starts here") : (language === "he" ? "החיפוש שלך בתנועה" : "Your search is moving")}</h2></div><button onClick={() => switchView("more")} type="button">{language === "he" ? "לצפייה בתובנות" : "View insights"}<ArrowUpRight className="h-4 w-4" /></button></div>
+            <div className="dashboard-v2-progress-flow" aria-label={language === "he" ? "מסלול ההתקדמות בחיפוש" : "Job search progress flow"}>
+              <span><strong>{searchProgress.activeOpportunities}</strong><small>{language === "he" ? "הזדמנויות פעילות" : "active opportunities"}</small></span><ArrowRight className="h-4 w-4" />
+              <span><strong>{searchProgress.conversations}</strong><small>{language === "he" ? "שיחות שתועדו" : "conversations"}</small></span><ArrowRight className="h-4 w-4" />
+              <span><strong>{searchProgress.interviews}</strong><small>{language === "he" ? "הגיעו לראיון" : "reached interview"}</small></span>
+            </div>
+            <p className="dashboard-v2-weekly"><TrendingUp className="h-4 w-4" />{searchProgress.statement}</p>
+          </section>
         </header>
 
         {activeView !== "home" && <section className="calm-page-header"><div><p className="eyebrow text-cyan-300">Carvio</p><h1 className="text-2xl font-semibold">{activeView === "search" ? copy.search : activeView === "applications" ? copy.applications : activeView === "networking" ? copy.networking : activeView === "tools" ? copy.careerTools : copy.support}</h1><p className="mt-1 text-sm text-slate-400">{activeView === "search" ? (language === "he" ? "בחרו תפקיד ומיקום, הפעילו חיפוש ופתחו את התוצאות במקור." : "Choose a role and location, run the search, then open results at the source.") : activeView === "applications" ? copy.applicationIntro : activeView === "networking" ? copy.networkingIntro : activeView === "tools" ? copy.toolsIntro : copy.supportIntro}</p></div><figure className={`screen-illustration screen-illustration-${activeView}`}><Image alt={screenIllustration.alt} fill sizes="(max-width: 767px) 104px, 216px" src={screenIllustration.src} /></figure>{activeView === "search" ? <button className="primary-button" onClick={() => document.getElementById("search-form-fields")?.scrollIntoView({ behavior: "smooth", block: "start" })} type="button"><Search className="h-4 w-4" />{language === "he" ? "התחלת חיפוש" : "Start searching"}</button> : <button className="icon-button" onClick={() => setShowQuickAdd(true)} type="button" aria-label={language === "he" ? "הוספה מהירה" : "Quick add"}><Plus className="h-5 w-5" /></button>}</section>}
-
-        <section className={`calm-view checkin-card checkin-card-compact ${dailyMood ? "checkin-card-complete" : ""} ${activeView !== "home" ? "calm-view-hidden" : ""}`} aria-label="Daily check-in">
-          <div className="checkin-compact-copy"><span aria-hidden="true">{dailyMood === "ready" ? "🙂" : dailyMood === "low" ? "😐" : dailyMood === "difficult" ? "😔" : "🌿"}</span><div><p className="eyebrow text-emerald-300">{copy.checkin}</p><h2>{dailyMood ? (language === "he" ? "התוכנית להיום הותאמה לרמת האנרגיה שלך." : "Today’s plan has been adjusted to your energy.") : copy.arriving}</h2></div></div>
-          <div className="checkin-compact-options">{([{"value":"ready","emoji":"🙂","label":copy.ready},{"value":"low","emoji":"😐","label":copy.low},{"value":"difficult","emoji":"😔","label":copy.difficult}] as { value: Exclude<DailyMood, "">; emoji: string; label: string }[]).map((item) => <button aria-label={item.label} aria-pressed={dailyMood === item.value} className={`checkin-choice ${dailyMood === item.value ? "checkin-choice-active" : ""}`} key={item.value} onClick={() => { setDailyMood(item.value); setNotice(item.value === "ready" ? (language === "he" ? "בואו נבחר צעד משמעותי אחד 🎯" : "Let’s choose one meaningful move 🎯") : item.value === "low" ? (language === "he" ? "צעד קטן אחד מספיק להיום 🌿" : "One small action is enough today 🌿") : (language === "he" ? "Carvio ישמור על קצב עדין היום. התוצאות אינן מגדירות אותך 🫶" : "Carvio will keep today gentle. You are not your outcomes 🫶")); }} type="button"><span>{item.emoji}</span><span>{dailyMood && dailyMood !== item.value ? "" : item.label}</span></button>)}</div>
-        </section>
-
-        <section aria-label="Dashboard overview" className={`home-redundant-section calm-view dashboard-overview ${activeView !== "home" ? "calm-view-hidden" : ""}`}>
-          <div className="dashboard-metrics">
-          {[metrics[0], metrics[1], metrics[4]].map((metric) => {
-            const Icon = metric.icon;
-            return (
-              <div className="metric-card dashboard-metric" key={metric.label}>
-                <div className="dashboard-metric-icon"><Icon className="h-4 w-4" /></div>
-                <div><p className="dashboard-metric-value">{metric.value}</p><p className="dashboard-metric-label">{metric.label}</p></div>
-              </div>
-            );
-          })}
-          </div>
-          <div className="momentum-card">
-            <div className="flex items-start justify-between gap-4"><div><p className="eyebrow text-emerald-300">{language === "he" ? "התנופה השבועית" : "Weekly momentum"}</p><h2 className="mt-2 text-xl font-semibold">{language === "he" ? "התקדמות שבשליטתכם" : "Progress you can control"}</h2></div><span className="text-3xl" aria-hidden="true">🌱</span></div>
-            <div className="mt-4 flex items-center justify-between gap-3 text-xs text-slate-400"><span>{language === "he" ? `${weeklyMomentum.total} פעולות משמעותיות השבוע` : `${weeklyMomentum.total} meaningful moves this week`}</span><span>{language === "he" ? `יעד: ${weeklyMomentum.goal}` : `Goal: ${weeklyMomentum.goal}`}</span></div>
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/5"><div className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-lime-300 to-cyan-400 transition-all duration-700" style={{ width: `${weeklyMomentum.progress}%` }} /></div>
-            <div className="momentum-breakdown mt-4 grid grid-cols-3 gap-3 text-center"><div><strong className="block text-xl">{weeklyMomentum.recentApplications}</strong><span className="text-xs text-slate-400">{language === "he" ? "מועמדויות איכותיות" : "thoughtful applications"}</span></div><div><strong className="block text-xl">{weeklyMomentum.recentConversations}</strong><span className="text-xs text-slate-400">{language === "he" ? "שיחות חדשות" : "recent conversations"}</span></div><div><strong className="block text-xl">{weeklyMomentum.plannedMoves}</strong><span className="text-xs text-slate-400">{language === "he" ? "צעדים מתוכננים" : "planned next moves"}</span></div></div>
-            <div className="momentum-wins" aria-label={language === "he" ? "הצלחות קטנות השבוע" : "Small wins this week"}>
-              <span className={weeklyMomentum.recentApplications > 0 ? "momentum-win-complete" : ""}>✓ {language === "he" ? "מועמדות ממוקדת" : "Thoughtful application"}</span>
-              <span className={weeklyMomentum.recentConversations > 0 ? "momentum-win-complete" : ""}>✓ {language === "he" ? "שיחה משמעותית" : "Meaningful conversation"}</span>
-              <span className={weeklyMomentum.plannedMoves > 0 ? "momentum-win-complete" : ""}>✓ {language === "he" ? "צעד הבא נקבע" : "Next move planned"}</span>
-            </div>
-            <p className="momentum-note mt-4 text-xs leading-5 text-slate-500">{language === "he" ? "המדד מתמקד רק בפעולות שבשליטתכם — לא בדחיות או בהחלטות של מעסיקים." : "Momentum reflects only actions within your control—not rejection or employer decisions."}</p>
-          </div>
-        </section>
-
-        <section className={`home-redundant-section calm-view panel today-panel ${activeView !== "home" ? "calm-view-hidden" : ""}`}>
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow flex items-center gap-2 text-cyan-300"><Zap className="h-4 w-4" /> {language === "he" ? "היום ב־Carvio" : "Today in Carvio"}</p>
-              <h2 className="section-title">{language === "he" ? "רק מה שחשוב עכשיו" : "Only what matters right now"}</h2>
-            </div>
-            <button className="secondary-button" onClick={openNewApplication} type="button"><Plus className="h-4 w-4" />{copy.addApplication}</button>
-          </div>
-          <div className="today-grid">
-            <button className="today-primary group" onClick={() => navigateToSection(nextBestActions[0]?.target || todayFocus.target)} type="button">
-              <span className="today-icon">⚡</span>
-              <span><small>{language === "he" ? "הפעולה המומלצת" : "Recommended next move"}</small><strong>{nextBestActions[0]?.label || todayFocus.title}</strong><em>{nextBestActions[0]?.detail || todayFocus.detail}</em></span>
-              <ArrowUpRight className="h-5 w-5" />
-            </button>
-            <button className="today-item" onClick={() => switchView("applications")} type="button">
-              <CalendarClock className="h-5 w-5" />
-              <span><small>{language === "he" ? "הפגישה הקרובה" : "Next interview or meeting"}</small><strong>{todaySnapshot.upcomingInterview ? `${todaySnapshot.upcomingInterview.company} · ${formatDate(todaySnapshot.upcomingInterview.eventDateTime, true)}` : (language === "he" ? "אין פגישה מתוכננת" : "Nothing scheduled yet")}</strong></span>
-              <ChevronRight className="h-4 w-4" />
-            </button>
-            <button className={`today-item ${todaySnapshot.overdue > 0 ? "today-item-alert" : ""}`} onClick={() => switchView("applications")} type="button">
-              <CircleAlert className="h-5 w-5" />
-              <span><small>{language === "he" ? "פעולות המשך" : "Follow-ups"}</small><strong>{todaySnapshot.overdue > 0 ? (language === "he" ? `${todaySnapshot.overdue} פעולות דורשות טיפול` : `${todaySnapshot.overdue} ${todaySnapshot.overdue === 1 ? "item needs" : "items need"} attention`) : (language === "he" ? "הכול מעודכן" : "You’re all caught up")}</strong></span>
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-          {actionApplication && <div className="daily-action-center">
-            <div><span>⚡ {language === "he" ? "מרכז הפעולות היומי" : "Daily action center"}</span><strong>{actionApplication.nextStep || `${language === "he" ? "בדיקת המועמדות ב־" : "Review "} ${actionApplication.company}`}</strong><small>{actionApplication.role} · {actionApplication.company}</small></div>
-            <div>
-              <button onClick={() => completeApplicationAction(actionApplication)} type="button"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "בוצע" : "Mark done"}</button>
-              <button onClick={() => snoozeApplication(actionApplication)} type="button"><Clock3 className="h-4 w-4" />{language === "he" ? "דחייה ביומיים" : "Snooze 2 days"}</button>
-              <button onClick={() => openOutreachForApplication(actionApplication)} type="button"><MessagesSquare className="h-4 w-4" />{language === "he" ? "כתיבת הודעה" : "Write follow-up"}</button>
-              <button onClick={() => setWorkspaceApplicationId(actionApplication.id)} type="button"><BriefcaseBusiness className="h-4 w-4" />{language === "he" ? "פתיחת סביבת העבודה" : "Open workspace"}</button>
-            </div>
-          </div>}
-        </section>
-
-        <section className={`home-redundant-section calm-view pilot-stories ${activeView !== "home" ? "calm-view-hidden" : ""}`} aria-label="סיפורי משתמשים להמחשה" dir="rtl">
-          <div className="pilot-stories-heading"><div><p className="eyebrow text-violet-300">נבנה סביב חיפוש עבודה אמיתי</p><h2 className="section-title">דרך רגועה יותר להמשיך להתקדם</h2></div><span>דמויות וסיפורים להמחשה</span></div>
-          <div className="pilot-stories-grid">
-            <article className="pilot-story-card">
-              <div className="pilot-story-top"><Image alt="דמותה הבדיונית של מיה" className="pilot-avatar" height={512} src="/people/maya-illustrative.jpg" width={512} /><div><strong>מיה לוי</strong><small>מנהלת People Operations · דמות להמחשה</small></div><span className="pilot-stars" aria-label="5 מתוך 5 כוכבים">★★★★★</span></div>
-              <blockquote>״סוף סוף אני פותחת את המערכת ורואה מה כדאי לעשות היום, בלי להרגיש שכל הדחיות רודפות אחריי.״</blockquote>
-            </article>
-            <article className="pilot-story-card">
-              <div className="pilot-story-top"><Image alt="דמותו הבדיונית של דניאל" className="pilot-avatar" height={512} src="/people/daniel-illustrative.jpg" width={512} /><div><strong>דניאל כהן</strong><small>בתהליך שינוי קריירה · דמות להמחשה</small></div><span className="pilot-stars" aria-label="5 מתוך 5 כוכבים">★★★★★</span></div>
-              <blockquote>״המשרות, השיחות והפולואפים נמצאים במקום אחד. זה הוריד לי המון עומס מהראש ועזר לי לא לפספס דברים.״</blockquote>
-            </article>
-          </div>
-        </section>
 
         <section className={`calm-view insights-hub ${activeView !== "more" ? "calm-view-hidden" : ""}`} aria-label="Insights and support overview">
           <div><p className="eyebrow text-cyan-300">{copy.reflection}</p><h2 className="mt-2 text-2xl font-semibold">{copy.whatHelps}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">{copy.destination}</p></div>
@@ -3237,7 +3282,7 @@ export default function Home() {
 
         <section className={`calm-view message-studio-panel ${activeView !== "tools" ? "calm-view-hidden" : ""}`} id="message-studio">
           <div className="section-heading tool-card-heading relative">
-            <div className="tool-card-copy"><p className="eyebrow flex items-center gap-2 text-pink-300"><MessagesSquare className="h-4 w-4" /> {copy.studio}</p><h2 className="section-title">{language === "he" ? "כתבו פנייה ממוקדת המבוססת על ההקשר שלכם" : "Write focused outreach from your real context"}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">{language === "he" ? "בחרו למי פונים, את הטון ואת המטרה. Carvio משתמש בתבנית מקומית ושקופה שאפשר לערוך לפני שליחה; אין כאן מודל AI חי." : "Choose the recipient, tone, and goal. Carvio uses a transparent local template you can edit before sending; no live AI model is involved."}</p></div>
+            <div className="tool-card-copy"><p className="eyebrow flex items-center gap-2 text-pink-300"><MessagesSquare className="h-4 w-4" /> {copy.studio}</p><h2 className="section-title">{language === "he" ? "כתבו פנייה ממוקדת המבוססת על ההקשר שלכם" : "Write focused outreach from your real context"}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">{language === "he" ? "בחרו למי פונים, את הטון ואת המטרה. Carvio משתמש בתבנית מקומית ושקופה שאפשר לערוך לפני שליחה; אין כאן מודל AI חי." : "Choose the recipient, tone, and goal. Carvio uses a transparent local template you can edit before sending; no live AI model is involved."}</p>{messageProfile.intent === "Follow up after applying" && messageProfile.company && messageProfile.role && <p className="message-application-context"><CheckCircle2 className="h-4 w-4" />{language === "he" ? `הפרטים נטענו מהמועמדות: ${messageProfile.role} ב־${messageProfile.company}` : `Loaded from your application: ${messageProfile.role} at ${messageProfile.company}`}</p>}</div>
             <figure className="tool-card-illustration tool-card-illustration-message"><Image alt={language === "he" ? "איור של ניסוח הודעה מקצועית וממוקדת בסביבת עבודה רגועה" : "Illustration of drafting thoughtful professional outreach in a calm workspace"} fill sizes="(max-width: 767px) 92px, 176px" src="/carvio-support-tools-v1.jpg" /><span aria-hidden="true"><MessagesSquare className="h-4 w-4" /></span></figure>
             <div className="tool-card-actions"><button aria-expanded={expandedTools.studio} className="secondary-button" onClick={() => setExpandedTools((current) => ({ ...current, studio: !current.studio, social: false, cv: false }))} type="button">{language === "he" ? (expandedTools.studio ? "סגירת הסטודיו" : "פתיחת הסטודיו") : (expandedTools.studio ? "Close studio" : "Open studio")}<ChevronDown className={`h-4 w-4 transition ${expandedTools.studio ? "rotate-180" : ""}`} /></button></div>
           </div>
