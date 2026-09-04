@@ -15,6 +15,7 @@ import {
   ChevronDown,
   ChevronRight,
   CircleAlert,
+  CircleHelp,
   Copy,
   Clock3,
   Compass,
@@ -720,6 +721,27 @@ function isPast(dateValue: string) {
   if (!dateValue) return false;
   const endOfDay = new Date(/^\d{4}-\d{2}-\d{2}$/.test(dateValue) ? `${dateValue}T23:59:59` : dateValue);
   return endOfDay.getTime() < Date.now();
+}
+
+function workspaceActionReason(application: Application, language: "en" | "he") {
+  if (application.nextStepDue && isPast(application.nextStepDue)) {
+    return language === "he"
+      ? "תאריך היעד חלף. פעולה קצרה עכשיו תמנע מהמועמדות ליפול בין הכיסאות."
+      : "The due date has passed. A small move now keeps this opportunity from falling through the cracks.";
+  }
+  if (application.eventDateTime && !isPast(application.eventDateTime)) {
+    return language === "he"
+      ? "יש אירוע קרוב. הכנה ממוקדת מראש תעזור לכם להגיע עם הקשר ובהירות."
+      : "An event is coming up. Focused preparation now will help you arrive with context and clarity.";
+  }
+  if (!application.nextStep) {
+    return language === "he"
+      ? "עדיין לא הוגדר צעד המשך. בחירה אחת ברורה תעזור לשמור על תנופה."
+      : "There is no next move yet. Choosing one clear action will keep momentum visible.";
+  }
+  return language === "he"
+    ? "זהו הצעד הבא ששמרתם להזדמנות הזו—השלמתו תשמור את התהליך בתנועה."
+    : "This is the next move saved for this opportunity—completing it keeps the process moving.";
 }
 
 function landingVisibleForUrl(search: string) {
@@ -1673,26 +1695,6 @@ export default function Home() {
     }
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
-
-  const insights = useMemo(() => {
-    const result: { title: string; text: string; tone: string; metric: string; target: AppView; action: string }[] = [];
-    const active = applications.filter((item) => !["Rejected", "Withdrawn"].includes(item.status));
-    const missingNextSteps = active.filter((item) => !item.nextStep.trim()).length;
-    const interviews = applications.filter((item) => item.status === "Interview").length;
-    const followUps = applications.filter((item) => item.status === "Follow-up due").length;
-    const statusCounts = applicationStatuses.map((status) => ({ status, count: applications.filter((item) => item.status === status).length }));
-    const largestGroup = statusCounts.sort((a, b) => b.count - a.count)[0];
-
-    if (followUps > 0) result.push({ title: language === "he" ? "טפלו תחילה בפעולות ההמשך" : "Start with your follow-ups", text: language === "he" ? `${followUps} מועמדויות ממתינות לפעולה. הודעה קצרה ומדויקת יכולה להחזיר הזדמנות לתנועה.` : `${followUps} ${followUps === 1 ? "application is" : "applications are"} ready for action. A short, thoughtful message can restart momentum.`, tone: "bg-amber-400", metric: String(followUps), target: "applications", action: language === "he" ? "למועמדויות" : "Open applications" });
-    if (missingNextSteps > 0) result.push({ title: language === "he" ? "הגדירו את הצעד הבא" : "Clarify the next step", text: language === "he" ? `ל־${missingNextSteps} מועמדויות פעילות אין פעולה ברורה. הגדירו אחת כדי שלא יישארו תהליכים באוויר.` : `${missingNextSteps} active ${missingNextSteps === 1 ? "application has" : "applications have"} no clear action. Add one so nothing stays in limbo.`, tone: "bg-sky-400", metric: String(missingNextSteps), target: "applications", action: language === "he" ? "הגדרת צעדים" : "Set next steps" });
-    if (interviews > 0) result.push({ title: language === "he" ? "הכינו את הראיונות הקרובים" : "Prepare your interviews", text: language === "he" ? `${interviews} הזדמנויות נמצאות בשלב ראיון. רכזו סיפורים, שאלות ומחקר בכל מועמדות.` : `${interviews} ${interviews === 1 ? "opportunity is" : "opportunities are"} at interview stage. Keep stories, questions, and research with each role.`, tone: "bg-violet-400", metric: String(interviews), target: "applications", action: language === "he" ? "להכנה" : "Review interviews" });
-    const offerCount = applications.filter((item) => item.status === "Offer").length;
-    if (offerCount > 0) result.push({ title: language === "he" ? "יש הצעה שמחכה להחלטה" : "An offer needs a decision", text: language === "he" ? "רכזו תנאים, שאלות וסדרי עדיפויות לפני השיחה הבאה כדי לקבל החלטה בביטחון." : "Capture terms, questions, and priorities before the next conversation so you can decide with confidence.", tone: "bg-emerald-400", metric: String(offerCount), target: "applications", action: language === "he" ? "לצפייה בהצעה" : "Review the offer" });
-    if (contacts.length < 3) result.push({ title: language === "he" ? "הרחיבו קשר אחד משמעותי" : "Add one meaningful connection", text: language === "he" ? `שמורים כרגע ${contacts.length} אנשי קשר. התחילו מאדם שקשור להזדמנות החשובה ביותר שלכם.` : `You have ${contacts.length} saved ${contacts.length === 1 ? "contact" : "contacts"}. Start with someone connected to your most important role.`, tone: "bg-fuchsia-400", metric: String(contacts.length), target: "networking", action: language === "he" ? "לנטוורקינג" : "Open networking" });
-    if (applications.length >= 4 && largestGroup.count / applications.length >= 0.6) result.push({ title: language === "he" ? "שחררו את צוואר הבקבוק" : "Unblock the pipeline", text: language === "he" ? `${largestGroup.count} מתוך ${applications.length} מועמדויות נמצאות באותו שלב. בחרו את החזקה ביותר וקדמו אותה בפעולה אחת.` : `${largestGroup.count} of ${applications.length} applications share the “${largestGroup.status}” status. Choose the strongest and move it with one action.`, tone: "bg-rose-400", metric: `${largestGroup.count}/${applications.length}`, target: "applications", action: language === "he" ? "לבדיקת התהליך" : "Review pipeline" });
-    if (result.length === 0) result.push({ title: language === "he" ? "התהליך בשליטה" : "Your search is under control", text: language === "he" ? "לכל מועמדות פעילה יש צעד הבא ואין כרגע פעולות המשך פתוחות. זה זמן טוב להתמקד באיכות." : "Every active application has a next step and no follow-ups are due. This is a good moment to focus on quality.", tone: "bg-emerald-400", metric: "✓", target: "applications", action: language === "he" ? "לצפייה בתהליך" : "View pipeline" });
-    return result.slice(0, 4);
-  }, [applications, contacts, language]);
 
   const todayFocus = useMemo(() => {
     if (dailyMood === "difficult") {
@@ -2921,7 +2923,7 @@ export default function Home() {
           </section>
         </header>
 
-        {activeView !== "home" && <section className="calm-page-header"><div><p className="eyebrow text-cyan-300">Carvio</p><h1 className="text-2xl font-semibold">{activeView === "search" ? copy.search : activeView === "applications" ? copy.applications : activeView === "networking" ? copy.networking : activeView === "tools" ? copy.careerTools : copy.support}</h1><p className="mt-1 text-sm text-slate-400">{activeView === "search" ? (language === "he" ? "בחרו תפקיד ומיקום, הפעילו חיפוש ופתחו את התוצאות במקור." : "Choose a role and location, run the search, then open results at the source.") : activeView === "applications" ? copy.applicationIntro : activeView === "networking" ? copy.networkingIntro : activeView === "tools" ? copy.toolsIntro : copy.supportIntro}</p></div><figure className={`screen-illustration screen-illustration-${activeView}`}><Image alt={screenIllustration.alt} fill sizes="(max-width: 767px) 104px, 216px" src={screenIllustration.src} /></figure>{activeView === "search" ? <button className="primary-button" onClick={() => document.getElementById("search-form-fields")?.scrollIntoView({ behavior: "smooth", block: "start" })} type="button"><Search className="h-4 w-4" />{language === "he" ? "התחלת חיפוש" : "Start searching"}</button> : <button className="icon-button" onClick={() => setShowQuickAdd(true)} type="button" aria-label={language === "he" ? "הוספה מהירה" : "Quick add"}><Plus className="h-5 w-5" /></button>}</section>}
+        {activeView !== "home" && <section className={`calm-page-header ${activeView === "applications" ? "applications-v2-page-header" : ""}`}><div><p className="eyebrow text-cyan-300">Carvio</p><h1 className="text-2xl font-semibold">{activeView === "search" ? copy.search : activeView === "applications" ? copy.applications : activeView === "networking" ? copy.networking : activeView === "tools" ? copy.careerTools : copy.support}</h1><p className="mt-1 text-sm text-slate-400">{activeView === "search" ? (language === "he" ? "בחרו תפקיד ומיקום, הפעילו חיפוש ופתחו את התוצאות במקור." : "Choose a role and location, run the search, then open results at the source.") : activeView === "applications" ? (language === "he" ? "דעו מה פעיל, למה מחכים ומה דורש מכם פעולה." : "Know what’s active, what’s waiting, and what needs you next.") : activeView === "networking" ? copy.networkingIntro : activeView === "tools" ? copy.toolsIntro : copy.supportIntro}</p></div><figure className={`screen-illustration screen-illustration-${activeView}`}><Image alt={screenIllustration.alt} fill sizes="(max-width: 767px) 104px, 216px" src={screenIllustration.src} /></figure>{activeView === "search" ? <button className="primary-button" onClick={() => document.getElementById("search-form-fields")?.scrollIntoView({ behavior: "smooth", block: "start" })} type="button"><Search className="h-4 w-4" />{language === "he" ? "התחלת חיפוש" : "Start searching"}</button> : activeView !== "applications" ? <button className="icon-button" onClick={() => setShowQuickAdd(true)} type="button" aria-label={language === "he" ? "הוספה מהירה" : "Quick add"}><Plus className="h-5 w-5" /></button> : null}</section>}
 
         <section className={`calm-view insights-hub ${activeView !== "more" ? "calm-view-hidden" : ""}`} aria-label="Insights and support overview">
           <div><p className="eyebrow text-cyan-300">{copy.reflection}</p><h2 className="mt-2 text-2xl font-semibold">{copy.whatHelps}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">{copy.destination}</p></div>
@@ -2951,18 +2953,18 @@ export default function Home() {
           </div>
         </section>
 
-        <section className={`calm-view grid gap-6 xl:grid-cols-[1.4fr_0.9fr] ${activeView !== "applications" ? "calm-view-hidden" : ""}`}>
+        <section className={`calm-view applications-v2 ${activeView !== "applications" ? "calm-view-hidden" : ""}`}>
           <div className="panel application-table-panel xl:col-span-2" id="applications">
             <div className="section-heading">
-              <div><p className="eyebrow text-emerald-300">{copy.applicationsEyebrow}</p><h2 className="section-title">{copy.activeOpportunities}</h2></div>
+              <div><p className="eyebrow text-emerald-300">{copy.applicationsEyebrow}</p><h2 className="section-title">{copy.activeOpportunities}</h2><p className="applications-v2-section-copy">{language === "he" ? "סרקו את ההזדמנויות ובחרו את הצעד הבא בלי לנהל גיליון." : "Scan your opportunities and choose the next move without managing a spreadsheet."}</p></div>
               <div className="application-heading-actions">
-                <button className="secondary-button" onClick={() => setShowSmartCapture(true)} type="button"><WandSparkles className="h-4 w-4" /> {language === "he" ? "לכידה חכמה מקישור" : "Smart capture"}</button>
                 <button className="primary-button" onClick={openNewApplication} type="button"><Plus className="h-4 w-4" /> {copy.addApplication}</button>
+                <button className="applications-v2-smart-capture" onClick={() => setShowSmartCapture(true)} type="button"><WandSparkles className="h-4 w-4" /> {language === "he" ? "לכידה מקישור" : "Capture from link"}</button>
               </div>
             </div>
             <div className="application-view-switcher" role="group" aria-label={language === "he" ? "בחירת תצוגה" : "Choose application view"}>
               {([
-                ["table", "▦", language === "he" ? "טבלה" : "Table"],
+                ["table", "☷", language === "he" ? "רשימה" : "List"],
                 ["kanban", "▤", "Kanban"],
                 ["calendar", "▦", language === "he" ? "יומן" : "Calendar"],
               ] as [ApplicationViewMode, string, string][]).map(([mode, icon, label]) => <button aria-pressed={applicationViewMode === mode} className={applicationViewMode === mode ? "application-view-active" : ""} key={mode} onClick={() => setApplicationViewMode(mode)} type="button"><span>{icon}</span>{label}</button>)}
@@ -3044,58 +3046,43 @@ export default function Home() {
                     <table className="application-table">
                       <thead>
                         <tr>
-                          <th>{language === "he" ? "חברה" : "Company"}</th>
-                          <th>{language === "he" ? "תפקיד" : "Job title"}</th>
-                          <th>{language === "he" ? "מיקום" : "Location"}</th>
-                          <th>{language === "he" ? "מקור" : "Source"}</th>
-                          <th>{language === "he" ? "תאריך הגשה" : "Applied"}</th>
-                          <th>{language === "he" ? "סטטוס" : "Status"}</th>
-                          <th>{language === "he" ? "עדיפות" : "Priority"}</th>
-                          <th>{language === "he" ? "ציפיות שכר" : "Salary"}</th>
-                          <th>{language === "he" ? "מצב התהליך" : "Health"}</th>
-                          <th>{language === "he" ? "פגישה קרובה" : "Next meeting"}</th>
+                          <th>{language === "he" ? "הזדמנות" : "Opportunity"}</th>
+                          <th>{language === "he" ? "שלב" : "Stage"}</th>
+                          <th>{language === "he" ? "הפעולה הבאה" : "Next action"}</th>
+                          <th>{language === "he" ? "המועד החשוב" : "Key timing"}</th>
                           <th className="application-actions-heading">{language === "he" ? "פעולות" : "Actions"}</th>
                         </tr>
                       </thead>
                       <tbody>
                         {visibleApplications.map((application) => {
                           const isExpanded = expandedApplicationId === application.id;
-                          const priorityLabel = language === "he" ? (application.priority === "High" ? "גבוהה" : application.priority === "Medium" ? "בינונית" : "נמוכה") : application.priority;
+                          const hasUpcomingEvent = Boolean(application.eventDateTime && !isPast(application.eventDateTime));
                           return (
                             <Fragment key={application.id}>
                               <tr className={`application-table-row ${isExpanded ? "application-table-row-expanded" : ""}`}>
-                                <td className="application-company-cell"><span aria-hidden="true" className={`application-company-logo ${application.logoUrl ? "application-company-logo-image" : ""}`} style={application.logoUrl ? { backgroundImage: `url("${application.logoUrl}")` } : undefined}>{application.logoUrl ? "" : application.company.slice(0, 1).toUpperCase()}</span><strong>{application.company}</strong></td>
-                                <td><span className="application-primary-value">{application.role}</span></td>
-                                <td>{application.location || "—"}</td>
-                                <td>{application.source || "—"}</td>
-                                <td>{application.appliedDate ? formatDate(application.appliedDate) : "—"}</td>
+                                <td className="application-company-cell"><span aria-hidden="true" className={`application-company-logo ${application.logoUrl ? "application-company-logo-image" : ""}`} style={application.logoUrl ? { backgroundImage: `url("${application.logoUrl}")` } : undefined}>{application.logoUrl ? "" : application.company.slice(0, 1).toUpperCase()}</span><span className="applications-v2-opportunity"><strong>{application.company}</strong><small>{application.role}</small></span></td>
                                 <td>
                                   <select aria-label={`${language === "he" ? "סטטוס עבור" : "Status for"} ${application.role}`} className={`status-select application-table-status ${statusStyles[application.status]}`} onChange={(event) => updateApplicationStatus(application, event.target.value as ApplicationStatus)} value={application.status}>
                                     {applicationStatuses.map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}
                                   </select>
                                 </td>
-                                <td><span className={`application-priority application-priority-${application.priority.toLowerCase()}`}>{priorityLabel}</span></td>
-                                <td>{application.salary ? `${application.salaryCurrency} ${application.salary}` : "—"}</td>
-                                <td><span className="application-health"><i className={trafficLightMeta[application.trafficLight].dot} /><span>{language === "he" ? ({ none: "ללא סטטוס", green: "מתקדם", yellow: "ממתין", red: "חסום" } as Record<TrafficLight, string>)[application.trafficLight] : trafficLightMeta[application.trafficLight].label}</span></span></td>
-                                <td>{application.eventDateTime ? <span className="application-meeting-cell"><CalendarClock className="h-4 w-4" />{formatDate(application.eventDateTime, true)}</span> : "—"}</td>
+                                <td><span className="applications-v2-next-action"><strong>{application.nextStep || (language === "he" ? "לא הוגדרה פעולה" : "No next action set")}</strong>{application.nextStepDue && <small className={isPast(application.nextStepDue) ? "is-overdue" : ""}>{isPast(application.nextStepDue) ? (language === "he" ? "באיחור" : "Overdue") : (language === "he" ? "מתוכנן" : "Planned")}</small>}</span></td>
+                                <td>{hasUpcomingEvent ? <span className="application-meeting-cell"><CalendarClock className="h-4 w-4" /><span><strong>{application.eventType || (language === "he" ? "פגישה קרובה" : "Upcoming meeting")}</strong><small>{formatDate(application.eventDateTime, true)}</small></span></span> : application.nextStepDue ? <span className="application-meeting-cell"><Clock3 className="h-4 w-4" /><span><strong>{isPast(application.nextStepDue) ? (language === "he" ? "דורש טיפול" : "Needs attention") : (language === "he" ? "תאריך יעד" : "Due date")}</strong><small>{formatDate(application.nextStepDue)}</small></span></span> : application.eventDateTime ? <span className="application-meeting-cell application-timing-muted"><Clock3 className="h-4 w-4" /><span><strong>{language === "he" ? "אירוע שהסתיים" : "Past event"}</strong><small>{formatDate(application.eventDateTime, true)}</small></span></span> : application.appliedDate ? <span className="application-meeting-cell application-timing-muted"><span><strong>{language === "he" ? "נוסף למעקב" : "Tracked"}</strong><small>{formatDate(application.appliedDate)}</small></span></span> : <span className="application-timing-empty">{language === "he" ? "ללא מועד" : "No date"}</span>}</td>
                                 <td className="application-row-actions">
-                                  <button aria-label={language === "he" ? `עדכון מהיר עבור ${application.role}` : `Quick update for ${application.role}`} className="application-row-icon application-quick-trigger" onClick={() => openQuickUpdate(application)} title={language === "he" ? "עדכון מהיר" : "Quick update"} type="button"><Zap className="h-4 w-4" /></button>
-                                  <button aria-label={language === "he" ? `פתיחת סביבת ${application.role}` : `Open ${application.role} workspace`} className="application-row-icon" onClick={() => setWorkspaceApplicationId(application.id)} title={language === "he" ? "סביבת המועמדות" : "Application workspace"} type="button"><BriefcaseBusiness className="h-4 w-4" /></button>
-                                  <div className="application-row-calendar-control"><button aria-expanded={activeCalendarMenu === `row-${application.id}`} aria-haspopup="dialog" aria-label={language === "he" ? `אפשרויות יומן עבור ${application.role} בחברת ${application.company}` : `Calendar options for ${application.role} at ${application.company}`} className="application-row-icon application-row-calendar" onClick={() => setActiveCalendarMenu((current) => current === `row-${application.id}` ? null : `row-${application.id}`)} title={language === "he" ? "הוספה ליומן" : "Add to calendar"} type="button"><CalendarPlus className="h-4 w-4" /></button>{activeCalendarMenu === `row-${application.id}` && <ApplicationCalendarMenu application={application} language={language} onClose={() => setActiveCalendarMenu(null)} onEdit={() => { setActiveCalendarMenu(null); openEditApplication(application); setNotice(language === "he" ? "הוסיפו מועד לשלב או לפגישה במועמדות הזו." : "Add a stage or meeting date to this application."); }} />}</div>
-                                  <button aria-label={language === "he" ? `עריכת ${application.role}` : `Edit ${application.role}`} className="application-row-icon" onClick={() => openEditApplication(application)} title={language === "he" ? "עריכה" : "Edit"} type="button"><Pencil className="h-4 w-4" /></button>
-                                  <button aria-label={language === "he" ? `מחיקת ${application.role} בחברת ${application.company}` : `Delete ${application.role} at ${application.company}`} className="application-row-icon application-row-delete" onClick={() => deleteApplication(application)} title={language === "he" ? "מחיקה" : "Delete"} type="button"><Trash2 className="h-4 w-4" /></button>
+                                  <button className="applications-v2-open-button" onClick={() => setWorkspaceApplicationId(application.id)} type="button"><BriefcaseBusiness className="h-4 w-4" />{language === "he" ? "סביבת עבודה" : "Workspace"}</button>
                                   <button aria-expanded={isExpanded} className="application-details-button" onClick={() => setExpandedApplicationId(isExpanded ? null : application.id)} type="button"><span>{isExpanded ? (language === "he" ? "סגירה" : "Close") : (language === "he" ? "פרטים" : "Details")}</span><ChevronDown className={`h-4 w-4 transition ${isExpanded ? "rotate-180" : ""}`} /></button>
                                 </td>
                               </tr>
                               {isExpanded && (
                                 <tr className="application-detail-row">
-                                  <td colSpan={11}>
+                                  <td colSpan={5}>
                                     <div className="application-detail-grid">
                                       <div className="application-detail-block"><span>{language === "he" ? "השלב הנוכחי והצעד הבא" : "Current stage / next step"}</span><strong>{application.nextStep || (language === "he" ? "לא הוגדר צעד הבא" : "No next step added")}</strong>{application.nextStepDue && <small>{isPast(application.nextStepDue) ? (language === "he" ? "באיחור מאז " : "Overdue since ") : (language === "he" ? "לביצוע עד " : "Due ")}{formatDate(application.nextStepDue)}</small>}</div>
                                       <div className="application-detail-block"><span>{language === "he" ? "פגישה או ראיון" : "Interview or meeting"}</span><strong>{application.eventType || (language === "he" ? "לא הוגדר סוג אירוע" : "No event type")}</strong><small>{application.eventDateTime ? formatDate(application.eventDateTime, true) : (language === "he" ? "לא נקבע מועד" : "Not scheduled")}</small></div>
                                       <div className="application-detail-block application-detail-notes"><span>{language === "he" ? "הערות" : "Notes"}</span><p>{application.notes || (language === "he" ? "אין הערות" : "No notes")}</p></div>
                                     </div>
                                     <div className="application-detail-actions">
+                                      <button className="text-button text-cyan-300" onClick={() => openQuickUpdate(application)} type="button"><Zap className="h-4 w-4" /> {language === "he" ? "עדכון מהיר" : "Quick update"}</button>
                                       <button className="text-button" onClick={() => openEditApplication(application)} type="button"><Pencil className="h-4 w-4" /> {language === "he" ? "עריכה" : "Edit"}</button>
                                       <button className="text-button text-cyan-300" onClick={() => openOutreachForApplication(application)} type="button"><MessagesSquare className="h-4 w-4" /> {language === "he" ? "כתיבת פנייה" : "Write outreach"}</button>
                                       <button className="text-button text-emerald-300" onClick={() => navigateToSection("cv-lab")} type="button"><FileCheck2 className="h-4 w-4" /> {language === "he" ? "קורות חיים" : "CV"}</button>
@@ -3125,51 +3112,6 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="panel smart-action-brief xl:col-span-2">
-            <div className="smart-action-header">
-              <div>
-                <p className="eyebrow text-amber-300">{language === "he" ? "תדריך הפעולה שלך" : "Your action brief"}</p>
-                <h2 className="section-title">{language === "he" ? "מה הכי כדאי לקדם עכשיו?" : "What should move next?"}</h2>
-                <p className="mt-2 max-w-2xl text-sm text-slate-400">{language === "he" ? "Carvio מתרגם את התהליך לפעולה אחת מרכזית ועוד כמה צעדים קצרים." : "Carvio translates your pipeline into one priority and a few supporting moves."}</p>
-              </div>
-              <span className="smart-action-live"><span />{language === "he" ? "מתעדכן מהנתונים שלך" : "Live from your data"}</span>
-            </div>
-
-            <div className="smart-primary-action">
-              <div className="smart-primary-icon"><Zap className="h-6 w-6" /></div>
-              <div className="min-w-0 flex-1">
-                <p className="smart-action-kicker">{language === "he" ? "להתחיל כאן" : "Start here"}</p>
-                <h3>{insights[0].title}</h3>
-                <p>{insights[0].text}</p>
-              </div>
-              <div className="smart-primary-result">
-                <strong>{insights[0].metric}</strong>
-                <button onClick={() => switchView(insights[0].target)} type="button">{insights[0].action}<ArrowUpRight className="h-4 w-4" /></button>
-              </div>
-            </div>
-
-            {insights.length > 1 && (
-              <div className="smart-secondary-grid">
-                {insights.slice(1).map((insight, index) => (
-                  <button className="smart-secondary-action" key={insight.title} onClick={() => switchView(insight.target)} type="button">
-                    <span className={`smart-secondary-dot ${insight.tone}`} />
-                    <span className="min-w-0 flex-1">
-                      <span className="smart-secondary-number">0{index + 2}</span>
-                      <strong>{insight.title}</strong>
-                      <small>{insight.text}</small>
-                    </span>
-                    <span className="smart-secondary-metric">{insight.metric}</span>
-                    <ChevronRight className="smart-secondary-arrow h-4 w-4" />
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <div className="smart-action-privacy">
-              <ShieldCheck className="h-4 w-4 shrink-0" />
-              <span>{language === "he" ? "הניתוח נוצר רק מהמידע השמור במכשיר הזה." : "This brief is calculated only from data stored on this device."}</span>
-            </div>
-          </div>
         </section>
 
         <section className={`calm-view panel ${activeView !== "networking" ? "calm-view-hidden" : ""}`} id="networking">
@@ -3672,10 +3614,11 @@ export default function Home() {
       )}
 
       {workspaceApplication && (
-        <Modal title={`${workspaceApplication.role} · ${workspaceApplication.company}`} description={language === "he" ? "כל ההקשר, הפעולות וההיסטוריה של ההזדמנות במקום אחד." : "Every action, conversation, and milestone for this opportunity in one place."} onClose={() => setWorkspaceApplicationId(null)} wide>
-          <div className="application-workspace">
+        <Modal title={language === "he" ? "סביבת המועמדות" : "Application workspace"} description={language === "he" ? "הבינו מה קורה, למה זה חשוב ומה כדאי לעשות עכשיו." : "See what is happening, why it matters, and what to do next."} onClose={() => setWorkspaceApplicationId(null)} wide>
+          <div className="application-workspace application-workspace-v2">
             <header><span aria-hidden="true" className={`application-company-logo ${workspaceApplication.logoUrl ? "application-company-logo-image" : ""}`} style={workspaceApplication.logoUrl ? { backgroundImage: `url("${workspaceApplication.logoUrl}")` } : undefined}>{workspaceApplication.logoUrl ? "" : workspaceApplication.company.slice(0, 1)}</span><div><span className={statusStyles[workspaceApplication.status]}>{statusLabel(workspaceApplication.status)}</span><h3>{workspaceApplication.role}</h3><p>{workspaceApplication.company}{workspaceApplication.location ? ` · ${workspaceApplication.location}` : ""}</p></div><i className={trafficLightMeta[workspaceApplication.trafficLight].dot} /></header>
-            <section className="workspace-next-action"><div><span>⚡ {language === "he" ? "הפעולה הבאה" : "Next best action"}</span><strong>{workspaceApplication.nextStep || (language === "he" ? "הגדירו את הצעד הבא" : "Define the next move")}</strong><small>{workspaceApplication.nextStepDue ? formatDate(workspaceApplication.nextStepDue) : (language === "he" ? "ללא תאריך יעד" : "No due date")}</small></div><div><button onClick={() => completeApplicationAction(workspaceApplication)} type="button"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "בוצע" : "Done"}</button><button onClick={() => snoozeApplication(workspaceApplication)} type="button"><Clock3 className="h-4 w-4" />{language === "he" ? "דחייה" : "Snooze"}</button><button onClick={() => openOutreachForApplication(workspaceApplication)} type="button"><MessagesSquare className="h-4 w-4" />{language === "he" ? "הודעה" : "Message"}</button></div></section>
+            <section className="workspace-next-action"><div><span>⚡ {language === "he" ? "מומלץ להתחיל כאן" : "Start here"}</span><strong>{workspaceApplication.nextStep || (language === "he" ? "הגדירו את הצעד הבא" : "Define the next move")}</strong><small>{workspaceApplication.nextStepDue ? formatDate(workspaceApplication.nextStepDue) : (language === "he" ? "ללא תאריך יעד" : "No due date")}</small><p className="workspace-action-reason"><CircleHelp className="h-4 w-4" /><span><b>{language === "he" ? "למה עכשיו?" : "Why this?"}</b>{workspaceActionReason(workspaceApplication, language)}</span></p></div><div><button className="workspace-action-primary" onClick={() => workspaceApplication.nextStep ? completeApplicationAction(workspaceApplication) : openEditApplication(workspaceApplication)} type="button">{workspaceApplication.nextStep ? <CheckCircle2 className="h-4 w-4" /> : <Plus className="h-4 w-4" />}{workspaceApplication.nextStep ? (language === "he" ? "סימון כבוצע" : "Mark done") : (language === "he" ? "הגדרת פעולה" : "Set action")}</button><button onClick={() => snoozeApplication(workspaceApplication)} type="button"><Clock3 className="h-4 w-4" />{language === "he" ? "דחייה" : "Snooze"}</button><button onClick={() => openOutreachForApplication(workspaceApplication)} type="button"><MessagesSquare className="h-4 w-4" />{language === "he" ? "כתיבת הודעה" : "Write message"}</button></div></section>
+            <section className="workspace-snapshot" aria-label={language === "he" ? "תמונת מצב" : "Opportunity snapshot"}><div><span>{language === "he" ? "שלב" : "Stage"}</span><strong>{statusLabel(workspaceApplication.status)}</strong></div><div><span>{language === "he" ? "עדיפות" : "Priority"}</span><strong>{workspaceApplication.priority || (language === "he" ? "לא הוגדרה" : "Not set")}</strong></div><div><span>{language === "he" ? "מקור" : "Source"}</span><strong>{workspaceApplication.source || (language === "he" ? "לא צוין" : "Not provided")}</strong></div><div><span>{language === "he" ? "מודל עבודה" : "Work model"}</span><strong>{workspaceApplication.workModel || (language === "he" ? "לא צוין" : "Not provided")}</strong></div></section>
             <div className="workspace-grid">
               <section className="workspace-timeline-section"><div className="workspace-section-heading"><div><h4>{language === "he" ? "ציר הזמן של המועמדות" : "Application timeline"}</h4><small>{language === "he" ? "שלבי גיוס בלבד — שיחות נטוורקינג נשמרות בנפרד." : "Recruiting stages only—networking conversations stay separate."}</small></div><figure className="workflow-illustration workflow-illustration-tiny"><Image alt={language === "he" ? "איור של מסלול תהליך מחובר" : "Illustration of a connected application journey"} fill sizes="96px" src="/carvio-application-timeline-v1.jpg" /></figure></div>
                 <div className="workspace-timeline">{workspaceApplication.appliedDate && <div><i /><span><strong>{language === "he" ? "המועמדות נוספה" : "Application tracked"}</strong><small>{formatDate(workspaceApplication.appliedDate)}</small></span></div>}{workspaceApplication.processStages.map((stage) => { const dateTime = stage.dateTime || stage.date; const title = `${stage.name}: ${workspaceApplication.role} at ${workspaceApplication.company}`; const details = [stage.note, stage.nextTask, workspaceApplication.jobUrl].filter(Boolean).join("\n"); return <div key={stage.id}><i className={trafficLightMeta[stage.trafficLight].dot} /><span><strong>{stage.name || (language === "he" ? "שלב מותאם" : "Custom stage")}</strong><small>{stage.dateTime ? formatDate(stage.dateTime, true) : stage.date ? formatDate(stage.date) : (language === "he" ? "ללא תאריך" : "No date")}</small>{stage.note && <em>{stage.note}</em>}{stage.nextTask && <em>{language === "he" ? `המשך: ${stage.nextTask}` : `Next: ${stage.nextTask}`}</em>}</span>{dateTime && <span className="timeline-event-actions"><a aria-label={`Google Calendar · ${stage.name}`} href={googleCalendarUrl(title, dateTime, details, workspaceApplication.location)} rel="noreferrer" target="_blank">G</a><a aria-label={`Outlook Calendar · ${stage.name}`} href={outlookCalendarUrl(title, dateTime, details, workspaceApplication.location)} rel="noreferrer" target="_blank">O</a><button aria-label={language === "he" ? `הורדת אירוע ${stage.name}` : `Download ${stage.name} calendar event`} onClick={() => downloadICS(title, dateTime, details, workspaceApplication.location)} type="button"><Download className="h-3.5 w-3.5" /></button></span>}</div>; })}{workspaceApplication.eventDateTime && <div><i /><span><strong>{workspaceApplication.eventType || (language === "he" ? "פגישה" : "Meeting")}</strong><small>{formatDate(workspaceApplication.eventDateTime, true)}</small></span><button aria-label={language === "he" ? "הוספת הפגישה ליומן" : "Add meeting to calendar"} onClick={() => setActiveCalendarMenu(`workspace-${workspaceApplication.id}`)} type="button"><CalendarPlus className="h-4 w-4" /></button></div>}</div>
