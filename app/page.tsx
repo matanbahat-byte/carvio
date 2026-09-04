@@ -121,6 +121,9 @@ type Application = {
   appliedDate: string;
   contactName: string;
   jobUrl: string;
+  jobDescription: string;
+  requirements: string;
+  capturedAt: string;
   salary: string;
   budgetRange: string;
   salaryCurrency: "ILS" | "USD" | "EUR" | "GBP" | "Other";
@@ -352,6 +355,9 @@ const emptyApplication: ApplicationDraft = {
   appliedDate: "",
   contactName: "",
   jobUrl: "",
+  jobDescription: "",
+  requirements: "",
+  capturedAt: "",
   salary: "",
   budgetRange: "",
   salaryCurrency: "ILS",
@@ -742,6 +748,40 @@ function workspaceActionReason(application: Application, language: "en" | "he") 
   return language === "he"
     ? "זהו הצעד הבא ששמרתם להזדמנות הזו—השלמתו תשמור את התהליך בתנועה."
     : "This is the next move saved for this opportunity—completing it keeps the process moving.";
+}
+
+function extractJobRequirements(description: string) {
+  if (!description.trim()) return [];
+  const cleanedLines = description
+    .split(/\n+/)
+    .map((line) => line.replace(/^\s*(?:[-–—•*✓]|\d+[.)])\s*/, "").trim())
+    .filter(Boolean);
+  const sectionHeading = /^(?:requirements?|qualifications?|what you(?:'|’)ll bring|what we(?:'|’)re looking for|skills?|experience|דרישות|כישורים|מה נדרש|ניסיון)\s*:?[\s]*$/i;
+  const anyHeading = /^(?:responsibilities|about (?:the role|you|us)|benefits|what we offer|the opportunity|תחומי אחריות|על התפקיד|אודות|מה אנחנו מציעים)\s*:?[\s]*$/i;
+  const headingIndex = cleanedLines.findIndex((line) => sectionHeading.test(line));
+  let candidates = headingIndex >= 0
+    ? cleanedLines.slice(headingIndex + 1).filter((line, index, items) => !items.slice(0, index + 1).some((item, itemIndex) => itemIndex < index && anyHeading.test(item)))
+    : cleanedLines.filter((line) => /\b(?:years?|experience|required|must|proficien|ability|knowledge|degree|background)\b|ניסיון|חובה|יכולת|ידע|תואר/i.test(line));
+  if (!candidates.length) {
+    candidates = description.split(/[.!?]\s+/).map((line) => line.trim()).filter((line) => line.length >= 28 && line.length <= 220);
+  }
+  return candidates
+    .map((line) => line.replace(/^(?:requirements?|qualifications?|דרישות|כישורים)\s*:\s*/i, "").trim())
+    .filter((line) => line.length >= 8 && line.length <= 260 && !sectionHeading.test(line) && !anyHeading.test(line))
+    .slice(0, 6);
+}
+
+function jobSnapshotHealth(application: Application, language: "en" | "he") {
+  const fields = [application.company, application.role, application.jobUrl, application.jobDescription, application.requirements, application.nextStep];
+  const missingKeys = [
+    language === "he" ? "חברה" : "company",
+    language === "he" ? "תפקיד" : "role",
+    language === "he" ? "קישור מקור" : "source link",
+    language === "he" ? "תיאור" : "description",
+    language === "he" ? "דרישות" : "requirements",
+    language === "he" ? "פעולה הבאה" : "next action",
+  ].filter((_, index) => !fields[index]);
+  return { score: Math.round(((fields.length - missingKeys.length) / fields.length) * 100), missingKeys };
 }
 
 function landingVisibleForUrl(search: string) {
@@ -1370,6 +1410,7 @@ export default function Home() {
   const [applicationViewMode, setApplicationViewMode] = useState<ApplicationViewMode>("table");
   const [showSmartCapture, setShowSmartCapture] = useState(false);
   const [smartCaptureUrl, setSmartCaptureUrl] = useState("");
+  const [smartCaptureText, setSmartCaptureText] = useState("");
   const [smartCaptureError, setSmartCaptureError] = useState("");
   const [workspaceApplicationId, setWorkspaceApplicationId] = useState<string | null>(null);
   const [showCommandBar, setShowCommandBar] = useState(false);
@@ -1575,6 +1616,7 @@ export default function Home() {
     () => applications.find((item) => item.id === workspaceApplicationId) || null,
     [applications, workspaceApplicationId],
   );
+  const workspaceSnapshotHealth = workspaceApplication ? jobSnapshotHealth(workspaceApplication, language) : null;
 
   const actionApplication = useMemo(() => {
     const now = Date.now();
@@ -2168,12 +2210,16 @@ export default function Home() {
       logoUrl: knownBoard ? "" : companyLogoFromWebsite(parsed.origin),
       role: titleCase(roleToken),
       jobUrl: parsed.toString(),
+      jobDescription: smartCaptureText.trim(),
+      requirements: extractJobRequirements(smartCaptureText).join("\n"),
+      capturedAt: new Date().toISOString(),
       source: /linkedin/i.test(host) ? "LinkedIn" : /indeed/i.test(host) ? "Indeed" : "Company careers page",
       nextStep: language === "he" ? "בדיקת התפקיד והתאמת קורות החיים" : "Review the role and tailor the CV",
     });
     setShowApplicationDetails(true);
     setShowSmartCapture(false);
     setSmartCaptureUrl("");
+    setSmartCaptureText("");
     setShowApplicationModal(true);
   }
 
@@ -3591,8 +3637,10 @@ export default function Home() {
           <div className="smart-capture">
             <div className="smart-capture-icon"><WandSparkles className="h-7 w-7" /></div>
             <Field label={language === "he" ? "קישור למשרה" : "Job URL"}><input autoFocus className="form-control" onChange={(event) => { setSmartCaptureUrl(event.target.value); setSmartCaptureError(""); }} onKeyDown={(event) => { if (event.key === "Enter") smartCaptureApplication(); }} placeholder="https://company.com/careers/role…" type="url" value={smartCaptureUrl} /></Field>
+            <Field label={language === "he" ? "תיאור המשרה — מומלץ" : "Job description — recommended"}><textarea className="form-control smart-capture-description" onChange={(event) => setSmartCaptureText(event.target.value)} placeholder={language === "he" ? "הדביקו כאן את תוכן המודעה כדי לשמור Snapshot גם אם הקישור ייעלם." : "Paste the listing here to keep a snapshot even if the source disappears."} value={smartCaptureText} /></Field>
+            {smartCaptureText.trim() && <div className="smart-capture-detection"><CheckCircle2 className="h-4 w-4" /><span><strong>{extractJobRequirements(smartCaptureText).length}</strong>{language === "he" ? " דרישות מרכזיות זוהו מקומית. תוכלו לערוך אותן לפני השמירה." : " key requirements detected locally. You can edit them before saving."}</span></div>}
             {smartCaptureError && <p className="form-error">{smartCaptureError}</p>}
-            <p>{language === "he" ? "לא נמציא פרטים חסרים. לפני השמירה תוכלו להשלים חברה, תפקיד, תאריך ורמזור." : "Carvio never invents missing details. You can review company, role, timing, and signal before saving."}</p>
+            <p>{language === "he" ? "הקישור נשמר כמקור, והטקסט המודבק נשמר מקומית כצילום מצב. לא נמציא פרטים חסרים." : "The link stays as the source, and pasted text is stored locally as a snapshot. Carvio never invents missing details."}</p>
             <button className="primary-button w-full" onClick={smartCaptureApplication} type="button"><Sparkles className="h-4 w-4" />{language === "he" ? "קליטה ופתיחת טופס" : "Capture and review"}</button>
           </div>
         </Modal>
@@ -3620,6 +3668,7 @@ export default function Home() {
             <section className="workspace-next-action"><div><span>⚡ {language === "he" ? "מומלץ להתחיל כאן" : "Start here"}</span><strong>{workspaceApplication.nextStep || (language === "he" ? "הגדירו את הצעד הבא" : "Define the next move")}</strong><small>{workspaceApplication.nextStepDue ? formatDate(workspaceApplication.nextStepDue) : (language === "he" ? "ללא תאריך יעד" : "No due date")}</small><p className="workspace-action-reason"><CircleHelp className="h-4 w-4" /><span><b>{language === "he" ? "למה עכשיו?" : "Why this?"}</b>{workspaceActionReason(workspaceApplication, language)}</span></p></div><div><button className="workspace-action-primary" onClick={() => workspaceApplication.nextStep ? completeApplicationAction(workspaceApplication) : openEditApplication(workspaceApplication)} type="button">{workspaceApplication.nextStep ? <CheckCircle2 className="h-4 w-4" /> : <Plus className="h-4 w-4" />}{workspaceApplication.nextStep ? (language === "he" ? "סימון כבוצע" : "Mark done") : (language === "he" ? "הגדרת פעולה" : "Set action")}</button><button onClick={() => snoozeApplication(workspaceApplication)} type="button"><Clock3 className="h-4 w-4" />{language === "he" ? "דחייה" : "Snooze"}</button><button onClick={() => openOutreachForApplication(workspaceApplication)} type="button"><MessagesSquare className="h-4 w-4" />{language === "he" ? "כתיבת הודעה" : "Write message"}</button></div></section>
             <section className="workspace-snapshot" aria-label={language === "he" ? "תמונת מצב" : "Opportunity snapshot"}><div><span>{language === "he" ? "שלב" : "Stage"}</span><strong>{statusLabel(workspaceApplication.status)}</strong></div><div><span>{language === "he" ? "עדיפות" : "Priority"}</span><strong>{workspaceApplication.priority || (language === "he" ? "לא הוגדרה" : "Not set")}</strong></div><div><span>{language === "he" ? "מקור" : "Source"}</span><strong>{workspaceApplication.source || (language === "he" ? "לא צוין" : "Not provided")}</strong></div><div><span>{language === "he" ? "מודל עבודה" : "Work model"}</span><strong>{workspaceApplication.workModel || (language === "he" ? "לא צוין" : "Not provided")}</strong></div></section>
             <div className="workspace-grid">
+              <section className="workspace-role-snapshot"><div className="workspace-section-heading"><div><h4><FileText className="h-4 w-4" />{language === "he" ? "צילום מצב של המשרה" : "Job snapshot"}</h4><small>{workspaceApplication.capturedAt ? (language === "he" ? `נשמר מקומית ב־${formatDate(workspaceApplication.capturedAt)}` : `Saved locally on ${formatDate(workspaceApplication.capturedAt)}`) : (language === "he" ? "מקור אמת קבוע לתיאור ולדרישות." : "A durable source of truth for the role and requirements.")}</small></div><div className="workspace-snapshot-health"><strong>{workspaceSnapshotHealth?.score}%</strong><span>{language === "he" ? "שלמות" : "complete"}</span>{workspaceApplication.jobUrl && <a aria-label={language === "he" ? "פתיחת מודעת המקור" : "Open source listing"} href={workspaceApplication.jobUrl} rel="noreferrer" target="_blank"><ArrowUpRight className="h-4 w-4" /></a>}</div></div><div aria-hidden="true" className="workspace-snapshot-progress"><i style={{ width: `${workspaceSnapshotHealth?.score || 0}%` }} /></div>{workspaceApplication.jobDescription ? <p className="workspace-job-description">{workspaceApplication.jobDescription}</p> : <p className="workspace-empty">{language === "he" ? "עדיין לא נשמר תיאור למשרה הזו." : "No job description has been saved yet."}</p>}{workspaceApplication.requirements && <ul className="workspace-requirements">{workspaceApplication.requirements.split(/\n|•/).map((item) => item.trim()).filter(Boolean).slice(0, 6).map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul>}{workspaceSnapshotHealth && workspaceSnapshotHealth.missingKeys.length > 0 && <p className="workspace-snapshot-missing"><CircleAlert className="h-4 w-4" />{language === "he" ? `כדאי להשלים: ${workspaceSnapshotHealth.missingKeys.join(", ")}` : `Worth adding: ${workspaceSnapshotHealth.missingKeys.join(", ")}`}</p>}<button className="text-button" onClick={() => { setWorkspaceApplicationId(null); openEditApplication(workspaceApplication); }} type="button"><Pencil className="h-4 w-4" />{workspaceApplication.jobDescription ? (language === "he" ? "עריכת צילום המצב" : "Edit snapshot") : (language === "he" ? "הוספת תיאור ודרישות" : "Add description and requirements")}</button></section>
               <section className="workspace-timeline-section"><div className="workspace-section-heading"><div><h4>{language === "he" ? "ציר הזמן של המועמדות" : "Application timeline"}</h4><small>{language === "he" ? "שלבי גיוס בלבד — שיחות נטוורקינג נשמרות בנפרד." : "Recruiting stages only—networking conversations stay separate."}</small></div><figure className="workflow-illustration workflow-illustration-tiny"><Image alt={language === "he" ? "איור של מסלול תהליך מחובר" : "Illustration of a connected application journey"} fill sizes="96px" src="/carvio-application-timeline-v1.jpg" /></figure></div>
                 <div className="workspace-timeline">{workspaceApplication.appliedDate && <div><i /><span><strong>{language === "he" ? "המועמדות נוספה" : "Application tracked"}</strong><small>{formatDate(workspaceApplication.appliedDate)}</small></span></div>}{workspaceApplication.processStages.map((stage) => { const dateTime = stage.dateTime || stage.date; const title = `${stage.name}: ${workspaceApplication.role} at ${workspaceApplication.company}`; const details = [stage.note, stage.nextTask, workspaceApplication.jobUrl].filter(Boolean).join("\n"); return <div key={stage.id}><i className={trafficLightMeta[stage.trafficLight].dot} /><span><strong>{stage.name || (language === "he" ? "שלב מותאם" : "Custom stage")}</strong><small>{stage.dateTime ? formatDate(stage.dateTime, true) : stage.date ? formatDate(stage.date) : (language === "he" ? "ללא תאריך" : "No date")}</small>{stage.note && <em>{stage.note}</em>}{stage.nextTask && <em>{language === "he" ? `המשך: ${stage.nextTask}` : `Next: ${stage.nextTask}`}</em>}</span>{dateTime && <span className="timeline-event-actions"><a aria-label={`Google Calendar · ${stage.name}`} href={googleCalendarUrl(title, dateTime, details, workspaceApplication.location)} rel="noreferrer" target="_blank">G</a><a aria-label={`Outlook Calendar · ${stage.name}`} href={outlookCalendarUrl(title, dateTime, details, workspaceApplication.location)} rel="noreferrer" target="_blank">O</a><button aria-label={language === "he" ? `הורדת אירוע ${stage.name}` : `Download ${stage.name} calendar event`} onClick={() => downloadICS(title, dateTime, details, workspaceApplication.location)} type="button"><Download className="h-3.5 w-3.5" /></button></span>}</div>; })}{workspaceApplication.eventDateTime && <div><i /><span><strong>{workspaceApplication.eventType || (language === "he" ? "פגישה" : "Meeting")}</strong><small>{formatDate(workspaceApplication.eventDateTime, true)}</small></span><button aria-label={language === "he" ? "הוספת הפגישה ליומן" : "Add meeting to calendar"} onClick={() => setActiveCalendarMenu(`workspace-${workspaceApplication.id}`)} type="button"><CalendarPlus className="h-4 w-4" /></button></div>}</div>
                 <details className="timeline-add"><summary><Plus className="h-4 w-4" />{language === "he" ? "הוספת שלב או אירוע" : "Add stage or event"}</summary><div><input aria-label={language === "he" ? "שם השלב" : "Stage name"} className="form-control" list="process-stage-options" onChange={(event) => setTimelineDraft((current) => ({ ...current, name: event.target.value }))} value={timelineDraft.name} /><input aria-label={language === "he" ? "תאריך ושעת השלב" : "Stage date and time"} className="form-control" onChange={(event) => setTimelineDraft((current) => ({ ...current, dateTime: event.target.value }))} type="datetime-local" value={timelineDraft.dateTime} /><select aria-label={language === "he" ? "מצב השלב" : "Stage signal"} className="form-control" onChange={(event) => setTimelineDraft((current) => ({ ...current, trafficLight: event.target.value as TrafficLight }))} value={timelineDraft.trafficLight}><option value="none">⚪ {language === "he" ? "ללא סימון" : "No signal"}</option><option value="green">🟢 {language === "he" ? "מתקדם" : "Progressing"}</option><option value="yellow">🟡 {language === "he" ? "ממתין" : "Waiting"}</option><option value="red">🔴 {language === "he" ? "חסום או נסגר" : "Blocked or closed"}</option></select><input aria-label={language === "he" ? "הערה קצרה" : "Short note"} className="form-control" onChange={(event) => setTimelineDraft((current) => ({ ...current, note: event.target.value }))} placeholder={language === "he" ? "הערה קצרה" : "Short note"} value={timelineDraft.note} /><input aria-label={language === "he" ? "פעולת המשך" : "Next task"} className="form-control" onChange={(event) => setTimelineDraft((current) => ({ ...current, nextTask: event.target.value }))} placeholder={language === "he" ? "פעולת המשך" : "Next task or follow-up"} value={timelineDraft.nextTask} /><button className="primary-button" onClick={() => addTimelineEvent(workspaceApplication)} type="button"><Plus className="h-4 w-4" />{language === "he" ? "הוספה לציר הזמן" : "Add to timeline"}</button></div></details>
@@ -3685,6 +3734,7 @@ export default function Home() {
             </div>
             <div className="grid gap-4 sm:grid-cols-2"><Field label={language === "he" ? "עיר / מיקום" : "City / location"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, location: e.target.value })} value={applicationDraft.location} /></Field><Field label={language === "he" ? "מדינה" : "Country"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, country: e.target.value })} value={applicationDraft.country} /></Field></div>
             <Field label={language === "he" ? "קישור למשרה" : "Job link"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, jobUrl: e.target.value })} placeholder="https://…" type="url" value={applicationDraft.jobUrl} /></Field>
+            <section className="application-snapshot-fields"><div><p><FileText className="h-4 w-4" />{language === "he" ? "צילום מצב של המשרה" : "Job snapshot"}</p><small>{language === "he" ? "שמרו את התוכן החשוב גם אם המודעה המקורית תוסר." : "Keep the important context even if the original listing is removed."}</small></div><Field label={language === "he" ? "תיאור המשרה" : "Job description"}><textarea className="form-control min-h-32 resize-y" onChange={(e) => setApplicationDraft({ ...applicationDraft, jobDescription: e.target.value })} placeholder={language === "he" ? "תחומי אחריות, הקשר על הצוות ופרטי התפקיד" : "Responsibilities, team context, and role details"} value={applicationDraft.jobDescription} /></Field><Field label={language === "he" ? "דרישות מרכזיות" : "Key requirements"}><textarea className="form-control min-h-24 resize-y" onChange={(e) => setApplicationDraft({ ...applicationDraft, requirements: e.target.value })} placeholder={language === "he" ? "דרישה אחת בכל שורה" : "One requirement per line"} value={applicationDraft.requirements} /></Field></section>
             <div className="grid gap-4 sm:grid-cols-2"><Field label={language === "he" ? "מקור" : "Source"}><input className="form-control" list="application-source-options" onChange={(e) => setApplicationDraft({ ...applicationDraft, source: e.target.value })} placeholder={language === "he" ? "בחרו או כתבו מקור" : "Choose or type a source"} value={applicationDraft.source} /></Field><Field label={language === "he" ? "תאריך הגשה" : "Applied date"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, appliedDate: e.target.value })} type="date" value={applicationDraft.appliedDate} /></Field></div>
             <div className="grid gap-4 sm:grid-cols-2"><Field label={language === "he" ? "רמת התאמה" : "Fit level"}><select className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, priority: e.target.value as ApplicationDraft["priority"] })} value={applicationDraft.priority}>{priorities.map((priority) => <option key={priority} value={priority}>{language === "he" ? ({ Low: "נמוכה", Medium: "בינונית", High: "גבוהה" } as Record<string, string>)[priority] : priority}</option>)}</select></Field><Field label={language === "he" ? "מודל עבודה" : "Work model"}><select className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, workModel: e.target.value as ApplicationDraft["workModel"] })} value={applicationDraft.workModel}>{workModels.map((model) => <option key={model || "unset"} value={model}>{model || (language === "he" ? "לא צוין" : "Not specified")}</option>)}</select></Field></div>
             <Field label={language === "he" ? "איש או אשת קשר בחברה" : "Company contact"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, contactName: e.target.value })} placeholder={language === "he" ? "מגייסת, מנהל מגייס או רפרל" : "Recruiter, hiring manager, or referral"} value={applicationDraft.contactName} /></Field>
