@@ -8902,6 +8902,176 @@ html[data-carvio-theme="light"] {
   color: var(--cv-mustard);
 }
 
+.requirement-evidence-editor {
+  display: grid;
+  gap: 0.65rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--cv-border);
+}
+
+.requirement-evidence-editor > div:first-child > p {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--cv-text);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.requirement-evidence-editor > div:first-child > small {
+  color: var(--cv-muted-strong);
+  font-size: 0.68rem;
+  line-height: 1.4;
+}
+
+.requirement-evidence-editor label {
+  display: grid;
+  grid-template-columns: minmax(10rem, 0.8fr) minmax(0, 1.2fr);
+  align-items: start;
+  gap: 0.7rem;
+}
+
+.requirement-evidence-editor label > span {
+  padding-top: 0.55rem;
+  color: var(--cv-body);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.requirement-evidence-editor textarea {
+  min-height: 4.1rem;
+  resize: vertical;
+}
+
+.workspace-evidence-map {
+  grid-column: 1 / -1;
+  min-height: auto !important;
+}
+
+.workspace-evidence-map h4 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.workspace-evidence-score {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  min-width: 3rem;
+  height: 2rem;
+  border-radius: 999px;
+  color: var(--cv-primary-ink);
+  background: color-mix(in srgb, var(--cv-primary) 12%, var(--cv-surface));
+  font-size: 0.72rem;
+}
+
+.workspace-evidence-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.7rem;
+}
+
+.workspace-evidence-list article {
+  display: grid;
+  grid-template-columns: 1.35rem minmax(0, 1fr);
+  gap: 0.42rem;
+  padding: 0.62rem;
+  border: 1px solid var(--cv-border);
+  border-radius: 0.7rem;
+  background: var(--cv-surface);
+}
+
+.workspace-evidence-list article > span {
+  color: var(--cv-mustard);
+}
+
+.workspace-evidence-list article.has-evidence > span {
+  color: var(--cv-primary);
+}
+
+.workspace-evidence-list article strong {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--cv-text);
+  font-size: 0.7rem;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.workspace-evidence-list article p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin-top: 0.2rem;
+  color: var(--cv-muted-strong);
+  font-size: 0.66rem;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.interview-prep-panel {
+  scroll-margin-top: 1rem;
+}
+
+.interview-prep-workspace {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 1.1rem;
+  padding: 1rem;
+  border: 1px solid color-mix(in srgb, var(--cv-mustard) 26%, var(--cv-border));
+  border-radius: 1rem;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--cv-mustard) 6%, var(--cv-surface)), var(--cv-surface));
+}
+
+.interview-prep-workspace > div:first-child h3 {
+  color: var(--cv-text);
+  font-size: 0.92rem;
+}
+
+.interview-prep-workspace > div:first-child p {
+  margin-top: 0.18rem;
+  color: var(--cv-muted-strong);
+  font-size: 0.7rem;
+}
+
+.interview-prep-workspace > textarea {
+  min-height: 32rem;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.65;
+}
+
+.interview-prep-empty {
+  display: grid;
+  place-items: center;
+  min-height: 12rem;
+  padding: 1rem;
+  border: 1px dashed var(--cv-border);
+  border-radius: 0.8rem;
+  color: var(--cv-muted-strong);
+  text-align: center;
+}
+
+.interview-prep-empty svg {
+  color: var(--cv-mustard);
+}
+
+.interview-prep-empty strong {
+  color: var(--cv-text);
+}
+
+@media (max-width: 767px) {
+  .mobile-record-actions .mobile-workspace-trigger {
+    border-color: color-mix(in srgb, var(--cv-primary) 42%, var(--cv-border));
+    color: var(--cv-primary-ink);
+    background: color-mix(in srgb, var(--cv-primary) 11%, var(--cv-surface));
+  }
+}
+
 @media (max-width: 1100px) {
   .applications-v2 .application-table th:nth-child(1) { width: 26%; }
   .applications-v2 .application-table th:nth-child(2) { width: 17%; }
@@ -8940,6 +9110,15 @@ html[data-carvio-theme="light"] {
 
   .workspace-requirements {
     grid-template-columns: 1fr;
+  }
+
+  .requirement-evidence-editor label,
+  .workspace-evidence-list {
+    grid-template-columns: 1fr;
+  }
+
+  .requirement-evidence-editor label > span {
+    padding-top: 0;
   }
 
   .applications-v2-page-header {
