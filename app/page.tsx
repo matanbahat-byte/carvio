@@ -1274,12 +1274,14 @@ function Modal({
   title,
   description,
   onClose,
+  closeLabel = "Close modal",
   wide = false,
   children,
 }: {
   title: string;
   description?: string;
   onClose: () => void;
+  closeLabel?: string;
   wide?: boolean;
   children: ReactNode;
 }) {
@@ -1345,7 +1347,7 @@ function Modal({
             <h2 className="text-xl font-semibold" id={titleId}>{title}</h2>
             {description && <p className="mt-1 text-sm text-slate-400" id={descriptionId}>{description}</p>}
           </div>
-          <button aria-label="Close modal" className="icon-button" onClick={onClose} type="button">
+          <button aria-label={closeLabel} className="icon-button" onClick={onClose} type="button">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -3669,7 +3671,7 @@ export default function Home() {
       <button aria-label={language === "he" ? "חזרה לראש העמוד ולהגדרות" : "Back to top and settings"} className={`back-to-top ${showBackToTop ? "back-to-top-visible" : ""}`} onClick={() => document.getElementById("dashboard")?.scrollIntoView({ behavior: "smooth", block: "start" })} tabIndex={showBackToTop ? 0 : -1} type="button"><ArrowUp className="h-5 w-5" /><span>{language === "he" ? "למעלה" : "Top"}</span></button>
 
       {showTrustCenter && (
-        <Modal title="Your data & privacy 🔒" description="Carvio's pilot stores your information only in this browser. You stay in control." onClose={() => setShowTrustCenter(false)}>
+        <Modal title="Your data & privacy 🔒" description="Carvio's pilot stores your information only in this browser. You stay in control." closeLabel={language === "he" ? "סגירת החלון" : "Close modal"} onClose={() => setShowTrustCenter(false)}>
           <div className="space-y-4">
             <div className="trust-status"><ShieldCheck className="h-7 w-7 shrink-0 text-emerald-300" /><div><p className="font-semibold">All changes are saved on this device</p><p className="mt-1 text-sm leading-6 text-slate-400">The founders cannot see your applications, contacts, salary expectations or CV content. This pilot does not synchronize between devices.</p></div></div>
             <div className="grid gap-3 sm:grid-cols-2"><button className="secondary-button min-h-14" onClick={exportCarvioData} type="button"><Download className="h-5 w-5" /> Download backup</button><label className="secondary-button min-h-14"><UploadCloud className="h-5 w-5" /> Restore backup<input accept="application/json,.json" className="sr-only" onChange={(event) => { void importCarvioData(event); }} type="file" /></label></div>
@@ -3680,7 +3682,7 @@ export default function Home() {
       )}
 
       {showQuickAdd && (
-        <Modal title={language === "he" ? "מה תרצו להוסיף? ✨" : "What would you like to add? ✨"} description={language === "he" ? "בחרו פעולה מהירה אחת. תמיד אפשר להשלים פרטים בהמשך." : "Choose one quick action. You can add more details later."} onClose={() => setShowQuickAdd(false)}>
+        <Modal title={language === "he" ? "מה תרצו להוסיף? ✨" : "What would you like to add? ✨"} description={language === "he" ? "בחרו פעולה מהירה אחת. תמיד אפשר להשלים פרטים בהמשך." : "Choose one quick action. You can add more details later."} closeLabel={language === "he" ? "סגירת החלון" : "Close modal"} onClose={() => setShowQuickAdd(false)}>
           <div className="grid gap-3 sm:grid-cols-2">
             <button className="quick-add-card" onClick={() => { setShowQuickAdd(false); openNewApplication(); }} type="button"><span>💼</span><strong>{language === "he" ? "מועמדות" : "Application"}</strong><small>{language === "he" ? "תיעוד הזדמנות חדשה" : "Track a new opportunity"}</small></button>
             <button className="quick-add-card" onClick={() => { setShowQuickAdd(false); openNewContact(); }} type="button"><span>🤝</span><strong>{language === "he" ? "איש קשר" : "Contact"}</strong><small>{language === "he" ? "שמירת קשר מקצועי חשוב" : "Save a warm connection"}</small></button>
@@ -3691,7 +3693,7 @@ export default function Home() {
       )}
 
       {showSmartCapture && (
-        <Modal title={language === "he" ? "לכידה חכמה של משרה ✨" : "Smart job capture ✨"} description={language === "he" ? "הדביקו קישור למשרה. Carvio יחלץ בבטחה את מה שניתן ויפתח טופס לבדיקה." : "Paste a job link. Carvio will safely extract what it can and open a review form."} onClose={() => setShowSmartCapture(false)}>
+        <Modal title={language === "he" ? "לכידה חכמה של משרה ✨" : "Smart job capture ✨"} description={language === "he" ? "הדביקו קישור למשרה. Carvio יחלץ בבטחה את מה שניתן ויפתח טופס לבדיקה." : "Paste a job link. Carvio will safely extract what it can and open a review form."} closeLabel={language === "he" ? "סגירת החלון" : "Close modal"} onClose={() => setShowSmartCapture(false)}>
           <div className="smart-capture">
             <div className="smart-capture-icon"><WandSparkles className="h-7 w-7" /></div>
             <Field label={language === "he" ? "קישור למשרה" : "Job URL"}><input autoFocus className="form-control" onChange={(event) => { setSmartCaptureUrl(event.target.value); setSmartCaptureError(""); }} onKeyDown={(event) => { if (event.key === "Enter") smartCaptureApplication(); }} placeholder="https://company.com/careers/role…" type="url" value={smartCaptureUrl} /></Field>
@@ -3705,7 +3707,7 @@ export default function Home() {
       )}
 
       {quickUpdateId && quickUpdateDraft && (
-        <Modal title={language === "he" ? "עדכון מהיר" : "Quick update"} description={language === "he" ? "עדכנו רק את מה שהשתנה. כל שינוי נשמר מיד ומעדכן את לוח הבקרה והתובנות." : "Change only what moved. Every update saves immediately and refreshes the dashboard and Insights."} onClose={() => { setQuickUpdateId(null); setQuickUpdateDraft(null); }}>
+        <Modal title={language === "he" ? "עדכון מהיר" : "Quick update"} description={language === "he" ? "עדכנו רק את מה שהשתנה. כל שינוי נשמר מיד ומעדכן את לוח הבקרה והתובנות." : "Change only what moved. Every update saves immediately and refreshes the dashboard and Insights."} closeLabel={language === "he" ? "סגירת החלון" : "Close modal"} onClose={() => { setQuickUpdateId(null); setQuickUpdateDraft(null); }}>
           <div className="quick-update-panel">
             <figure className="workflow-illustration workflow-illustration-compact"><Image alt={language === "he" ? "איור של כרטיס תהליך ורמזור ברור" : "Illustration of a process card and clear traffic light"} fill sizes="150px" src="/carvio-quick-update-v1.jpg" /></figure>
             <div className="quick-update-fields">
@@ -3720,7 +3722,7 @@ export default function Home() {
       )}
 
       {workspaceApplication && (
-        <Modal title={language === "he" ? "סביבת המועמדות" : "Application workspace"} description={language === "he" ? "הבינו מה קורה, למה זה חשוב ומה כדאי לעשות עכשיו." : "See what is happening, why it matters, and what to do next."} onClose={() => setWorkspaceApplicationId(null)} wide>
+        <Modal title={language === "he" ? "סביבת המועמדות" : "Application workspace"} description={language === "he" ? "הבינו מה קורה, למה זה חשוב ומה כדאי לעשות עכשיו." : "See what is happening, why it matters, and what to do next."} closeLabel={language === "he" ? "סגירת החלון" : "Close modal"} onClose={() => setWorkspaceApplicationId(null)} wide>
           <div className="application-workspace application-workspace-v2">
             <header><span aria-hidden="true" className={`application-company-logo ${workspaceApplication.logoUrl ? "application-company-logo-image" : ""}`} style={workspaceApplication.logoUrl ? { backgroundImage: `url("${workspaceApplication.logoUrl}")` } : undefined}>{workspaceApplication.logoUrl ? "" : workspaceApplication.company.slice(0, 1)}</span><div><span className={statusStyles[workspaceApplication.status]}>{statusLabel(workspaceApplication.status)}</span><h3>{workspaceApplication.role}</h3><p>{workspaceApplication.company}{workspaceApplication.location ? ` · ${workspaceApplication.location}` : ""}</p></div><i className={trafficLightMeta[workspaceApplication.trafficLight].dot} /></header>
             <section className="workspace-next-action"><div><span>⚡ {language === "he" ? "מומלץ להתחיל כאן" : "Start here"}</span><strong>{workspaceApplication.nextStep || (language === "he" ? "הגדירו את הצעד הבא" : "Define the next move")}</strong><small>{workspaceApplication.nextStepDue ? formatDate(workspaceApplication.nextStepDue) : (language === "he" ? "ללא תאריך יעד" : "No due date")}</small><p className="workspace-action-reason"><CircleHelp className="h-4 w-4" /><span><b>{language === "he" ? "למה עכשיו?" : "Why this?"}</b>{workspaceActionReason(workspaceApplication, language)}</span></p></div><div><button className="workspace-action-primary" onClick={() => workspaceApplication.nextStep ? completeApplicationAction(workspaceApplication) : openEditApplication(workspaceApplication)} type="button">{workspaceApplication.nextStep ? <CheckCircle2 className="h-4 w-4" /> : <Plus className="h-4 w-4" />}{workspaceApplication.nextStep ? (language === "he" ? "סימון כבוצע" : "Mark done") : (language === "he" ? "הגדרת פעולה" : "Set action")}</button><button onClick={() => snoozeApplication(workspaceApplication)} type="button"><Clock3 className="h-4 w-4" />{language === "he" ? "דחייה" : "Snooze"}</button><button onClick={() => openOutreachForApplication(workspaceApplication)} type="button"><MessagesSquare className="h-4 w-4" />{language === "he" ? "כתיבת הודעה" : "Write message"}</button></div></section>
@@ -3743,7 +3745,7 @@ export default function Home() {
       )}
 
       {showCommandBar && (
-        <Modal title={language === "he" ? "מה תרצו לעשות?" : "What do you want to do?"} description={language === "he" ? "חפשו מועמדות או איש קשר, או עברו ישירות לפעולה." : "Find an application or contact, or jump directly to an action."} onClose={() => { setShowCommandBar(false); setCommandQuery(""); }}>
+        <Modal title={language === "he" ? "מה תרצו לעשות?" : "What do you want to do?"} description={language === "he" ? "חפשו מועמדות או איש קשר, או עברו ישירות לפעולה." : "Find an application or contact, or jump directly to an action."} closeLabel={language === "he" ? "סגירת החלון" : "Close modal"} onClose={() => { setShowCommandBar(false); setCommandQuery(""); }}>
           <div className="command-palette">
             <label><Search className="h-5 w-5" /><input autoFocus onChange={(event) => setCommandQuery(event.target.value)} placeholder={language === "he" ? "חיפוש או פקודה…" : "Search or type a command…"} value={commandQuery} /><kbd>ESC</kbd></label>
             <div className="command-results">
@@ -3762,7 +3764,7 @@ export default function Home() {
       )}
 
       {showApplicationModal && (
-        <Modal title={language === "he" ? (editingApplicationId ? "עריכת מועמדות" : "הוספת מועמדות") : (editingApplicationId ? "Edit application" : "Add application")} description={language === "he" ? "תעדו את ההזדמנות, מצב התהליך, לוחות הזמנים והצעד הבא." : "Capture the opportunity, its signal, timing, and your next move."} onClose={() => setShowApplicationModal(false)}>
+        <Modal title={language === "he" ? (editingApplicationId ? "עריכת מועמדות" : "הוספת מועמדות") : (editingApplicationId ? "Edit application" : "Add application")} description={language === "he" ? "תעדו את ההזדמנות, מצב התהליך, לוחות הזמנים והצעד הבא." : "Capture the opportunity, its signal, timing, and your next move."} closeLabel={language === "he" ? "סגירת החלון" : "Close modal"} onClose={() => setShowApplicationModal(false)}>
           <form className="application-form-compact space-y-4" onSubmit={saveApplication}>
             {!editingApplicationId && <div className="workflow-help"><figure className="workflow-illustration"><Image alt={language === "he" ? "איור של הוספת מועמדות במהירות למסלול מסודר" : "Illustration of quickly adding an application to an organized path"} fill sizes="180px" src="/carvio-fast-capture-v1.jpg" /></figure><div><strong>{language === "he" ? "מתחילים רק במה שחשוב עכשיו" : "Start with only what matters now"}</strong><small>{language === "he" ? "חברה, תפקיד, שלב, מצב והפעולה הבאה. כל השאר מחכה בפרטים הנוספים." : "Company, role, stage, signal, and next action. Everything else stays in More details."}</small></div></div>}
             <datalist id="application-source-options">{["LinkedIn", "Company careers page", "Referral", "Recruiter", "Indeed", "Google Jobs", "Networking", "Job board", "Other"].map((option) => <option key={option} value={option} />)}</datalist>
@@ -3811,7 +3813,7 @@ export default function Home() {
       )}
 
       {showContactModal && (
-        <Modal title={language === "he" ? (editingContactId ? "עריכת איש קשר" : "הוספת איש קשר") : (editingContactId ? "Edit contact" : "Add contact")} description={language === "he" ? "בנו היסטוריית קשר שימושית ואל תפספסו את נקודת המגע הבאה." : "Build a useful relationship history and never miss the next touchpoint."} onClose={() => setShowContactModal(false)}>
+        <Modal title={language === "he" ? (editingContactId ? "עריכת איש קשר" : "הוספת איש קשר") : (editingContactId ? "Edit contact" : "Add contact")} description={language === "he" ? "בנו היסטוריית קשר שימושית ואל תפספסו את נקודת המגע הבאה." : "Build a useful relationship history and never miss the next touchpoint."} closeLabel={language === "he" ? "סגירת החלון" : "Close modal"} onClose={() => setShowContactModal(false)}>
           <form className="space-y-5" onSubmit={saveContact}>
             <datalist id="relationship-options">{["Former colleague", "Current colleague", "Recruiter", "Hiring manager", "Referral", "Alumni connection", "Professional community", "Friend", "New connection"].map((option) => <option key={option} value={option} />)}</datalist>
             <datalist id="network-action-options">{["Send a thank-you", "Ask for a short call", "Share an update", "Follow up on referral", "Send relevant article", "Congratulate on milestone", "Schedule coffee chat", "Check in"].map((option) => <option key={option} value={option} />)}</datalist>
@@ -3836,7 +3838,7 @@ export default function Home() {
       )}
 
       {recoveryApplication && (
-        <Modal title="Carvio Reset 🌿" description={`${recoveryApplication.role} at ${recoveryApplication.company} has ended. You do not have to turn this into a lesson immediately.`} onClose={() => setRecoveryApplication(null)}>
+        <Modal title="Carvio Reset 🌿" description={`${recoveryApplication.role} at ${recoveryApplication.company} has ended. You do not have to turn this into a lesson immediately.`} closeLabel={language === "he" ? "סגירת החלון" : "Close modal"} onClose={() => setRecoveryApplication(null)}>
           <form className="space-y-5" onSubmit={submitRecovery}>
             <div className="reset-message"><span className="text-3xl">🫶</span><div><p className="font-semibold text-emerald-100">This one process does not measure your professional value.</p><p className="mt-1 text-sm leading-6 text-slate-300">You can pause here, reflect only if it helps, or choose one small action. There is no correct response.</p></div></div>
             <fieldset><legend className="text-sm font-semibold text-slate-200">What would feel most useful right now?</legend><div className="mt-3 grid gap-2 sm:grid-cols-2">{([
@@ -3859,7 +3861,7 @@ export default function Home() {
       )}
 
       {showFeedbackModal && (
-        <Modal title="Carvio Pilot Feedback 🧪" description="Eight focused questions. Be candid—the founders are using this feedback to decide what to improve next." onClose={() => setShowFeedbackModal(false)} wide>
+        <Modal title="Carvio Pilot Feedback 🧪" description="Eight focused questions. Be candid—the founders are using this feedback to decide what to improve next." closeLabel={language === "he" ? "סגירת החלון" : "Close modal"} onClose={() => setShowFeedbackModal(false)} wide>
           <form className="space-y-4" onSubmit={submitFeedback}>
             <div className="rounded-2xl border border-amber-400/15 bg-amber-400/5 p-4 text-sm leading-6 text-slate-300">Rate each item from <strong className="text-white">1 — needs major improvement</strong> to <strong className="text-white">5 — excellent</strong>. Every written comment is optional but extremely useful.</div>
             <div className="grid gap-4 lg:grid-cols-2">{pilotQuestions.map((question, index) => <fieldset className="feedback-question" key={question}><legend className="text-sm font-semibold leading-6 text-slate-100"><span className="mr-2 text-amber-300">{index + 1}.</span>{question}</legend><div className="mt-3 grid grid-cols-5 gap-1.5">{[1, 2, 3, 4, 5].map((score) => <label className="feedback-score" key={score}><input className="peer sr-only" defaultChecked={score === 4} name={`score-${index}`} required type="radio" value={score} /><span className="feedback-score-face">{score === 1 ? "😞" : score === 2 ? "😕" : score === 3 ? "😐" : score === 4 ? "🙂" : "🤩"}</span><span className="text-xs">{score}</span></label>)}</div><textarea aria-label={`Additional comment for: ${question}`} className="form-control mt-3 min-h-20 resize-y" name={`comment-${index}`} placeholder="Optional: tell us why you chose this score…" /></fieldset>)}</div>
