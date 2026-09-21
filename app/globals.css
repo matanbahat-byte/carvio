@@ -9064,6 +9064,84 @@ html[data-carvio-theme="light"] {
   color: var(--cv-text);
 }
 
+.offer-decision-panel {
+  scroll-margin-top: 1rem;
+}
+
+.offer-decision-visual {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 0.45rem;
+  min-height: 6rem;
+  padding: 1rem;
+  border: 1px solid color-mix(in srgb, var(--cv-primary) 24%, var(--cv-border));
+  border-radius: 1rem;
+  color: var(--cv-primary-ink);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--cv-primary) 13%, var(--cv-surface)), color-mix(in srgb, var(--cv-mustard) 8%, var(--cv-surface)));
+  text-align: center;
+}
+
+.offer-decision-visual span {
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.offer-decision-workspace {
+  border-color: color-mix(in srgb, var(--cv-primary) 30%, var(--cv-border));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--cv-primary) 7%, var(--cv-surface)), var(--cv-surface));
+}
+
+.workspace-offer-action {
+  border-color: color-mix(in srgb, var(--cv-primary) 38%, var(--cv-border)) !important;
+  color: var(--cv-primary-ink) !important;
+  background: color-mix(in srgb, var(--cv-primary) 10%, var(--cv-surface)) !important;
+}
+
+.offer-terms-editor,
+.workspace-offer-readiness {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid color-mix(in srgb, var(--cv-primary) 28%, var(--cv-border));
+  border-radius: 1rem;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--cv-primary) 6%, var(--cv-surface)), var(--cv-surface));
+}
+
+.offer-terms-editor > div:first-child > p {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--cv-text);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.offer-terms-editor > div:first-child > small {
+  color: var(--cv-muted-strong);
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+
+.workspace-offer-readiness {
+  grid-column: 1 / -1;
+}
+
+.offer-readiness-state {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--cv-muted-strong);
+  font-size: 0.72rem;
+}
+
+.offer-readiness-state strong {
+  color: var(--cv-primary-ink);
+  font-size: 0.82rem;
+}
+
 @media (max-width: 767px) {
   .mobile-record-actions .mobile-workspace-trigger {
     border-color: color-mix(in srgb, var(--cv-primary) 42%, var(--cv-border));
