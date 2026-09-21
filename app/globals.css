@@ -9142,7 +9142,174 @@ html[data-carvio-theme="light"] {
   font-size: 0.82rem;
 }
 
+.negotiation-editor,
+.decision-editor,
+.workspace-negotiation {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid color-mix(in srgb, var(--cv-mustard) 34%, var(--cv-border));
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--cv-mustard) 5%, var(--cv-surface));
+}
+
+.negotiation-editor > div:first-child p,
+.decision-editor > div:first-child p {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--cv-text);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.negotiation-editor > div:first-child small,
+.decision-editor > div:first-child small {
+  color: var(--cv-muted-strong);
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+
+.negotiation-editor-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.negotiation-editor-list article {
+  display: grid;
+  grid-template-columns: minmax(7rem, 0.8fr) repeat(4, minmax(8rem, 1fr));
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.negotiation-editor-list article > strong {
+  color: var(--cv-text);
+  font-size: 0.74rem;
+}
+
+.workspace-negotiation {
+  grid-column: 1 / -1;
+}
+
+.decision-pill,
+.negotiation-status {
+  width: fit-content;
+  padding: 0.28rem 0.55rem;
+  border: 1px solid var(--cv-border);
+  border-radius: 999px;
+  color: var(--cv-muted-strong);
+  background: var(--cv-surface);
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+
+.decision-accepted,
+.status-agreed {
+  border-color: color-mix(in srgb, #10b981 38%, var(--cv-border));
+  color: #047857;
+  background: color-mix(in srgb, #10b981 10%, var(--cv-surface));
+}
+
+.decision-declined,
+.status-declined {
+  border-color: color-mix(in srgb, #fb7185 38%, var(--cv-border));
+  color: #be123c;
+  background: color-mix(in srgb, #fb7185 9%, var(--cv-surface));
+}
+
+.decision-more-time-requested,
+.status-in-discussion {
+  border-color: color-mix(in srgb, var(--cv-mustard) 52%, var(--cv-border));
+  color: #a16207;
+  background: color-mix(in srgb, var(--cv-mustard) 12%, var(--cv-surface));
+}
+
+.negotiation-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--cv-border);
+  border-radius: 0.8rem;
+}
+
+.negotiation-summary > div {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.7rem;
+  text-align: center;
+}
+
+.negotiation-summary > div + div {
+  border-inline-start: 1px solid var(--cv-border);
+}
+
+.negotiation-summary strong {
+  color: var(--cv-text);
+  font-size: 1.05rem;
+}
+
+.negotiation-summary span {
+  color: var(--cv-muted-strong);
+  font-size: 0.64rem;
+}
+
+.negotiation-topic-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.negotiation-topic-list article {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.7rem;
+  border: 1px solid var(--cv-border);
+  border-radius: 0.75rem;
+  background: var(--cv-surface);
+}
+
+.negotiation-topic-list article > div,
+.negotiation-topic-list article > p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.8rem;
+  align-items: center;
+}
+
+.negotiation-topic-list article > div {
+  justify-content: space-between;
+}
+
+.negotiation-topic-list article strong {
+  color: var(--cv-text);
+  font-size: 0.76rem;
+}
+
+.negotiation-topic-list article p,
+.decision-reason {
+  color: var(--cv-muted-strong);
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+
+.decision-reason {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  border-inline-start: 3px solid var(--cv-primary);
+  background: color-mix(in srgb, var(--cv-primary) 5%, var(--cv-surface));
+}
+
+.decision-reason strong {
+  color: var(--cv-text);
+}
+
 @media (max-width: 767px) {
+  .negotiation-editor-list article {
+    grid-template-columns: 1fr;
+    padding-block: 0.75rem;
+    border-bottom: 1px solid var(--cv-border);
+  }
+
   .mobile-record-actions .mobile-workspace-trigger {
     border-color: color-mix(in srgb, var(--cv-primary) 42%, var(--cv-border));
     color: var(--cv-primary-ink);
