@@ -110,6 +110,11 @@ type InterviewPreparation = {
   interviewerQuestions: string;
   gapsToExplain: string;
   postInterviewNotes: string;
+  questionsAsked: string;
+  positiveSignals: string;
+  concerns: string;
+  followUpAction: string;
+  followUpDue: string;
   updatedAt: string;
 };
 type NegotiationStatus = "Not discussed" | "In discussion" | "Agreed" | "Declined";
@@ -401,7 +406,7 @@ const emptyApplication: ApplicationDraft = {
   jobDescription: "",
   requirements: "",
   requirementEvidence: [],
-  interviewPreparation: { companyResearch: "", starStories: "", interviewerQuestions: "", gapsToExplain: "", postInterviewNotes: "", updatedAt: "" },
+  interviewPreparation: { companyResearch: "", starStories: "", interviewerQuestions: "", gapsToExplain: "", postInterviewNotes: "", questionsAsked: "", positiveSignals: "", concerns: "", followUpAction: "", followUpDue: "", updatedAt: "" },
   offerDetails: { baseSalary: "", currency: "ILS", bonus: "", equity: "", benefits: "", titleLevel: "", startDate: "", responseDeadline: "", workModel: "", additionalTerms: "", verifiedAt: "", negotiationTopics: [
     { id: "base-salary", topic: "Base salary", status: "Not discussed", original: "", target: "", outcome: "" },
     { id: "bonus", topic: "Bonus", status: "Not discussed", original: "", target: "", outcome: "" },
@@ -2459,9 +2464,13 @@ export default function Home() {
   function saveInterviewPreparation() {
     if (!interviewPrepApplicationId) return;
     const savedPreparation = { ...interviewPreparationDraft, updatedAt: new Date().toISOString() };
-    setApplications((items) => items.map((item) => item.id === interviewPrepApplicationId
-      ? { ...item, interviewPreparation: savedPreparation, lastActivityAt: savedPreparation.updatedAt }
-      : item));
+    setApplications((items) => items.map((item) => item.id === interviewPrepApplicationId ? {
+      ...item,
+      interviewPreparation: savedPreparation,
+      ...(savedPreparation.followUpAction.trim() ? { nextStep: savedPreparation.followUpAction.trim() } : {}),
+      ...(savedPreparation.followUpDue ? { nextStepDue: savedPreparation.followUpDue, trafficLight: "yellow" as TrafficLight } : {}),
+      lastActivityAt: savedPreparation.updatedAt,
+    } : item));
     setInterviewPrepApplicationId(null);
     setWorkspaceApplicationId(interviewPrepApplicationId);
     setNotice(language === "he" ? "הכנת הראיון נשמרה בתוך המועמדות." : "Interview preparation saved to this application.");
@@ -3980,7 +3989,12 @@ export default function Home() {
               <Field label={language === "he" ? "סיפורי STAR שכדאי לספר" : "STAR stories to prepare"}><textarea className="form-control" onChange={(event) => setInterviewPreparationDraft((current) => ({ ...current, starStories: event.target.value }))} placeholder={language === "he" ? "מצב · משימה · פעולה · תוצאה. השתמשו רק בדוגמאות אמיתיות." : "Situation · Task · Action · Result. Use only real examples."} value={interviewPreparationDraft.starStories} /></Field>
               <Field label={language === "he" ? "שאלות למראיינים" : "Questions for the interviewers"}><textarea className="form-control" onChange={(event) => setInterviewPreparationDraft((current) => ({ ...current, interviewerQuestions: event.target.value }))} placeholder={language === "he" ? "איך נראית הצלחה? מהו האתגר המרכזי? כיצד הצוות עובד יחד?" : "What does success look like? What is the main challenge? How does the team work together?"} value={interviewPreparationDraft.interviewerQuestions} /></Field>
               <Field label={language === "he" ? "פערים שכדאי להסביר בכנות" : "Gaps to explain honestly"}><textarea className="form-control" onChange={(event) => setInterviewPreparationDraft((current) => ({ ...current, gapsToExplain: event.target.value }))} placeholder={language === "he" ? "מה עדיין לא עשיתם ישירות, ואיזה ניסיון משיק או יכולת למידה כן קיימים?" : "What have you not done directly, and what adjacent experience or learning ability can you show?"} value={interviewPreparationDraft.gapsToExplain} /></Field>
-              <Field label={language === "he" ? "סיכום לאחר הראיון" : "Post-interview notes"}><textarea className="form-control" onChange={(event) => setInterviewPreparationDraft((current) => ({ ...current, postInterviewNotes: event.target.value }))} placeholder={language === "he" ? "מה למדתי, סימנים חיוביים, חששות, ומה פעולת ההמשך?" : "What did I learn, positive signals, concerns, and the next follow-up?"} value={interviewPreparationDraft.postInterviewNotes} /></Field>
+              <div className="interview-debrief-heading"><MessagesSquare className="h-5 w-5" /><div><h4>{language === "he" ? "סיכום לאחר הראיון" : "Post-interview debrief"}</h4><p>{language === "he" ? "כתבו עובדות כשהן עדיין טריות, ואז הגדירו צעד המשך אחד." : "Capture facts while they are fresh, then choose one follow-up action."}</p></div></div>
+              <Field label={language === "he" ? "מה נשאל ומה למדתי" : "What was asked and what I learned"}><textarea className="form-control" onChange={(event) => setInterviewPreparationDraft((current) => ({ ...current, questionsAsked: event.target.value }))} placeholder={language === "he" ? "שאלות מרכזיות, נושאים שחזרו ומידע חדש על התפקיד או הצוות…" : "Key questions, recurring themes, and new information about the role or team…"} value={interviewPreparationDraft.questionsAsked} /></Field>
+              <Field label={language === "he" ? "סימנים חיוביים" : "Positive signals"}><textarea className="form-control" onChange={(event) => setInterviewPreparationDraft((current) => ({ ...current, positiveSignals: event.target.value }))} placeholder={language === "he" ? "עניין הדדי, בהירות לגבי השלב הבא, התאמה לצוות או לתפקיד…" : "Mutual interest, clarity about next steps, team or role alignment…"} value={interviewPreparationDraft.positiveSignals} /></Field>
+              <Field label={language === "he" ? "חששות או נקודות לבדיקה" : "Concerns or points to verify"}><textarea className="form-control" onChange={(event) => setInterviewPreparationDraft((current) => ({ ...current, concerns: event.target.value }))} placeholder={language === "he" ? "מידע חסר, ציפיות לא ברורות או שאלות שדורשות אימות…" : "Missing information, unclear expectations, or questions that need verification…"} value={interviewPreparationDraft.concerns} /></Field>
+              <Field label={language === "he" ? "סיכום אישי" : "Personal debrief notes"}><textarea className="form-control" onChange={(event) => setInterviewPreparationDraft((current) => ({ ...current, postInterviewNotes: event.target.value }))} placeholder={language === "he" ? "מה עבד היטב, מה אשפר בפעם הבאה ומה חשוב לזכור?" : "What worked, what will I improve next time, and what should I remember?"} value={interviewPreparationDraft.postInterviewNotes} /></Field>
+              <div className="interview-follow-up-fields"><Field label={language === "he" ? "פעולת ההמשך" : "Follow-up action"}><input className="form-control" onChange={(event) => setInterviewPreparationDraft((current) => ({ ...current, followUpAction: event.target.value }))} placeholder={language === "he" ? "לשלוח הודעת תודה ולחדד את הניסיון הרלוונטי" : "Send a thank-you note and reinforce relevant experience"} value={interviewPreparationDraft.followUpAction} /></Field><Field label={language === "he" ? "תאריך יעד" : "Due date"}><input className="form-control" onChange={(event) => setInterviewPreparationDraft((current) => ({ ...current, followUpDue: event.target.value }))} type="date" value={interviewPreparationDraft.followUpDue} /></Field></div>
             </div>
             <footer><p><ShieldCheck className="h-4 w-4" />{language === "he" ? "המידע נשמר בתוך המועמדות ומתבסס רק על מה שתכתבו." : "This stays inside the application and uses only what you write."}</p><div><button className="secondary-button" onClick={() => { setInterviewPrepApplicationId(null); setWorkspaceApplicationId(interviewPrepApplication.id); }} type="button">{language === "he" ? "ביטול" : "Cancel"}</button><button className="primary-button" onClick={saveInterviewPreparation} type="button"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "שמירת ההכנה" : "Save preparation"}</button></div></footer>
           </div>

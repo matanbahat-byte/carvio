@@ -9107,8 +9107,12 @@ html[data-carvio-theme="light"] {
 .interview-preparation-editor > header h3 { margin-top: 0.25rem; color: var(--cv-text); font-size: 1.2rem; }
 .interview-preparation-editor > header p { margin-top: 0.2rem; color: var(--cv-muted-strong); font-size: 0.72rem; }
 .interview-preparation-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.9rem; }
-.interview-preparation-grid label:last-child { grid-column: 1 / -1; }
 .interview-preparation-grid textarea { min-height: 8.5rem; resize: vertical; line-height: 1.55; }
+.interview-debrief-heading { display: flex; grid-column: 1 / -1; align-items: flex-start; gap: 0.55rem; margin-top: 0.25rem; padding: 0.85rem 0 0.1rem; border-top: 1px solid var(--cv-border); }
+.interview-debrief-heading svg { flex: 0 0 auto; color: var(--cv-primary); }
+.interview-debrief-heading h4 { color: var(--cv-text); font-size: 0.86rem; }
+.interview-debrief-heading p { margin-top: 0.18rem; color: var(--cv-muted-strong); font-size: 0.68rem; line-height: 1.4; }
+.interview-follow-up-fields { display: grid; grid-column: 1 / -1; grid-template-columns: minmax(0, 1fr) 180px; gap: 0.9rem; padding: 0.85rem; border: 1px solid color-mix(in srgb, var(--cv-primary) 24%, var(--cv-border)); border-radius: 0.8rem; background: color-mix(in srgb, var(--cv-primary) 5%, var(--cv-surface)); }
 .interview-preparation-editor > footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-top: 0.8rem; border-top: 1px solid var(--cv-border); }
 .interview-preparation-editor > footer p, .interview-preparation-editor > footer div { display: flex; align-items: center; gap: 0.5rem; }
 .interview-preparation-editor > footer p { color: var(--cv-muted-strong); font-size: 0.68rem; }
@@ -9116,7 +9120,7 @@ html[data-carvio-theme="light"] {
 @media (max-width: 767px) {
   .interview-prep-checklist,
   .interview-preparation-grid { grid-template-columns: 1fr; }
-  .interview-preparation-grid label:last-child { grid-column: auto; }
+  .interview-follow-up-fields { grid-template-columns: 1fr; }
   .interview-preparation-editor > header,
   .interview-preparation-editor > footer { align-items: stretch; flex-direction: column; }
 }
