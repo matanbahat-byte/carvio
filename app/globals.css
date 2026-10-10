@@ -9064,6 +9064,63 @@ html[data-carvio-theme="light"] {
   color: var(--cv-text);
 }
 
+.workspace-interview-prep {
+  grid-column: 1 / -1;
+  min-height: auto !important;
+  background: linear-gradient(120deg, color-mix(in srgb, var(--cv-mustard) 7%, var(--cv-surface)), color-mix(in srgb, var(--cv-primary) 5%, var(--cv-surface))) !important;
+}
+
+.workspace-interview-prep h4,
+.workspace-interview-prep .interview-prep-action {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.interview-prep-checklist {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin: 0.8rem 0;
+}
+
+.interview-prep-checklist span {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--cv-border);
+  border-radius: 0.65rem;
+  color: var(--cv-muted-strong);
+  background: var(--cv-surface);
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+.interview-prep-checklist span svg { color: var(--cv-mustard); }
+.interview-prep-checklist span.is-ready { color: var(--cv-text); }
+.interview-prep-checklist span.is-ready svg { color: var(--cv-primary); }
+
+.interview-preparation-editor { display: grid; gap: 1rem; }
+.interview-preparation-editor > header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; border: 1px solid color-mix(in srgb, var(--cv-mustard) 30%, var(--cv-border)); border-radius: 1rem; background: linear-gradient(120deg, color-mix(in srgb, var(--cv-mustard) 8%, var(--cv-surface)), color-mix(in srgb, var(--cv-primary) 6%, var(--cv-surface))); }
+.interview-preparation-editor > header span { color: var(--cv-primary-ink); font-size: 0.66rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.interview-preparation-editor > header h3 { margin-top: 0.25rem; color: var(--cv-text); font-size: 1.2rem; }
+.interview-preparation-editor > header p { margin-top: 0.2rem; color: var(--cv-muted-strong); font-size: 0.72rem; }
+.interview-preparation-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.9rem; }
+.interview-preparation-grid label:last-child { grid-column: 1 / -1; }
+.interview-preparation-grid textarea { min-height: 8.5rem; resize: vertical; line-height: 1.55; }
+.interview-preparation-editor > footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-top: 0.8rem; border-top: 1px solid var(--cv-border); }
+.interview-preparation-editor > footer p, .interview-preparation-editor > footer div { display: flex; align-items: center; gap: 0.5rem; }
+.interview-preparation-editor > footer p { color: var(--cv-muted-strong); font-size: 0.68rem; }
+
+@media (max-width: 767px) {
+  .interview-prep-checklist,
+  .interview-preparation-grid { grid-template-columns: 1fr; }
+  .interview-preparation-grid label:last-child { grid-column: auto; }
+  .interview-preparation-editor > header,
+  .interview-preparation-editor > footer { align-items: stretch; flex-direction: column; }
+}
+
 .offer-decision-panel {
   scroll-margin-top: 1rem;
 }
