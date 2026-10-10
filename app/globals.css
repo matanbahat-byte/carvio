@@ -9116,6 +9116,7 @@ html[data-carvio-theme="light"] {
 .interview-preparation-editor > footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-top: 0.8rem; border-top: 1px solid var(--cv-border); }
 .interview-preparation-editor > footer p, .interview-preparation-editor > footer div { display: flex; align-items: center; gap: 0.5rem; }
 .interview-preparation-editor > footer p { color: var(--cv-muted-strong); font-size: 0.68rem; }
+.interview-thank-you-button { border-color: color-mix(in srgb, var(--cv-primary) 38%, var(--cv-border)) !important; color: var(--cv-primary-ink) !important; background: color-mix(in srgb, var(--cv-primary) 9%, var(--cv-surface)) !important; }
 
 @media (max-width: 767px) {
   .interview-prep-checklist,

@@ -113,6 +113,7 @@ type InterviewPreparation = {
   questionsAsked: string;
   positiveSignals: string;
   concerns: string;
+  thankYouHighlight: string;
   followUpAction: string;
   followUpDue: string;
   updatedAt: string;
@@ -406,7 +407,7 @@ const emptyApplication: ApplicationDraft = {
   jobDescription: "",
   requirements: "",
   requirementEvidence: [],
-  interviewPreparation: { companyResearch: "", starStories: "", interviewerQuestions: "", gapsToExplain: "", postInterviewNotes: "", questionsAsked: "", positiveSignals: "", concerns: "", followUpAction: "", followUpDue: "", updatedAt: "" },
+  interviewPreparation: { companyResearch: "", starStories: "", interviewerQuestions: "", gapsToExplain: "", postInterviewNotes: "", questionsAsked: "", positiveSignals: "", concerns: "", thankYouHighlight: "", followUpAction: "", followUpDue: "", updatedAt: "" },
   offerDetails: { baseSalary: "", currency: "ILS", bonus: "", equity: "", benefits: "", titleLevel: "", startDate: "", responseDeadline: "", workModel: "", additionalTerms: "", verifiedAt: "", negotiationTopics: [
     { id: "base-salary", topic: "Base salary", status: "Not discussed", original: "", target: "", outcome: "" },
     { id: "bonus", topic: "Bonus", status: "Not discussed", original: "", target: "", outcome: "" },
@@ -2461,8 +2462,9 @@ export default function Home() {
     setInterviewPreparationDraft({ ...emptyApplication.interviewPreparation, ...application.interviewPreparation });
   }
 
-  function saveInterviewPreparation() {
+  function saveInterviewPreparation(openThankYou = false) {
     if (!interviewPrepApplicationId) return;
+    const application = applications.find((item) => item.id === interviewPrepApplicationId);
     const savedPreparation = { ...interviewPreparationDraft, updatedAt: new Date().toISOString() };
     setApplications((items) => items.map((item) => item.id === interviewPrepApplicationId ? {
       ...item,
@@ -2472,6 +2474,11 @@ export default function Home() {
       lastActivityAt: savedPreparation.updatedAt,
     } : item));
     setInterviewPrepApplicationId(null);
+    if (openThankYou && application) {
+      openThankYouForApplication({ ...application, interviewPreparation: savedPreparation });
+      setNotice(language === "he" ? "הסיכום נשמר והועבר לטיוטת תודה לעריכה." : "Debrief saved and handed to an editable thank-you draft.");
+      return;
+    }
     setWorkspaceApplicationId(interviewPrepApplicationId);
     setNotice(language === "he" ? "הכנת הראיון נשמרה בתוך המועמדות." : "Interview preparation saved to this application.");
   }
@@ -2867,6 +2874,31 @@ export default function Home() {
     setMessageSubjectDraft("");
     setShowEmailHandoff(false);
     setExpandedTools((current) => ({ ...current, studio: true }));
+    navigateToSection("message-studio");
+  }
+
+  function openThankYouForApplication(application: Application) {
+    const linkedContact = contacts.find((contact) =>
+      contact.id === application.linkedContactIds?.[0]
+      || (application.contactName && contact.name === application.contactName)
+      || (contact.linkedApplicationId === application.id && contact.company === application.company)
+    );
+    setWorkspaceApplicationId(null);
+    setMessageProfile({
+      ...emptyMessageProfile,
+      recipientType: application.contactName || linkedContact ? "Recruiter" : "Hiring manager",
+      intent: "Thank them",
+      tone: "Warm & professional",
+      recipientName: application.contactName || linkedContact?.name || "",
+      recipientEmail: linkedContact?.email || "",
+      company: application.company,
+      role: application.role,
+      context: application.interviewPreparation.thankYouHighlight.trim(),
+    });
+    setGeneratedMessage("");
+    setMessageSubjectDraft("");
+    setShowEmailHandoff(false);
+    setExpandedTools((current) => ({ ...current, studio: true, interview: false, offer: false, cv: false, social: false }));
     navigateToSection("message-studio");
   }
 
@@ -3571,7 +3603,7 @@ export default function Home() {
 
         <section className={`calm-view message-studio-panel ${activeView !== "tools" ? "calm-view-hidden" : ""}`} id="message-studio">
           <div className="section-heading tool-card-heading relative">
-            <div className="tool-card-copy"><p className="eyebrow flex items-center gap-2 text-pink-300"><MessagesSquare className="h-4 w-4" /> {copy.studio}</p><h2 className="section-title">{language === "he" ? "כתבו פנייה ממוקדת המבוססת על ההקשר שלכם" : "Write focused outreach from your real context"}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">{language === "he" ? "בחרו למי פונים, את הטון ואת המטרה. Carvio משתמש בתבנית מקומית ושקופה שאפשר לערוך לפני שליחה; אין כאן מודל AI חי." : "Choose the recipient, tone, and goal. Carvio uses a transparent local template you can edit before sending; no live AI model is involved."}</p>{messageProfile.intent === "Follow up after applying" && messageProfile.company && messageProfile.role && <p className="message-application-context"><CheckCircle2 className="h-4 w-4" />{language === "he" ? `הפרטים נטענו מהמועמדות: ${messageProfile.role} ב־${messageProfile.company}` : `Loaded from your application: ${messageProfile.role} at ${messageProfile.company}`}</p>}</div>
+            <div className="tool-card-copy"><p className="eyebrow flex items-center gap-2 text-pink-300"><MessagesSquare className="h-4 w-4" /> {copy.studio}</p><h2 className="section-title">{language === "he" ? "כתבו פנייה ממוקדת המבוססת על ההקשר שלכם" : "Write focused outreach from your real context"}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">{language === "he" ? "בחרו למי פונים, את הטון ואת המטרה. Carvio משתמש בתבנית מקומית ושקופה שאפשר לערוך לפני שליחה; אין כאן מודל AI חי." : "Choose the recipient, tone, and goal. Carvio uses a transparent local template you can edit before sending; no live AI model is involved."}</p>{(messageProfile.intent === "Follow up after applying" || messageProfile.intent === "Thank them") && messageProfile.company && messageProfile.role && <p className="message-application-context"><CheckCircle2 className="h-4 w-4" />{messageProfile.intent === "Thank them" ? (language === "he" ? `טיוטת תודה לאחר הראיון עבור ${messageProfile.role} ב־${messageProfile.company}` : `Post-interview thank-you for ${messageProfile.role} at ${messageProfile.company}`) : (language === "he" ? `הפרטים נטענו מהמועמדות: ${messageProfile.role} ב־${messageProfile.company}` : `Loaded from your application: ${messageProfile.role} at ${messageProfile.company}`)}</p>}</div>
             <figure className="tool-card-illustration tool-card-illustration-message"><Image alt={language === "he" ? "איור של ניסוח הודעה מקצועית וממוקדת בסביבת עבודה רגועה" : "Illustration of drafting thoughtful professional outreach in a calm workspace"} fill sizes="(max-width: 767px) 92px, 176px" src="/carvio-support-tools-v1.jpg" /><span aria-hidden="true"><MessagesSquare className="h-4 w-4" /></span></figure>
             <div className="tool-card-actions"><button aria-expanded={expandedTools.studio} className="secondary-button" onClick={() => setExpandedTools((current) => ({ ...current, studio: !current.studio, social: false, cv: false, interview: false, offer: false }))} type="button">{language === "he" ? (expandedTools.studio ? "סגירת הסטודיו" : "פתיחת הסטודיו") : (expandedTools.studio ? "Close studio" : "Open studio")}<ChevronDown className={`h-4 w-4 transition ${expandedTools.studio ? "rotate-180" : ""}`} /></button></div>
           </div>
@@ -3993,10 +4025,11 @@ export default function Home() {
               <Field label={language === "he" ? "מה נשאל ומה למדתי" : "What was asked and what I learned"}><textarea className="form-control" onChange={(event) => setInterviewPreparationDraft((current) => ({ ...current, questionsAsked: event.target.value }))} placeholder={language === "he" ? "שאלות מרכזיות, נושאים שחזרו ומידע חדש על התפקיד או הצוות…" : "Key questions, recurring themes, and new information about the role or team…"} value={interviewPreparationDraft.questionsAsked} /></Field>
               <Field label={language === "he" ? "סימנים חיוביים" : "Positive signals"}><textarea className="form-control" onChange={(event) => setInterviewPreparationDraft((current) => ({ ...current, positiveSignals: event.target.value }))} placeholder={language === "he" ? "עניין הדדי, בהירות לגבי השלב הבא, התאמה לצוות או לתפקיד…" : "Mutual interest, clarity about next steps, team or role alignment…"} value={interviewPreparationDraft.positiveSignals} /></Field>
               <Field label={language === "he" ? "חששות או נקודות לבדיקה" : "Concerns or points to verify"}><textarea className="form-control" onChange={(event) => setInterviewPreparationDraft((current) => ({ ...current, concerns: event.target.value }))} placeholder={language === "he" ? "מידע חסר, ציפיות לא ברורות או שאלות שדורשות אימות…" : "Missing information, unclear expectations, or questions that need verification…"} value={interviewPreparationDraft.concerns} /></Field>
+              <Field label={language === "he" ? "נקודה שאפשר להזכיר בהודעת התודה" : "Point to reference in the thank-you note"}><textarea className="form-control" onChange={(event) => setInterviewPreparationDraft((current) => ({ ...current, thankYouHighlight: event.target.value }))} placeholder={language === "he" ? "רק פרט שנוח לכם להעביר לנמען, למשל נושא מעניין מהשיחה או חיבור לניסיון שלכם." : "Only something you are comfortable sharing, such as a useful topic from the conversation or a connection to your experience."} value={interviewPreparationDraft.thankYouHighlight} /></Field>
               <Field label={language === "he" ? "סיכום אישי" : "Personal debrief notes"}><textarea className="form-control" onChange={(event) => setInterviewPreparationDraft((current) => ({ ...current, postInterviewNotes: event.target.value }))} placeholder={language === "he" ? "מה עבד היטב, מה אשפר בפעם הבאה ומה חשוב לזכור?" : "What worked, what will I improve next time, and what should I remember?"} value={interviewPreparationDraft.postInterviewNotes} /></Field>
               <div className="interview-follow-up-fields"><Field label={language === "he" ? "פעולת ההמשך" : "Follow-up action"}><input className="form-control" onChange={(event) => setInterviewPreparationDraft((current) => ({ ...current, followUpAction: event.target.value }))} placeholder={language === "he" ? "לשלוח הודעת תודה ולחדד את הניסיון הרלוונטי" : "Send a thank-you note and reinforce relevant experience"} value={interviewPreparationDraft.followUpAction} /></Field><Field label={language === "he" ? "תאריך יעד" : "Due date"}><input className="form-control" onChange={(event) => setInterviewPreparationDraft((current) => ({ ...current, followUpDue: event.target.value }))} type="date" value={interviewPreparationDraft.followUpDue} /></Field></div>
             </div>
-            <footer><p><ShieldCheck className="h-4 w-4" />{language === "he" ? "המידע נשמר בתוך המועמדות ומתבסס רק על מה שתכתבו." : "This stays inside the application and uses only what you write."}</p><div><button className="secondary-button" onClick={() => { setInterviewPrepApplicationId(null); setWorkspaceApplicationId(interviewPrepApplication.id); }} type="button">{language === "he" ? "ביטול" : "Cancel"}</button><button className="primary-button" onClick={saveInterviewPreparation} type="button"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "שמירת ההכנה" : "Save preparation"}</button></div></footer>
+            <footer><p><ShieldCheck className="h-4 w-4" />{language === "he" ? "המידע נשמר בתוך המועמדות. רק השדה הייעודי מועבר לטיוטת התודה." : "This stays inside the application. Only the dedicated highlight is handed to the thank-you draft."}</p><div><button className="secondary-button" onClick={() => { setInterviewPrepApplicationId(null); setWorkspaceApplicationId(interviewPrepApplication.id); }} type="button">{language === "he" ? "ביטול" : "Cancel"}</button><button className="secondary-button interview-thank-you-button" onClick={() => saveInterviewPreparation(true)} type="button"><MessagesSquare className="h-4 w-4" />{language === "he" ? "שמירה וכתיבת תודה" : "Save & write thank-you"}</button><button className="primary-button" onClick={() => saveInterviewPreparation()} type="button"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "שמירת ההכנה" : "Save preparation"}</button></div></footer>
           </div>
         </Modal>
       )}
