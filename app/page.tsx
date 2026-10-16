@@ -114,6 +114,8 @@ type InterviewPreparation = {
   positiveSignals: string;
   concerns: string;
   thankYouHighlight: string;
+  thankYouSentAt: string;
+  thankYouFollowUpDue: string;
   followUpAction: string;
   followUpDue: string;
   updatedAt: string;
@@ -407,7 +409,7 @@ const emptyApplication: ApplicationDraft = {
   jobDescription: "",
   requirements: "",
   requirementEvidence: [],
-  interviewPreparation: { companyResearch: "", starStories: "", interviewerQuestions: "", gapsToExplain: "", postInterviewNotes: "", questionsAsked: "", positiveSignals: "", concerns: "", thankYouHighlight: "", followUpAction: "", followUpDue: "", updatedAt: "" },
+  interviewPreparation: { companyResearch: "", starStories: "", interviewerQuestions: "", gapsToExplain: "", postInterviewNotes: "", questionsAsked: "", positiveSignals: "", concerns: "", thankYouHighlight: "", thankYouSentAt: "", thankYouFollowUpDue: "", followUpAction: "", followUpDue: "", updatedAt: "" },
   offerDetails: { baseSalary: "", currency: "ILS", bonus: "", equity: "", benefits: "", titleLevel: "", startDate: "", responseDeadline: "", workModel: "", additionalTerms: "", verifiedAt: "", negotiationTopics: [
     { id: "base-salary", topic: "Base salary", status: "Not discussed", original: "", target: "", outcome: "" },
     { id: "bonus", topic: "Bonus", status: "Not discussed", original: "", target: "", outcome: "" },
@@ -1794,6 +1796,10 @@ export default function Home() {
     () => applications.find((item) => item.id === interviewPrepApplicationId) || null,
     [applications, interviewPrepApplicationId],
   );
+  const messageApplication = useMemo(
+    () => applications.find((item) => item.company.toLowerCase() === messageProfile.company.trim().toLowerCase() && item.role.toLowerCase() === messageProfile.role.trim().toLowerCase()) || null,
+    [applications, messageProfile.company, messageProfile.role],
+  );
   const workspaceSnapshotHealth = workspaceApplication ? jobSnapshotHealth(workspaceApplication, language) : null;
   const workspaceOfferReadiness = workspaceApplication?.status === "Offer" ? offerReadiness(workspaceApplication, language) : null;
   const workspaceNegotiation = workspaceApplication && (workspaceApplication.offerDetails.decisionOutcome !== "Undecided" || workspaceApplication.status === "Offer") ? {
@@ -3004,7 +3010,7 @@ export default function Home() {
   }
 
   function planMessageFollowUp() {
-    const match = applications.find((item) => item.company.toLowerCase() === messageProfile.company.trim().toLowerCase() && item.role.toLowerCase() === messageProfile.role.trim().toLowerCase());
+    const match = messageApplication;
     if (!match) {
       setNotice(language === "he" ? "לא נמצאה מועמדות תואמת לפי החברה והתפקיד. שמרו אותה ב־Applications לפני תכנון פעולת המשך." : "No matching application was found for this company and role. Save it in Applications before planning a follow-up.");
       return;
@@ -3013,6 +3019,35 @@ export default function Home() {
     due.setDate(due.getDate() + 7);
     setApplications((items) => items.map((item) => item.id === match.id ? { ...item, nextStep: `Follow up on outreach to ${messageProfile.recipientName || messageProfile.recipientType.toLowerCase()}`, nextStepDue: due.toISOString().slice(0, 10) } : item));
     setNotice(language === "he" ? "פעולת המשך נוספה למועמדות לעוד שבעה ימים." : "Follow-up added to the matching application for seven days from now.");
+  }
+
+  function markThankYouSent() {
+    if (!messageApplication || messageProfile.intent !== "Thank them") {
+      setNotice(language === "he" ? "לא נמצאה מועמדות תואמת לתיעוד הודעת התודה." : "No matching application was found for this thank-you note.");
+      return;
+    }
+    if (!generatedMessage.trim()) {
+      setNotice(language === "he" ? "יש ליצור או לכתוב את הודעת התודה לפני סימון השליחה." : "Create or write the thank-you note before marking it as sent.");
+      return;
+    }
+    const sentAt = new Date();
+    const due = new Date(sentAt);
+    due.setDate(due.getDate() + 7);
+    const dueDate = due.toISOString().slice(0, 10);
+    setApplications((items) => items.map((item) => item.id === messageApplication.id ? {
+      ...item,
+      interviewPreparation: {
+        ...item.interviewPreparation,
+        thankYouSentAt: sentAt.toISOString(),
+        thankYouFollowUpDue: dueDate,
+        updatedAt: sentAt.toISOString(),
+      },
+      nextStep: language === "he" ? "מעקב לאחר הודעת התודה" : "Follow up after the thank-you note",
+      nextStepDue: dueDate,
+      trafficLight: "yellow" as TrafficLight,
+      lastActivityAt: sentAt.toISOString(),
+    } : item));
+    setNotice(language === "he" ? "הודעת התודה סומנה כנשלחה ונקבעה תזכורת מעקב לעוד שבעה ימים." : "Thank-you marked as sent, with a follow-up reminder set for seven days from now.");
   }
 
   function createPostDraft() {
@@ -3635,6 +3670,10 @@ export default function Home() {
                   </div>
                   <button className="secondary-button" onClick={planMessageFollowUp} type="button"><CalendarClock className="h-4 w-4" /> {language === "he" ? "תכנון פעולת המשך" : "Plan follow-up"}</button>
                 </div>
+                {messageProfile.intent === "Thank them" && messageApplication && <div className={`thank-you-send-status ${messageApplication.interviewPreparation.thankYouSentAt ? "thank-you-send-status-complete" : ""}`}>
+                  <div>{messageApplication.interviewPreparation.thankYouSentAt ? <CheckCircle2 className="h-5 w-5" /> : <Clock3 className="h-5 w-5" />}<span><strong>{messageApplication.interviewPreparation.thankYouSentAt ? (language === "he" ? "הודעת התודה סומנה כנשלחה" : "Thank-you marked as sent") : (language === "he" ? "שלחתם את ההודעה בשירות הדוא״ל?" : "Sent the message from your email service?")}</strong><small>{messageApplication.interviewPreparation.thankYouSentAt ? `${language === "he" ? "תועד בתאריך" : "Recorded"} ${formatDate(messageApplication.interviewPreparation.thankYouSentAt, true)} · ${language === "he" ? "מעקב" : "Follow-up"} ${formatDate(messageApplication.interviewPreparation.thankYouFollowUpDue)}` : (language === "he" ? "Carvio לא מניח שההודעה נשלחה עד שתאשרו זאת." : "Carvio will not assume delivery until you confirm it.")}</small></span></div>
+                  {!messageApplication.interviewPreparation.thankYouSentAt && <button className="secondary-button" onClick={markThankYouSent} type="button"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "סימון כנשלחה ותכנון מעקב" : "Mark sent & plan follow-up"}</button>}
+                </div>}
                 <p className="message-email-help">{language === "he" ? "Carvio אינו שולח הודעות ואינו יודע אם הן נשלחו. Gmail ו־Outlook בדפדפן יכולים לעקוף תקלה או מגבלת אחסון באפליקציית Apple Mail או iCloud; תמיד בדקו ואשרו את השליחה בשירות שבחרתם." : "Carvio does not send email or claim delivery. Browser Gmail and Outlook can bypass an Apple Mail or iCloud draft/quota problem; always review and send in the service you choose."}</p>
               </> : <div className="message-draft-empty"><WandSparkles className="h-9 w-9" /><p>{language === "he" ? "הפנייה המלוטשת תופיע כאן" : "Your polished message will appear here"}</p><span>{language === "he" ? "השלימו את הפרטים החשובים ובחרו נמען, מטרה וטון. הטיוטה תיווצר רק בלחיצה ולא תשתנה בזמן עריכה." : "Complete the essentials and choose a recipient, goal, and tone. The draft is generated only when requested and will not change while you edit."}</span></div>}
             </div>
@@ -4026,6 +4065,7 @@ export default function Home() {
               <Field label={language === "he" ? "סימנים חיוביים" : "Positive signals"}><textarea className="form-control" onChange={(event) => setInterviewPreparationDraft((current) => ({ ...current, positiveSignals: event.target.value }))} placeholder={language === "he" ? "עניין הדדי, בהירות לגבי השלב הבא, התאמה לצוות או לתפקיד…" : "Mutual interest, clarity about next steps, team or role alignment…"} value={interviewPreparationDraft.positiveSignals} /></Field>
               <Field label={language === "he" ? "חששות או נקודות לבדיקה" : "Concerns or points to verify"}><textarea className="form-control" onChange={(event) => setInterviewPreparationDraft((current) => ({ ...current, concerns: event.target.value }))} placeholder={language === "he" ? "מידע חסר, ציפיות לא ברורות או שאלות שדורשות אימות…" : "Missing information, unclear expectations, or questions that need verification…"} value={interviewPreparationDraft.concerns} /></Field>
               <Field label={language === "he" ? "נקודה שאפשר להזכיר בהודעת התודה" : "Point to reference in the thank-you note"}><textarea className="form-control" onChange={(event) => setInterviewPreparationDraft((current) => ({ ...current, thankYouHighlight: event.target.value }))} placeholder={language === "he" ? "רק פרט שנוח לכם להעביר לנמען, למשל נושא מעניין מהשיחה או חיבור לניסיון שלכם." : "Only something you are comfortable sharing, such as a useful topic from the conversation or a connection to your experience."} value={interviewPreparationDraft.thankYouHighlight} /></Field>
+              {interviewPreparationDraft.thankYouSentAt && <div className="interview-thank-you-record"><CheckCircle2 className="h-4 w-4" /><span><strong>{language === "he" ? "הודעת התודה תועדה כנשלחה" : "Thank-you recorded as sent"}</strong><small>{formatDate(interviewPreparationDraft.thankYouSentAt, true)} · {language === "he" ? "תזכורת מעקב" : "Follow-up reminder"} {formatDate(interviewPreparationDraft.thankYouFollowUpDue)}</small></span></div>}
               <Field label={language === "he" ? "סיכום אישי" : "Personal debrief notes"}><textarea className="form-control" onChange={(event) => setInterviewPreparationDraft((current) => ({ ...current, postInterviewNotes: event.target.value }))} placeholder={language === "he" ? "מה עבד היטב, מה אשפר בפעם הבאה ומה חשוב לזכור?" : "What worked, what will I improve next time, and what should I remember?"} value={interviewPreparationDraft.postInterviewNotes} /></Field>
               <div className="interview-follow-up-fields"><Field label={language === "he" ? "פעולת ההמשך" : "Follow-up action"}><input className="form-control" onChange={(event) => setInterviewPreparationDraft((current) => ({ ...current, followUpAction: event.target.value }))} placeholder={language === "he" ? "לשלוח הודעת תודה ולחדד את הניסיון הרלוונטי" : "Send a thank-you note and reinforce relevant experience"} value={interviewPreparationDraft.followUpAction} /></Field><Field label={language === "he" ? "תאריך יעד" : "Due date"}><input className="form-control" onChange={(event) => setInterviewPreparationDraft((current) => ({ ...current, followUpDue: event.target.value }))} type="date" value={interviewPreparationDraft.followUpDue} /></Field></div>
             </div>
