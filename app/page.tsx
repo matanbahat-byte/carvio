@@ -75,6 +75,7 @@ const ANALYTICS_SAMPLE_PACK_KEY = "carvio.analytics-sample-pack.v1";
 const ACTION_EVENTS_KEY = "carvio.action-events.v1";
 
 const applicationStatuses = [
+  "Considering",
   "Applied",
   "Interview",
   "Offer",
@@ -85,6 +86,9 @@ const applicationStatuses = [
 ] as const;
 
 type ApplicationStatus = (typeof applicationStatuses)[number];
+const isClosedApplicationStatus = (status: ApplicationStatus) => ["Accepted", "Rejected", "Withdrawn"].includes(status);
+const isActiveApplicationStatus = (status: ApplicationStatus) => ["Applied", "Interview", "Offer", "Follow-up due"].includes(status);
+const isSubmittedApplicationStatus = (status: ApplicationStatus) => status !== "Considering";
 type ApplicationMeetingFilter = "all" | "upcoming" | "past" | "unscheduled";
 type ApplicationSort =
   | "meeting-soonest"
@@ -382,6 +386,7 @@ const citySuggestions: Record<string, string[]> = {
 const emptyMessageProfile: MessageProfile = { recipientType: "Recruiter", tone: "Warm & professional", intent: "Introduce myself", recipientName: "", recipientEmail: "", company: "", role: "", senderName: "", value: "", context: "" };
 
 const statusStyles: Record<ApplicationStatus, string> = {
+  Considering: "border-cyan-400/25 bg-cyan-400/10 text-cyan-800",
   Applied: "border-sky-400/25 bg-sky-400/10 text-sky-200",
   Interview: "border-violet-400/25 bg-violet-400/10 text-violet-200",
   Offer: "border-emerald-400/25 bg-emerald-400/10 text-emerald-200",
@@ -396,7 +401,7 @@ const emptyApplication: ApplicationDraft = {
   companyWebsite: "",
   logoUrl: "",
   role: "",
-  status: "Applied",
+  status: "Considering",
   trafficLight: "none",
   source: "",
   location: "",
@@ -770,7 +775,7 @@ function normalizeApplication(value: Partial<Application>): Application {
     ...emptyApplication,
     ...value,
     id: value.id || makeId("app"),
-    status: applicationStatuses.includes(value.status as ApplicationStatus) ? value.status as ApplicationStatus : "Applied",
+    status: applicationStatuses.includes(value.status as ApplicationStatus) ? value.status as ApplicationStatus : "Considering",
     trafficLight: trafficLights.includes(value.trafficLight as TrafficLight) ? value.trafficLight as TrafficLight : "none",
     processStages: Array.isArray(value.processStages) ? value.processStages.map((stage) => ({
       id: stage.id || makeId("stage"),
@@ -1816,33 +1821,37 @@ export default function Home() {
       const activityAt = item.lastActivityAt || item.appliedDate;
       const staleDays = activityAt ? Math.max(0, (now - new Date(activityAt).getTime()) / 86400000) : 0;
       const hasContact = Boolean(item.contactName || item.linkedContactIds?.length || contacts.some((contact) => contact.linkedApplicationId === item.id || contact.company.trim().toLowerCase() === item.company.trim().toLowerCase()));
+      if (isClosedApplicationStatus(item.status)) return item.status === "Rejected" ? 30 : 5;
       if (eventAt >= now && eventAt - now <= 72 * 60 * 60 * 1000) return 140 - ((eventAt - now) / 3600000);
       if (dueAt && dueAt < now) return 125 + Math.min(20, (now - dueAt) / 86400000);
       if (item.status === "Follow-up due") return 120;
       if (item.trafficLight === "yellow" && staleDays >= 10) return 95 + Math.min(15, staleDays / 2);
       if (item.priority === "High" && !hasContact && !["Accepted", "Rejected", "Withdrawn"].includes(item.status)) return 85;
       if (!item.nextStep.trim() && !["Accepted", "Rejected", "Withdrawn"].includes(item.status)) return 75;
-      if (item.status === "Rejected") return 30;
       return 50;
     };
     return [...applications].sort((a, b) => score(b) - score(a))[0];
   }, [applications, contacts]);
 
   const searchProgress = useMemo(() => {
-    const activeOpportunities = applications.filter((item) => !["Accepted", "Rejected", "Withdrawn"].includes(item.status)).length;
+    const activeOpportunities = applications.filter((item) => isActiveApplicationStatus(item.status)).length;
     const conversations = contacts.filter((item) => item.lastContactDate || item.eventDateTime).length;
     const interviews = applications.filter((item) => item.status === "Interview" || item.status === "Offer" || item.processStages.some((stage) => /interview|ראיון|screen|portfolio|panel|שיחת סינון/i.test(stage.name))).length;
     const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
     const meaningfulEntities = new Set<string>();
     applications.forEach((item) => {
-      if (item.appliedDate && !Number.isNaN(new Date(item.appliedDate).getTime()) && new Date(item.appliedDate).getTime() >= weekAgo) meaningfulEntities.add(`application-${item.id}`);
+      if (isSubmittedApplicationStatus(item.status) && item.appliedDate && !Number.isNaN(new Date(item.appliedDate).getTime()) && new Date(item.appliedDate).getTime() >= weekAgo) meaningfulEntities.add(`application-${item.id}`);
     });
     contacts.forEach((item) => {
       if (item.lastContactDate && !Number.isNaN(new Date(item.lastContactDate).getTime()) && new Date(item.lastContactDate).getTime() >= weekAgo) meaningfulEntities.add(`contact-${item.id}`);
     });
     actionEvents.forEach((event) => {
       if (Number.isNaN(new Date(event.occurredAt).getTime()) || new Date(event.occurredAt).getTime() < weekAgo) return;
-      if (["application_created", "application_action_completed"].includes(event.name)) meaningfulEntities.add(`application-${event.targetId}`);
+      if (event.name === "application_created") {
+        const application = applications.find((item) => item.id === event.targetId);
+        if (application && isSubmittedApplicationStatus(application.status)) meaningfulEntities.add(`application-${event.targetId}`);
+      }
+      if (event.name === "application_action_completed") meaningfulEntities.add(`application-${event.targetId}`);
       if (event.name === "contact_created") meaningfulEntities.add(`contact-${event.targetId}`);
     });
     const meaningfulMoves = meaningfulEntities.size;
@@ -1862,7 +1871,7 @@ export default function Home() {
   const weeklyMomentum = useMemo(() => {
     const now = Date.now();
     const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
-    const recentApplications = applications.filter((item) => item.appliedDate && new Date(item.appliedDate).getTime() >= weekAgo).length;
+    const recentApplications = applications.filter((item) => isSubmittedApplicationStatus(item.status) && item.appliedDate && new Date(item.appliedDate).getTime() >= weekAgo).length;
     const recentConversations = contacts.filter((item) => item.lastContactDate && new Date(item.lastContactDate).getTime() >= weekAgo).length;
     const plannedMoves = applications.filter((item) => item.nextStep.trim() && item.nextStepDue && new Date(item.nextStepDue).getTime() >= now).length + contacts.filter((item) => item.nextAction.trim() && item.nextActionDue && new Date(item.nextActionDue).getTime() >= now).length;
     const total = recentApplications + recentConversations + plannedMoves;
@@ -1956,9 +1965,9 @@ export default function Home() {
       const activityAt = item.lastActivityAt || item.appliedDate;
       const staleDays = activityAt ? Math.floor((now - new Date(activityAt).getTime()) / 86400000) : 0;
       const hasContact = Boolean(item.contactName || item.linkedContactIds?.length || contacts.some((contact) => contact.linkedApplicationId === item.id || contact.company.trim().toLowerCase() === item.company.trim().toLowerCase()));
-      if (eventAt >= now && eventAt - now <= 72 * 60 * 60 * 1000) actions.push({ id: `app-event-${item.id}`, score: 140 - ((eventAt - now) / 3600000), label: language === "he" ? `הכנה ל${item.eventType || "ראיון"} עבור ${item.company}` : `Prepare for your ${item.eventType || "interview"} at ${item.company}`, detail: language === "he" ? `המועד הוא ${formatDate(item.eventDateTime, true)}. עברו על סיפורי STAR והשאלות שלכם.` : `It is scheduled for ${formatDate(item.eventDateTime, true)}. Review your STAR stories and questions.`, target: "applications", kind: language === "he" ? "פגישה קרובה" : "Meeting soon", applicationId: item.id, intent: "open" });
-      if (isPast(item.nextStepDue)) actions.push({ id: `app-due-${item.id}`, score: 125, label: item.nextStep || (language === "he" ? `פעולת המשך עבור ${item.company}` : `Follow up with ${item.company}`), detail: language === "he" ? `${item.role} · באיחור מאז ${formatDate(item.nextStepDue)}` : `${item.role} · overdue since ${formatDate(item.nextStepDue)}`, target: "applications", kind: language === "he" ? "באיחור" : "Overdue", applicationId: item.id, intent: "message" });
-      if (item.trafficLight === "yellow" && staleDays >= 10) actions.push({ id: `app-wait-${item.id}`, score: 98 + Math.min(12, staleDays / 2), label: language === "he" ? `בדיקת התהליך הממתין ב־${item.company}` : `Check the waiting process at ${item.company}`, detail: language === "he" ? `לא תועדה תנועה משמעותית כבר ${staleDays} ימים.` : `No meaningful movement has been recorded for ${staleDays} days.`, target: "applications", kind: language === "he" ? "תהליך ממתין" : "Stale waiting", applicationId: item.id, intent: "message" });
+      if (!isClosedApplicationStatus(item.status) && eventAt >= now && eventAt - now <= 72 * 60 * 60 * 1000) actions.push({ id: `app-event-${item.id}`, score: 140 - ((eventAt - now) / 3600000), label: language === "he" ? `הכנה ל${item.eventType || "ראיון"} עבור ${item.company}` : `Prepare for your ${item.eventType || "interview"} at ${item.company}`, detail: language === "he" ? `המועד הוא ${formatDate(item.eventDateTime, true)}. עברו על סיפורי STAR והשאלות שלכם.` : `It is scheduled for ${formatDate(item.eventDateTime, true)}. Review your STAR stories and questions.`, target: "applications", kind: language === "he" ? "פגישה קרובה" : "Meeting soon", applicationId: item.id, intent: "open" });
+      if (!isClosedApplicationStatus(item.status) && isPast(item.nextStepDue)) actions.push({ id: `app-due-${item.id}`, score: 125, label: item.nextStep || (language === "he" ? `פעולת המשך עבור ${item.company}` : `Follow up with ${item.company}`), detail: language === "he" ? `${item.role} · באיחור מאז ${formatDate(item.nextStepDue)}` : `${item.role} · overdue since ${formatDate(item.nextStepDue)}`, target: "applications", kind: language === "he" ? "באיחור" : "Overdue", applicationId: item.id, intent: "message" });
+      if (!isClosedApplicationStatus(item.status) && item.trafficLight === "yellow" && staleDays >= 10) actions.push({ id: `app-wait-${item.id}`, score: 98 + Math.min(12, staleDays / 2), label: language === "he" ? `בדיקת התהליך הממתין ב־${item.company}` : `Check the waiting process at ${item.company}`, detail: language === "he" ? `לא תועדה תנועה משמעותית כבר ${staleDays} ימים.` : `No meaningful movement has been recorded for ${staleDays} days.`, target: "applications", kind: language === "he" ? "תהליך ממתין" : "Stale waiting", applicationId: item.id, intent: "message" });
       if (item.priority === "High" && !hasContact && !["Accepted", "Rejected", "Withdrawn"].includes(item.status)) actions.push({ id: `app-contact-${item.id}`, score: 88, label: language === "he" ? `מציאת קשר רלוונטי ב־${item.company}` : `Add a relevant contact at ${item.company}`, detail: language === "he" ? "זו מועמדות בעדיפות גבוהה ללא מגייס, מנהל מגייס או רפרל מקושר." : "This high-priority application has no linked recruiter, hiring manager, or referral.", target: "networking", kind: language === "he" ? "חסר קשר" : "Contact gap", applicationId: item.id, intent: "open" });
       if (!["Accepted", "Rejected", "Withdrawn"].includes(item.status) && !item.nextStep.trim()) actions.push({ id: `app-plan-${item.id}`, score: 78, label: language === "he" ? `הגדרת הצעד הבא עבור ${item.company}` : `Define the next move for ${item.company}`, detail: language === "he" ? `למועמדות לתפקיד ${item.role} עדיין אין פעולה ברורה.` : `The ${item.role} application does not yet have a clear next action.`, target: "applications", kind: language === "he" ? "נדרש תכנון" : "Needs a plan", applicationId: item.id, intent: "open" });
       if (item.status === "Rejected" && !recoveryEntries.some((entry) => entry.applicationId === item.id)) actions.push({ id: `reset-${item.id}`, score: dailyMood === "difficult" ? 115 : 42, label: language === "he" ? `איפוס עדין לאחר התהליך ב־${item.company}` : `Take a gentle reset after ${item.company}`, detail: language === "he" ? "השהו, שמרו רק את מה שמועיל ובחרו צעד קטן שבשליטתכם." : "Pause, keep only what helps, and choose one manageable step within your control.", target: "carvio-reset", kind: language === "he" ? "התאוששות" : "Recover", applicationId: item.id, intent: "recover" });
@@ -2135,10 +2144,10 @@ export default function Home() {
     const pipeline = applicationStatuses.map((status) => ({ label: status, value: applications.filter((item) => item.status === status).length }));
     const signals = (["green", "yellow", "red"] as TrafficLight[]).map((signal) => ({ label: trafficLightMeta[signal].label, value: [...applications, ...contacts].filter((item) => item.trafficLight === signal).length, color: signal === "green" ? "#34d399" : signal === "yellow" ? "#fbbf24" : "#fb7185" }));
     const sources = Array.from(new Set(applications.map((item) => item.source || "Not specified"))).map((source) => ({ label: source, value: applications.filter((item) => (item.source || "Not specified") === source).length })).sort((a, b) => b.value - a.value).slice(0, 5);
-    const appOverdue = applications.filter((item) => isPast(item.nextStepDue)).length;
+    const appOverdue = applications.filter((item) => !isClosedApplicationStatus(item.status) && isPast(item.nextStepDue)).length;
     const contactOverdue = contacts.filter((item) => isPast(item.nextActionDue)).length;
-    const upcoming = applications.filter((item) => item.nextStepDue && !isPast(item.nextStepDue)).length + contacts.filter((item) => item.nextActionDue && !isPast(item.nextActionDue)).length;
-    const noDate = applications.filter((item) => !item.nextStepDue && !["Accepted", "Rejected", "Withdrawn"].includes(item.status)).length + contacts.filter((item) => !item.nextActionDue).length;
+    const upcoming = applications.filter((item) => !isClosedApplicationStatus(item.status) && item.nextStepDue && !isPast(item.nextStepDue)).length + contacts.filter((item) => item.nextActionDue && !isPast(item.nextActionDue)).length;
+    const noDate = applications.filter((item) => isActiveApplicationStatus(item.status) && !item.nextStepDue).length + contacts.filter((item) => !item.nextActionDue).length;
     const prioritiesData = priorities.map((priority) => ({ label: priority, value: applications.filter((item) => item.priority === priority).length }));
     const workModelsData = ["Remote", "Hybrid", "On-site", "Not specified"].map((model) => ({ label: model, value: applications.filter((item) => (item.workModel || "Not specified") === model).length }));
     const networkingHealth = [
@@ -2188,11 +2197,11 @@ export default function Home() {
       };
     });
     const highFitOpportunities = opportunityMatrix
-      .filter((item) => item.fit === 3 && !["Accepted", "Rejected", "Withdrawn"].includes(item.status))
+      .filter((item) => item.fit === 3 && isActiveApplicationStatus(item.status))
       .sort((a, b) => b.progression - a.progression);
     const highFitWaiting = highFitOpportunities.find((item) => item.trafficLight === "yellow" || item.overdue);
     const conversionFunnel = [
-      { label: language === "he" ? "מועמדויות שתועדו" : "Tracked applications", value: applications.length },
+      { label: language === "he" ? "מועמדויות שהוגשו" : "Submitted applications", value: applications.filter((item) => isSubmittedApplicationStatus(item.status)).length },
       { label: language === "he" ? "הגיעו לראיון" : "Reached interview", value: applications.filter((item) => item.status === "Interview" || item.status === "Offer" || item.processStages.some((stage) => /interview|ראיון/i.test(stage.name))).length },
       { label: language === "he" ? "הצעות עבודה" : "Offers", value: applications.filter((item) => item.status === "Offer").length },
     ];
@@ -2441,7 +2450,7 @@ export default function Home() {
   function applyQuickUpdate(patch: Partial<QuickUpdateDraft>) {
     if (!quickUpdateId) return;
     setQuickUpdateDraft((current) => current ? { ...current, ...patch } : current);
-    setApplications((items) => items.map((item) => item.id === quickUpdateId ? { ...item, ...patch, lastActivityAt: new Date().toISOString() } : item));
+    setApplications((items) => items.map((item) => item.id === quickUpdateId ? { ...item, ...patch, ...(patch.status === "Applied" && !item.appliedDate ? { appliedDate: new Date().toISOString().slice(0, 10) } : {}), lastActivityAt: new Date().toISOString() } : item));
   }
 
   function addTimelineEvent(application: Application) {
@@ -2536,7 +2545,8 @@ export default function Home() {
         location: item.location,
         source: item.source,
         jobUrl: item.url,
-        status: alreadyApplied ? "Applied" : "Applied",
+        status: alreadyApplied ? "Applied" : "Considering",
+        appliedDate: alreadyApplied ? new Date().toISOString().slice(0, 10) : "",
         nextStep: alreadyApplied ? "Plan follow-up" : "Review and decide whether to apply",
         trafficLight: "none",
       }),
@@ -2647,6 +2657,7 @@ export default function Home() {
       ...application,
       status,
       lastActivityAt: new Date().toISOString(),
+      ...(status === "Applied" && !application.appliedDate ? { appliedDate: new Date().toISOString().slice(0, 10) } : {}),
       ...(status === "Accepted" ? {
         trafficLight: "green" as TrafficLight,
         nextStep: "",
@@ -3198,6 +3209,7 @@ export default function Home() {
 
   const copy = uiCopy[language];
   const statusLabel = (status: ApplicationStatus) => language === "he" ? ({
+    Considering: "נשמרה לבדיקה",
     Applied: "הוגשה מועמדות",
     Interview: "ראיון",
     Offer: "הצעה",
@@ -3263,7 +3275,7 @@ export default function Home() {
             ["networking", Users2, copy.networking],
             ["tools", Wrench, copy.tools],
             ["more", BarChart3, copy.insights],
-          ] as [AppView, typeof House, string][]).map(([view, Icon, label]) => <button aria-current={activeView === view ? "page" : undefined} className={`calm-nav-button ${view === "applications" ? "calm-nav-applications" : ""} ${activeView === view ? "calm-nav-button-active" : ""}`} key={view} onClick={() => switchView(view)} type="button"><Icon className="h-4 w-4" /><span>{label}</span>{view === "applications" && <small>{applications.length}</small>}</button>)}
+          ] as [AppView, typeof House, string][]).map(([view, Icon, label]) => <button aria-current={activeView === view ? "page" : undefined} className={`calm-nav-button ${view === "applications" ? "calm-nav-applications" : ""} ${activeView === view ? "calm-nav-button-active" : ""}`} key={view} onClick={() => switchView(view)} type="button"><Icon className="h-4 w-4" /><span>{label}</span>{view === "applications" && <small>{applications.filter((item) => isActiveApplicationStatus(item.status)).length}</small>}</button>)}
           <button aria-label={language === "he" ? "חיפוש או מעבר מהיר, קיצור מקשים Command K" : "Search or jump, keyboard shortcut Command K"} className="nav-command-trigger" onClick={() => setShowCommandBar(true)} type="button"><Search className="h-4 w-4" /><span>{language === "he" ? "חיפוש או מעבר מהיר…" : "Search or jump…"}</span><kbd>⌘K</kbd></button>
         </nav>
 
@@ -3837,7 +3849,7 @@ export default function Home() {
             {safeBroadeningLabel && <button className="search-broaden-button" onClick={broadenSearchSafely} type="button">{safeBroadeningLabel}<span>{language === "he" ? "התפקיד לא ישתנה" : "Role stays unchanged"}</span></button>}
           </section>
 
-          <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_auto_auto]"><Field label={language === "he" ? "מילות החרגה" : "Exclude keywords"}><input className="form-control" onChange={(event) => updateSearchProfile({ exclude: event.target.value })} placeholder={language === "he" ? "מכירות, התמחות, ג׳וניור…" : "sales, internship, junior…"} value={searchProfile.exclude} /></Field><button className="secondary-button self-end" disabled={!resolvedSearch.role || !resolvedSearch.country} onClick={saveSearchAsApplication} type="button"><Plus className="h-4 w-4" /> {language === "he" ? "שמירה למועמדויות" : "Save to Applications"}</button><button className="primary-button search-launch-button self-end px-7" disabled={!resolvedSearch.role || !resolvedSearch.country} onClick={runJobSearch} type="button"><Search className="h-4 w-4" /> {language === "he" ? `חיפוש ב${resolvedSearch.city || resolvedSearch.country || "מיקום"}` : `Search ${resolvedSearch.city || resolvedSearch.country || "location"}`}</button></div>
+          <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_auto_auto]"><Field label={language === "he" ? "מילות החרגה" : "Exclude keywords"}><input className="form-control" onChange={(event) => updateSearchProfile({ exclude: event.target.value })} placeholder={language === "he" ? "מכירות, התמחות, ג׳וניור…" : "sales, internship, junior…"} value={searchProfile.exclude} /></Field><button className="secondary-button self-end" disabled={!resolvedSearch.role || !resolvedSearch.country} onClick={saveSearchAsApplication} type="button"><Plus className="h-4 w-4" /> {language === "he" ? "יצירת משימת חיפוש" : "Create search task"}</button><button className="primary-button search-launch-button self-end px-7" disabled={!resolvedSearch.role || !resolvedSearch.country} onClick={runJobSearch} type="button"><Search className="h-4 w-4" /> {language === "he" ? `חיפוש ב${resolvedSearch.city || resolvedSearch.country || "מיקום"}` : `Search ${resolvedSearch.city || resolvedSearch.country || "location"}`}</button></div>
           {!resolvedSearch.country && <p className="mt-2 text-xs text-amber-300">{language === "he" ? "יש לבחור מדינה. העיר אופציונלית." : "Choose a country. City is optional."}</p>}
 
           {showSearchResults && submittedSearchProfile && submittedSearch && <div aria-label={language === "he" ? "מסלולי תוצאות החיפוש" : "Search result routes"} className="search-results-shell" id="search-results" tabIndex={-1}><div className="search-results-heading"><div><p className="font-semibold text-slate-200">{language === "he" ? `מסלולי חיפוש עבור ${submittedSearch.role}` : `Search routes for ${submittedSearch.role}`}</p><p className="text-sm text-slate-500">{language === "he" ? "מחפשים:" : "Searching for:"} “{submittedSearch.role}” · {submittedSearch.location || submittedSearch.country} · {submittedSearchProfile.radius} km · {submittedSearchProfile.datePosted}</p>{searchDraftChanged && <p className="search-draft-pending">{language === "he" ? "הטופס השתנה. הקישורים למטה נשארים נעולים לחיפוש האחרון עד ללחיצה נוספת על חיפוש." : "The form has changed. Links below remain locked to the last submitted search until you search again."}</p>}</div><span><ShieldCheck className="h-4 w-4" />{language === "he" ? "צילום מצב שנשלח" : "Submitted snapshot"}</span></div><div className="search-source-grid">{submittedSearchSources.map((source, index) => <article className={`search-source-card group ${source.featured ? "search-source-featured" : ""}`} data-search-source={index === 0 ? "linkedin" : index === 1 ? "indeed" : "google"} key={source.name}><div className="flex items-center justify-between"><span className="search-source-icon" aria-hidden="true">{source.emoji}</span>{source.featured ? <span className="search-source-recommended">✓ {language === "he" ? "המסלול הראשי" : "Primary route"}</span> : <span className="search-source-rank">0{index + 1}</span>}</div><h3 className="search-source-title">{source.name}</h3><div className="search-source-signals"><span>🕒 {source.freshness}</span><span>📍 {source.accuracy}</span></div><p className="search-source-description">{source.description}</p>{source.directUrl && <div className="linkedin-launch-panel"><strong>{language === "he" ? "לא נמצאו דפי משרה מדויקים?" : "No exact listing pages?"}</strong><p>{language === "he" ? "זהו מצב אמיתי של אין תוצאות. הרחיבו דרגה, רדיוס או טריות בהדרגה — בלי לשנות את התפקיד ובלי להשתמש בהמלצות HR שאינן קשורות." : "Treat that as a truthful no-results state. Broaden seniority, radius, or freshness gradually—without changing the role or using unrelated HR recommendations."}</p>{safeBroadeningLabel && <button className="search-broaden-button" onClick={broadenSearchSafely} type="button">{safeBroadeningLabel}<span>{language === "he" ? "התפקיד לא ישתנה" : "Role stays unchanged"}</span></button>}</div>}<div className="search-query-preview"><span>{language === "he" ? "השאילתה שנשלחת" : "Outgoing query"}</span><code dir="ltr">{source.query}</code></div><div className="search-source-actions"><button onClick={() => { void copySearchQuery(source.query); }} type="button"><Copy className="h-3.5 w-3.5" />{language === "he" ? "העתקת השאילתה" : "Copy query"}</button><a aria-label={language === "he" ? `פתיחת ${source.name} עם החיפוש שנשלח` : `Open ${source.name} with the submitted search`} className="search-source-open" data-testid={`search-route-${index}`} href={source.url} rel="noopener noreferrer" target="_blank">{source.directUrl ? (language === "he" ? "תוצאות תפקיד מחמירות" : "Strict role results") : (language === "he" ? "פתיחת המקור" : "Open source")}<ArrowUpRight className="h-3.5 w-3.5" /></a>{source.directUrl && <a className="search-source-strict" data-testid="search-route-linkedin-direct" href={source.directUrl} rel="noopener noreferrer" target="_blank">{language === "he" ? "פתיחת LinkedIn ישירות" : "Open LinkedIn directly"}<ArrowUpRight className="h-3.5 w-3.5" /></a>}</div>{source.directUrl && <p className="linkedin-direct-warning">{language === "he" ? "LinkedIn עשוי להציג הצעות מותאמות או ממומנות שאינן קשורות מתחת ל־No matching jobs found. אלה אינן התאמות של Carvio." : "LinkedIn may show unrelated personalized or sponsored suggestions below “No matching jobs found.” Those are not Carvio matches."}</p>}</article>)}</div>
@@ -3864,7 +3876,8 @@ export default function Home() {
           </div>
           <div className="insights-kpi-grid">
             {[
-              { label: language === "he" ? "מועמדויות פעילות" : "Active applications", value: applications.filter((item) => !["Accepted", "Rejected", "Withdrawn"].includes(item.status)).length, icon: "💼" },
+              { label: language === "he" ? "משרות שנשמרו" : "Saved roles", value: applications.filter((item) => item.status === "Considering").length, icon: "🔖" },
+              { label: language === "he" ? "מועמדויות פעילות" : "Active applications", value: applications.filter((item) => isActiveApplicationStatus(item.status)).length, icon: "💼" },
               { label: language === "he" ? "בשלב ראיון" : "Interview stage", value: applications.filter((item) => item.status === "Interview").length, icon: "🎙️" },
               { label: language === "he" ? "הצעות" : "Offers", value: applications.filter((item) => item.status === "Offer").length, icon: "✨" },
               { label: language === "he" ? "פעולות באיחור" : "Overdue actions", value: analytics.followUps[0].value, icon: "⏰" },
@@ -3881,7 +3894,7 @@ export default function Home() {
           {expandedTools.analytics && (
           <div className={`analytics-grid mobile-insights-${mobileInsightCategory} mt-6`}>
             <AnalyticsCard title="Pipeline distribution" subtitle="Where every application currently sits" icon={<BarChart3 className="h-5 w-5" />} insight={applications.length ? `${analytics.pipeline.reduce((best, item) => item.value > best.value ? item : best, analytics.pipeline[0]).label} is currently your largest pipeline stage.` : "Add applications to reveal your pipeline shape."} recommendation={applications.some((item) => item.status === "Follow-up due") ? "Start with follow-ups before adding more applications." : "Focus on moving the strongest active applications one stage forward."}>
-              <BarRows data={analytics.pipeline} colors={["#38bdf8", "#a78bfa", "#34d399", "#14b8a6", "#fbbf24", "#fb7185", "#94a3b8"]} />
+              <BarRows data={analytics.pipeline} colors={["#22d3ee", "#38bdf8", "#a78bfa", "#34d399", "#14b8a6", "#fbbf24", "#fb7185", "#94a3b8"]} />
             </AnalyticsCard>
             <AnalyticsCard title="Traffic-light health" subtitle="White defaults are excluded for a more honest signal" icon={<Target className="h-5 w-5" />} insight={analytics.signals.reduce((sum, item) => sum + item.value, 0) ? `${analytics.signals.find((item) => item.value === Math.max(...analytics.signals.map((signal) => signal.value)))?.label} is the dominant signal across tracked relationships and opportunities.` : "No colored signals yet—white entries are intentionally excluded."} recommendation={analytics.signals.find((item) => item.label === "Blocked / closed")?.value ? "Review red items: archive closed ones and define an unblock action for the rest." : "Assign signals as soon as you know whether an item is progressing, waiting, or blocked."}>
               <DonutChart data={analytics.signals} />
@@ -4132,7 +4145,7 @@ export default function Home() {
               <Field label={language === "he" ? "תפקיד" : "Role"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, role: e.target.value })} required value={applicationDraft.role} /></Field>
             </div>
             <div className="application-stage-signal">
-              <Field label={language === "he" ? "שלב בתהליך" : "Pipeline stage"}><select className="form-control" onChange={(e) => setApplicationDraft((current) => ({ ...current, status: e.target.value as ApplicationStatus }))} value={applicationDraft.status}>{applicationStatuses.map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}</select></Field>
+              <Field label={language === "he" ? "שלב בתהליך" : "Pipeline stage"}><select className="form-control" onChange={(e) => { const status = e.target.value as ApplicationStatus; setApplicationDraft((current) => ({ ...current, status, ...(status === "Applied" && !current.appliedDate ? { appliedDate: new Date().toISOString().slice(0, 10) } : {}) })); }} value={applicationDraft.status}>{applicationStatuses.map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}</select></Field>
               <TrafficLightPicker label={language === "he" ? "צבע הרמזור בשלב הזה" : "Traffic light for this stage"} language={language} onChange={(trafficLight) => setApplicationDraft((current) => ({ ...current, trafficLight }))} value={applicationDraft.trafficLight} />
             </div>
             <div className="grid gap-4 sm:grid-cols-[1fr_210px]"><Field label={language === "he" ? "הפעולה הבאה" : "Next action"}><input className="form-control" list="application-action-options" onChange={(e) => setApplicationDraft({ ...applicationDraft, nextStep: e.target.value })} placeholder={language === "he" ? "בחרו הצעה או כתבו פעולה" : "Choose a suggestion or type an action"} required value={applicationDraft.nextStep} /></Field><Field label={language === "he" ? "תאריך ושעת יעד" : "Due date and time"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, nextStepDue: e.target.value })} type="datetime-local" value={applicationDraft.nextStepDue} /></Field></div>
@@ -4152,7 +4165,7 @@ export default function Home() {
             <div className="grid gap-4 sm:grid-cols-2"><Field label={language === "he" ? "עיר / מיקום" : "City / location"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, location: e.target.value })} value={applicationDraft.location} /></Field><Field label={language === "he" ? "מדינה" : "Country"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, country: e.target.value })} value={applicationDraft.country} /></Field></div>
             <Field label={language === "he" ? "קישור למשרה" : "Job link"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, jobUrl: e.target.value })} placeholder="https://…" type="url" value={applicationDraft.jobUrl} /></Field>
             <section className="application-snapshot-fields"><div><p><FileText className="h-4 w-4" />{language === "he" ? "צילום מצב של המשרה" : "Job snapshot"}</p><small>{language === "he" ? "שמרו את התוכן החשוב גם אם המודעה המקורית תוסר." : "Keep the important context even if the original listing is removed."}</small></div><Field label={language === "he" ? "תיאור המשרה" : "Job description"}><textarea className="form-control min-h-32 resize-y" onChange={(e) => setApplicationDraft({ ...applicationDraft, jobDescription: e.target.value })} placeholder={language === "he" ? "תחומי אחריות, הקשר על הצוות ופרטי התפקיד" : "Responsibilities, team context, and role details"} value={applicationDraft.jobDescription} /></Field><Field label={language === "he" ? "דרישות מרכזיות" : "Key requirements"}><textarea className="form-control min-h-24 resize-y" onChange={(e) => { const requirements = e.target.value; setApplicationDraft((current) => ({ ...current, requirements, requirementEvidence: syncRequirementEvidence(requirements, current.requirementEvidence) })); }} placeholder={language === "he" ? "דרישה אחת בכל שורה" : "One requirement per line"} value={applicationDraft.requirements} /></Field>{applicationDraft.requirementEvidence.length > 0 && <div className="requirement-evidence-editor"><div><p><Target className="h-4 w-4" />{language === "he" ? "מפת ראיות להתאמה" : "Fit evidence map"}</p><small>{language === "he" ? "לכל דרישה, הוסיפו דוגמה קצרה שמוכיחה התאמה. השאירו ריק אם אין עדיין ראיה." : "Add one concise proof point for each requirement. Leave it blank when evidence is still missing."}</small></div>{applicationDraft.requirementEvidence.map((item, index) => <label key={`${item.requirement}-${index}`}><span>{item.requirement}</span><textarea className="form-control" onChange={(event) => setApplicationDraft((current) => ({ ...current, requirementEvidence: current.requirementEvidence.map((entry, entryIndex) => entryIndex === index ? { ...entry, evidence: event.target.value } : entry) }))} placeholder={language === "he" ? "דוגמה, הישג או תוצאה מהניסיון שלכם" : "Example, achievement, or result from your experience"} value={item.evidence} /></label>)}</div>}</section>
-            <div className="grid gap-4 sm:grid-cols-2"><Field label={language === "he" ? "מקור" : "Source"}><input className="form-control" list="application-source-options" onChange={(e) => setApplicationDraft({ ...applicationDraft, source: e.target.value })} placeholder={language === "he" ? "בחרו או כתבו מקור" : "Choose or type a source"} value={applicationDraft.source} /></Field><Field label={language === "he" ? "תאריך הגשה" : "Applied date"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, appliedDate: e.target.value })} type="date" value={applicationDraft.appliedDate} /></Field></div>
+            <div className="grid gap-4 sm:grid-cols-2"><Field label={language === "he" ? "מקור" : "Source"}><input className="form-control" list="application-source-options" onChange={(e) => setApplicationDraft({ ...applicationDraft, source: e.target.value })} placeholder={language === "he" ? "בחרו או כתבו מקור" : "Choose or type a source"} value={applicationDraft.source} /></Field><Field label={applicationDraft.status === "Considering" ? (language === "he" ? "תאריך שמירה" : "Saved date") : (language === "he" ? "תאריך הגשה" : "Applied date")}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, appliedDate: e.target.value })} type="date" value={applicationDraft.appliedDate} /></Field></div>
             <div className="grid gap-4 sm:grid-cols-2"><Field label={language === "he" ? "רמת התאמה" : "Fit level"}><select className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, priority: e.target.value as ApplicationDraft["priority"] })} value={applicationDraft.priority}>{priorities.map((priority) => <option key={priority} value={priority}>{language === "he" ? ({ Low: "נמוכה", Medium: "בינונית", High: "גבוהה" } as Record<string, string>)[priority] : priority}</option>)}</select></Field><Field label={language === "he" ? "מודל עבודה" : "Work model"}><select className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, workModel: e.target.value as ApplicationDraft["workModel"] })} value={applicationDraft.workModel}>{workModels.map((model) => <option key={model || "unset"} value={model}>{model || (language === "he" ? "לא צוין" : "Not specified")}</option>)}</select></Field></div>
             <Field label={language === "he" ? "איש או אשת קשר בחברה" : "Company contact"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, contactName: e.target.value })} placeholder={language === "he" ? "מגייסת, מנהל מגייס או רפרל" : "Recruiter, hiring manager, or referral"} value={applicationDraft.contactName} /></Field>
             <div className="grid gap-4 sm:grid-cols-[110px_1fr_1fr]"><Field label={language === "he" ? "מטבע" : "Currency"}><select className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, salaryCurrency: e.target.value as ApplicationDraft["salaryCurrency"] })} value={applicationDraft.salaryCurrency}>{["ILS", "USD", "EUR", "GBP", "Other"].map((currency) => <option key={currency}>{currency}</option>)}</select></Field><Field label={language === "he" ? "ציפיות שכר" : "Salary expectation"}><input className="form-control" inputMode="decimal" onChange={(e) => setApplicationDraft({ ...applicationDraft, salary: e.target.value })} value={applicationDraft.salary} /></Field><Field label={language === "he" ? "טווח החברה" : "Company budget range"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, budgetRange: e.target.value })} value={applicationDraft.budgetRange} /></Field></div>
