@@ -254,6 +254,12 @@ type MessageProfile = {
   context: string;
 };
 
+type MessageContext = {
+  applicationLabel: string;
+  contactLabel: string;
+  loadedFields: string[];
+};
+
 type RecoveryNeed = "I need a moment" | "Help me learn" | "Help me close the loop" | "Help me move forward";
 
 type RecoveryEntry = {
@@ -1550,6 +1556,7 @@ export default function Home() {
   const [submittedSearchProfile, setSubmittedSearchProfile] = useState<SearchProfile | null>(null);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [messageProfile, setMessageProfile] = useState<MessageProfile>(emptyMessageProfile);
+  const [messageContext, setMessageContext] = useState<MessageContext | null>(null);
   const [generatedMessage, setGeneratedMessage] = useState("");
   const [messageSubjectDraft, setMessageSubjectDraft] = useState("");
   const [showEmailHandoff, setShowEmailHandoff] = useState(false);
@@ -2878,19 +2885,72 @@ export default function Home() {
       || (application.contactName && contact.name === application.contactName)
       || (contact.linkedApplicationId === application.id && contact.company === application.company)
     );
+    const evidence = application.requirementEvidence.find((item) => item.evidence.trim())?.evidence.trim() || "";
+    const recipientName = application.contactName || linkedContact?.name || "";
+    const recipientEmail = linkedContact?.email || "";
+    setWorkspaceApplicationId(null);
     setMessageProfile({
       ...emptyMessageProfile,
       recipientType: application.contactName || linkedContact ? "Recruiter" : "Hiring manager",
       intent: "Follow up after applying",
-      recipientName: application.contactName || linkedContact?.name || "",
-      recipientEmail: linkedContact?.email || "",
+      recipientName,
+      recipientEmail,
       company: application.company,
       role: application.role,
+      senderName: userProfile.name,
+      value: evidence,
+    });
+    setMessageContext({
+      applicationLabel: `${application.role} · ${application.company}`,
+      contactLabel: linkedContact?.name || application.contactName || "",
+      loadedFields: [recipientName && "recipient", recipientEmail && "email", application.company && "company", application.role && "role", userProfile.name && "sender", evidence && "evidence"].filter(Boolean) as string[],
     });
     setGeneratedMessage("");
     setMessageSubjectDraft("");
     setShowEmailHandoff(false);
     setExpandedTools((current) => ({ ...current, studio: true }));
+    navigateToSection("message-studio");
+  }
+
+  function openOutreachForContact(contact: Contact) {
+    const linkedApplication = applications.find((application) => application.id === contact.linkedApplicationId)
+      || applications.find((application) => contact.company && application.company.trim().toLowerCase() === contact.company.trim().toLowerCase() && isActiveApplicationStatus(application.status));
+    const relationship = contact.relationship.toLowerCase();
+    const recipientType: MessageProfile["recipientType"] = /recruit/.test(relationship)
+      ? "Recruiter"
+      : /hiring|manager/.test(relationship)
+        ? "Hiring manager"
+        : /referr/.test(relationship)
+          ? "Referral"
+          : "Networking contact";
+    const evidence = linkedApplication?.requirementEvidence.find((item) => item.evidence.trim())?.evidence.trim() || "";
+    const company = contact.company || linkedApplication?.company || "";
+    const role = linkedApplication?.role || userProfile.targetRole || "";
+    const intent: MessageProfile["intent"] = linkedApplication && isSubmittedApplicationStatus(linkedApplication.status)
+      ? "Follow up after applying"
+      : recipientType === "Referral"
+        ? "Ask for a referral"
+        : "Request a conversation";
+    setMessageProfile({
+      ...emptyMessageProfile,
+      recipientType,
+      intent,
+      recipientName: contact.name,
+      recipientEmail: contact.email,
+      company,
+      role,
+      senderName: userProfile.name,
+      value: evidence,
+    });
+    setMessageContext({
+      applicationLabel: linkedApplication ? `${linkedApplication.role} · ${linkedApplication.company}` : "",
+      contactLabel: `${contact.name}${contact.company ? ` · ${contact.company}` : ""}`,
+      loadedFields: [contact.name && "recipient", contact.email && "email", company && "company", role && "role", userProfile.name && "sender", evidence && "evidence"].filter(Boolean) as string[],
+    });
+    setGeneratedMessage("");
+    setMessageSubjectDraft("");
+    setShowEmailHandoff(false);
+    setExpandedTools((current) => ({ ...current, studio: true, social: false, cv: false, interview: false, offer: false }));
     navigateToSection("message-studio");
   }
 
@@ -2910,7 +2970,13 @@ export default function Home() {
       recipientEmail: linkedContact?.email || "",
       company: application.company,
       role: application.role,
+      senderName: userProfile.name,
       context: application.interviewPreparation.thankYouHighlight.trim(),
+    });
+    setMessageContext({
+      applicationLabel: `${application.role} · ${application.company}`,
+      contactLabel: linkedContact?.name || application.contactName || "",
+      loadedFields: [application.company && "company", application.role && "role", (linkedContact?.name || application.contactName) && "recipient", linkedContact?.email && "email", application.interviewPreparation.thankYouHighlight.trim() && "interview highlight"].filter(Boolean) as string[],
     });
     setGeneratedMessage("");
     setMessageSubjectDraft("");
@@ -2954,6 +3020,15 @@ export default function Home() {
 
   function updateMessageProfile(patch: Partial<MessageProfile>) {
     setMessageProfile((current) => ({ ...current, ...patch }));
+  }
+
+  function clearMessageContext() {
+    setMessageProfile({ ...emptyMessageProfile, senderName: userProfile.name });
+    setMessageContext(null);
+    setGeneratedMessage("");
+    setMessageSubjectDraft("");
+    setShowEmailHandoff(false);
+    setNotice(language === "he" ? "ההקשר שנטען נוקה. אפשר להתחיל הודעה חדשה." : "Loaded context cleared. You can start a new message.");
   }
 
   function createOutreachDraft() {
@@ -3589,7 +3664,7 @@ export default function Home() {
                   <p className="mobile-record-next"><small>{language === "he" ? "הפעולה הבאה" : "Next move"}</small><strong>{contact.nextAction || (language === "he" ? "לא הוגדרה" : "Not set")}</strong></p>
                   <div className="mobile-record-meta"><span>{contact.nextActionDue ? `⏱ ${formatDate(contact.nextActionDue)}` : (language === "he" ? "ללא מועד" : "No date")}</span>{contact.eventDateTime && <span>📅 {formatDate(contact.eventDateTime, true)}</span>}</div>
                   {isExpanded && <div className="mobile-record-details"><span>{contact.email || contact.phone || "—"}</span><p>{contact.notes || (language === "he" ? "אין הערות" : "No notes")}</p></div>}
-                  <div className="mobile-record-actions"><button onClick={() => openEditContact(contact)} type="button"><Pencil className="h-4 w-4" />{language === "he" ? "עריכה" : "Edit"}</button>{contact.eventDateTime && <button onClick={() => downloadICS(`${contact.eventType} with ${contact.name}`, contact.eventDateTime, contact.notes || contact.nextAction, contact.company)} type="button"><CalendarPlus className="h-4 w-4" />{language === "he" ? "יומן" : "Calendar"}</button>}<button aria-expanded={isExpanded} onClick={() => setExpandedContactId(isExpanded ? null : contact.id)} type="button">{language === "he" ? "פרטים" : "Details"}<ChevronDown className={`h-4 w-4 transition ${isExpanded ? "rotate-180" : ""}`} /></button></div>
+                  <div className="mobile-record-actions"><button onClick={() => openOutreachForContact(contact)} type="button"><MessagesSquare className="h-4 w-4" />{language === "he" ? "הודעה" : "Message"}</button><button onClick={() => openEditContact(contact)} type="button"><Pencil className="h-4 w-4" />{language === "he" ? "עריכה" : "Edit"}</button>{contact.eventDateTime && <button onClick={() => downloadICS(`${contact.eventType} with ${contact.name}`, contact.eventDateTime, contact.notes || contact.nextAction, contact.company)} type="button"><CalendarPlus className="h-4 w-4" />{language === "he" ? "יומן" : "Calendar"}</button>}<button aria-expanded={isExpanded} onClick={() => setExpandedContactId(isExpanded ? null : contact.id)} type="button">{language === "he" ? "פרטים" : "Details"}<ChevronDown className={`h-4 w-4 transition ${isExpanded ? "rotate-180" : ""}`} /></button></div>
                 </article>;
               })}
             </div>
@@ -3629,6 +3704,7 @@ export default function Home() {
                             <div className="application-detail-block application-detail-notes"><span>{language === "he" ? "הערות" : "Notes"}</span><p>{contact.notes || (language === "he" ? "אין הערות" : "No notes")}</p></div>
                           </div>
                           <div className="application-detail-actions">
+                            <button className="text-button text-cyan-300" onClick={() => openOutreachForContact(contact)} type="button"><MessagesSquare className="h-4 w-4" />{language === "he" ? "כתיבת הודעה" : "Write message"}</button>
                             <button className="text-button" onClick={() => openEditContact(contact)} type="button"><Pencil className="h-4 w-4" />{language === "he" ? "עריכה" : "Edit"}</button>
                             {contact.email && <a className="text-button text-cyan-300" href={`mailto:${contact.email}`}><Mail className="h-4 w-4" />{language === "he" ? "מייל" : "Email"}</a>}
                             {contact.phone && <a className="text-button text-emerald-300" href={`tel:${contact.phone}`}><Phone className="h-4 w-4" />{language === "he" ? "שיחה" : "Call"}</a>}
@@ -3650,12 +3726,18 @@ export default function Home() {
 
         <section className={`calm-view message-studio-panel ${activeView !== "tools" ? "calm-view-hidden" : ""}`} id="message-studio">
           <div className="section-heading tool-card-heading relative">
-            <div className="tool-card-copy"><p className="eyebrow flex items-center gap-2 text-pink-300"><MessagesSquare className="h-4 w-4" /> {copy.studio}</p><h2 className="section-title">{language === "he" ? "כתבו פנייה ממוקדת המבוססת על ההקשר שלכם" : "Write focused outreach from your real context"}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">{language === "he" ? "בחרו למי פונים, את הטון ואת המטרה. Carvio משתמש בתבנית מקומית ושקופה שאפשר לערוך לפני שליחה; אין כאן מודל AI חי." : "Choose the recipient, tone, and goal. Carvio uses a transparent local template you can edit before sending; no live AI model is involved."}</p>{(messageProfile.intent === "Follow up after applying" || messageProfile.intent === "Thank them") && messageProfile.company && messageProfile.role && <p className="message-application-context"><CheckCircle2 className="h-4 w-4" />{messageProfile.intent === "Thank them" ? (language === "he" ? `טיוטת תודה לאחר הראיון עבור ${messageProfile.role} ב־${messageProfile.company}` : `Post-interview thank-you for ${messageProfile.role} at ${messageProfile.company}`) : (language === "he" ? `הפרטים נטענו מהמועמדות: ${messageProfile.role} ב־${messageProfile.company}` : `Loaded from your application: ${messageProfile.role} at ${messageProfile.company}`)}</p>}</div>
+            <div className="tool-card-copy">
+              <p className="eyebrow flex items-center gap-2 text-pink-300"><MessagesSquare className="h-4 w-4" /> {copy.studio}</p>
+              <h2 className="section-title">{language === "he" ? "כתבו פנייה ממוקדת המבוססת על ההקשר שלכם" : "Write focused outreach from your real context"}</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">{language === "he" ? "בחרו למי פונים, את הטון ואת המטרה. Carvio משתמש בתבנית מקומית ושקופה שאפשר לערוך לפני שליחה; אין כאן מודל AI חי." : "Choose the recipient, tone, and goal. Carvio uses a transparent local template you can edit before sending; no live AI model is involved."}</p>
+              {messageContext && <div className="message-application-context"><CheckCircle2 className="h-4 w-4" /><span><strong>{language === "he" ? "הקשר נטען אוטומטית" : "Context loaded automatically"}</strong><small>{[messageContext.applicationLabel && `${language === "he" ? "מועמדות" : "Application"}: ${messageContext.applicationLabel}`, messageContext.contactLabel && `${language === "he" ? "איש קשר" : "Contact"}: ${messageContext.contactLabel}`].filter(Boolean).join(" · ")}</small><small>{language === "he" ? `${messageContext.loadedFields.length} פרטים מולאו וניתנים לעריכה` : `${messageContext.loadedFields.length} editable details were filled`}</small></span><button onClick={(event) => { event.stopPropagation(); clearMessageContext(); }} type="button">{language === "he" ? "ניקוי ההקשר" : "Clear context"}</button></div>}
+            </div>
             <figure className="tool-card-illustration tool-card-illustration-message"><Image alt={language === "he" ? "איור של ניסוח הודעה מקצועית וממוקדת בסביבת עבודה רגועה" : "Illustration of drafting thoughtful professional outreach in a calm workspace"} fill sizes="(max-width: 767px) 92px, 176px" src="/carvio-support-tools-v1.jpg" /><span aria-hidden="true"><MessagesSquare className="h-4 w-4" /></span></figure>
             <div className="tool-card-actions"><button aria-expanded={expandedTools.studio} className="secondary-button" onClick={() => setExpandedTools((current) => ({ ...current, studio: !current.studio, social: false, cv: false, interview: false, offer: false }))} type="button">{language === "he" ? (expandedTools.studio ? "סגירת הסטודיו" : "פתיחת הסטודיו") : (expandedTools.studio ? "Close studio" : "Open studio")}<ChevronDown className={`h-4 w-4 transition ${expandedTools.studio ? "rotate-180" : ""}`} /></button></div>
           </div>
           {expandedTools.studio && (
           <div className="message-studio-workspace relative mt-6 grid gap-6">
+            {messageContext && <div className="message-context-control"><span>{language === "he" ? "הפרטים הגיעו ממועמדות או מאיש קשר ונשארים בשליטתכם." : "These details came from an application or contact and remain under your control."}</span><button className="secondary-button" onClick={clearMessageContext} type="button">{language === "he" ? "התחלת הודעה ריקה" : "Start a blank message"}</button></div>}
             <div className="space-y-5">
               <fieldset><legend className="text-sm font-semibold text-slate-200">{language === "he" ? "1. למי פונים?" : "1. Who are you contacting?"}</legend><div aria-label={language === "he" ? "סוג הנמען" : "Recipient type"} className="message-choice-grid mt-3 grid grid-cols-2 gap-2" role="radiogroup">{([{"label":"Recruiter","emoji":"🧲"},{"label":"Hiring manager","emoji":"🎯"},{"label":"Referral","emoji":"🤝"},{"label":"Networking contact","emoji":"☕"}] as { label: MessageProfile["recipientType"]; emoji: string }[]).map((item) => <button aria-checked={messageProfile.recipientType === item.label} className={`choice-card ${messageProfile.recipientType === item.label ? "choice-card-active" : ""}`} key={item.label} onClick={() => updateMessageProfile({ recipientType: item.label })} role="radio" type="button"><span className="text-2xl" aria-hidden="true">{item.emoji}</span><span>{language === "he" ? ({ Recruiter: "מגייס או מגייסת", "Hiring manager": "מנהל או מנהלת מגייסת", Referral: "בקשת הפניה", "Networking contact": "איש קשר מקצועי" } as Record<MessageProfile["recipientType"], string>)[item.label] : item.label}</span></button>)}</div></fieldset>
               <fieldset><legend className="text-sm font-semibold text-slate-200">{language === "he" ? "2. מה מטרת הפנייה?" : "2. What do you want?"}</legend><div aria-label={language === "he" ? "מטרת הפנייה" : "Message goal"} className="message-pill-group mt-3 flex flex-wrap gap-2" role="radiogroup">{(["Introduce myself", "Ask for a referral", "Follow up after applying", "Request a conversation", "Thank them"] as MessageProfile["intent"][]).map((intent) => <button aria-checked={messageProfile.intent === intent} className={`message-pill ${messageProfile.intent === intent ? "message-pill-active" : ""}`} key={intent} onClick={() => updateMessageProfile({ intent })} role="radio" type="button">{language === "he" ? ({ "Introduce myself": "להציג את עצמי", "Ask for a referral": "לבקש הפניה", "Follow up after applying": "פעולת המשך לאחר הגשה", "Request a conversation": "לבקש שיחה", "Thank them": "להודות" } as Record<MessageProfile["intent"], string>)[intent] : intent}</button>)}</div></fieldset>
@@ -4222,7 +4304,7 @@ export default function Home() {
               <Field label="What would be useful to carry forward? (optional)"><textarea className="form-control min-h-20 resize-y" defaultValue={activeRecoveryEntry?.learning} name="learning" placeholder="One learning—not a judgment about yourself" /></Field>
               <Field label="What was outside your control? (optional)"><textarea className="form-control min-h-20 resize-y" defaultValue={activeRecoveryEntry?.outsideControl} name="outsideControl" placeholder="Internal candidate, changed budget, timing, team decision…" /></Field>
             </>}
-            {recoveryNeed === "Help me close the loop" && <button className="secondary-button w-full border-pink-400/20 bg-pink-400/5" onClick={() => { setMessageProfile({ ...emptyMessageProfile, recipientType: "Recruiter", intent: "Thank them", tone: "Warm & professional", company: recoveryApplication.company, role: recoveryApplication.role }); setGeneratedMessage(""); setMessageSubjectDraft(""); setShowEmailHandoff(false); setRecoveryApplication(null); navigateToSection("message-studio"); }} type="button">💌 Open a thank-you message in Message Studio</button>}
+            {recoveryNeed === "Help me close the loop" && <button className="secondary-button w-full border-pink-400/20 bg-pink-400/5" onClick={() => { setMessageProfile({ ...emptyMessageProfile, recipientType: "Recruiter", intent: "Thank them", tone: "Warm & professional", company: recoveryApplication.company, role: recoveryApplication.role, senderName: userProfile.name }); setMessageContext({ applicationLabel: `${recoveryApplication.role} · ${recoveryApplication.company}`, contactLabel: "", loadedFields: ["company", "role", userProfile.name && "sender"].filter(Boolean) as string[] }); setGeneratedMessage(""); setMessageSubjectDraft(""); setShowEmailHandoff(false); setRecoveryApplication(null); navigateToSection("message-studio"); }} type="button">💌 Open a thank-you message in Message Studio</button>}
             <Field label="One gentle next step"><input className="form-control" defaultValue={activeRecoveryEntry?.nextAction} name="nextAction" placeholder={recoveryNeed === "I need a moment" ? "e.g. Return to Carvio tomorrow afternoon" : "e.g. Send one thank-you note, then stop for today"} /></Field>
             <div className="rounded-xl bg-white/[0.03] p-3 text-xs leading-5 text-slate-500">If the feelings become overwhelming or extend beyond the job search, consider speaking with someone you trust or a qualified professional. Carvio is here to support reflection, not replace human care.</div>
             <div className="modal-actions"><button className="secondary-button" onClick={() => setRecoveryApplication(null)} type="button">Not now</button><button className="primary-button bg-emerald-500 hover:bg-emerald-400" type="submit"><HeartHandshake className="h-4 w-4" /> Save my reset</button></div>

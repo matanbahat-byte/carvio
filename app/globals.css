@@ -8170,8 +8170,15 @@ html[data-carvio-theme="light"] {
 
 /* Message Studio: reliable choices, useful editor, and explicit email handoff. */
 .message-studio-panel { overflow:visible !important; }
-.message-application-context { display:inline-flex; width:fit-content; align-items:center; gap:.4rem; margin-top:.75rem; padding:.38rem .58rem; border:1px solid color-mix(in srgb,var(--cv-primary) 32%,var(--cv-border)); border-radius:999px; color:var(--cv-primary-ink); background:color-mix(in srgb,var(--cv-primary) 10%,var(--cv-surface)); font-size:.68rem; font-weight:750; line-height:1rem; }
-.message-application-context svg { flex:0 0 auto; }
+.message-application-context { display:flex; width:min(100%,46rem); align-items:flex-start; gap:.55rem; margin-top:.75rem; padding:.65rem .75rem; border:1px solid color-mix(in srgb,var(--cv-primary) 32%,var(--cv-border)); border-radius:1rem; color:var(--cv-primary-ink); background:color-mix(in srgb,var(--cv-primary) 10%,var(--cv-surface)); font-size:.72rem; line-height:1.15rem; }
+.message-application-context svg { flex:0 0 auto; margin-top:.12rem; }
+.message-application-context span { display:grid; min-width:0; flex:1; gap:.08rem; }
+.message-application-context strong { font-size:.76rem; }
+.message-application-context small { color:var(--cv-muted); font-weight:650; overflow-wrap:anywhere; }
+.message-application-context button { position:relative; z-index:10; flex:0 0 auto; border:1px solid color-mix(in srgb,var(--cv-primary) 28%,var(--cv-border)); border-radius:.7rem; padding:.28rem .48rem; color:var(--cv-primary-ink); background:var(--cv-surface); font-size:.67rem; font-weight:750; cursor:pointer; pointer-events:auto; }
+.message-application-context button { display:none; }
+.message-context-control { display:flex; align-items:center; justify-content:space-between; gap:.75rem; padding:.7rem .8rem; border:1px solid color-mix(in srgb,var(--cv-primary) 24%,var(--cv-border)); border-radius:1rem; background:color-mix(in srgb,var(--cv-primary) 6%,var(--cv-surface)); color:var(--cv-muted); font-size:.76rem; }
+.message-context-control .secondary-button { min-height:2.25rem; padding:.42rem .7rem; white-space:nowrap; }
 .message-studio-workspace { grid-template-columns:minmax(0,1fr); align-items:start; }
 .message-choice-grid,
 .message-pill-group { position:relative; z-index:1; pointer-events:auto; }
