@@ -107,7 +107,8 @@ type TrafficLight = (typeof trafficLights)[number];
 type AppView = "home" | "search" | "applications" | "networking" | "tools" | "more";
 type ApplicationViewMode = "table" | "kanban" | "calendar";
 type ProcessStage = { id: string; name: string; date: string; dateTime?: string; trafficLight: TrafficLight; note?: string; nextTask?: string };
-type RequirementEvidence = { requirement: string; evidence: string };
+type RequirementCategory = "Experience" | "Skills" | "Tools" | "Education" | "Other";
+type RequirementEvidence = { requirement: string; evidence: string; category?: RequirementCategory };
 type InterviewPreparation = {
   companyResearch: string;
   starStories: string;
@@ -796,7 +797,7 @@ function normalizeApplication(value: Partial<Application>): Application {
       value.requirements || "",
       Array.isArray(value.requirementEvidence) ? value.requirementEvidence
         .filter((item): item is RequirementEvidence => Boolean(item && typeof item.requirement === "string" && typeof item.evidence === "string"))
-        .map((item) => ({ requirement: item.requirement, evidence: item.evidence })) : [],
+        .map((item) => ({ requirement: item.requirement, evidence: item.evidence, category: item.category })) : [],
     ),
     interviewPreparation: {
       ...emptyApplication.interviewPreparation,
@@ -853,35 +854,65 @@ function workspaceActionReason(application: Application, language: "en" | "he") 
     : "This is the next move saved for this opportunity—completing it keeps the process moving.";
 }
 
+const requirementHeadings = /^(?:requirements?|qualifications?|what you(?:'|’)ll bring|what we(?:'|’)re looking for|skills?|experience|דרישות|כישורים|מה נדרש|ניסיון)\s*:?\s*$/i;
+const nonRequirementHeadings = /^(?:responsibilities|about (?:the role|you|us)|benefits|what we offer|the opportunity|תחומי אחריות|על התפקיד|אודות|מה אנחנו מציעים)\s*:?\s*$/i;
+
+function splitRequirementText(value: string) {
+  return value
+    .replace(/\r/g, "")
+    .split(/\n+|\s*[;；]\s*|(?<=[.!?])\s+(?=[A-Z\u0590-\u05FF])/u)
+    .map((item) => item.replace(/^\s*(?:[-–—•*✓]|\d+[.)])\s*/, "").replace(/\s+/g, " ").trim())
+    .filter((item) => item.length >= 3);
+}
+
+function requirementCategory(requirement: string): RequirementCategory {
+  if (/\b(?:degree|bachelor|master|phd|education|certification)\b|תואר|השכלה|הסמכה/i.test(requirement)) return "Education";
+  if (/\b(?:years?|experience|background|led|managed|senior)\b|ניסיון|שנים|ניהול|הובלה/i.test(requirement)) return "Experience";
+  if (/\b(?:figma|sql|excel|jira|salesforce|python|javascript|typescript|react|software|platform|tool)\b|תוכנה|מערכת|כלי/i.test(requirement)) return "Tools";
+  if (/\b(?:skill|ability|communication|collaboration|analytical|strategic|fluent|language|proficien)\b|יכולת|כישורים|תקשורת|אנגלית|עברית/i.test(requirement)) return "Skills";
+  return "Other";
+}
+
+function uniqueRequirements(items: string[], limit = 12) {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = item.toLocaleLowerCase().replace(/[.!?]+$/, "").trim();
+    if (item.length < 8 || item.length > 320 || seen.has(key) || requirementHeadings.test(item) || nonRequirementHeadings.test(item)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, limit);
+}
+
 function extractJobRequirements(description: string) {
   if (!description.trim()) return [];
-  const cleanedLines = description
-    .split(/\n+/)
-    .map((line) => line.replace(/^\s*(?:[-–—•*✓]|\d+[.)])\s*/, "").trim())
-    .filter(Boolean);
-  const sectionHeading = /^(?:requirements?|qualifications?|what you(?:'|’)ll bring|what we(?:'|’)re looking for|skills?|experience|דרישות|כישורים|מה נדרש|ניסיון)\s*:?[\s]*$/i;
-  const anyHeading = /^(?:responsibilities|about (?:the role|you|us)|benefits|what we offer|the opportunity|תחומי אחריות|על התפקיד|אודות|מה אנחנו מציעים)\s*:?[\s]*$/i;
-  const headingIndex = cleanedLines.findIndex((line) => sectionHeading.test(line));
-  let candidates = headingIndex >= 0
-    ? cleanedLines.slice(headingIndex + 1).filter((line, index, items) => !items.slice(0, index + 1).some((item, itemIndex) => itemIndex < index && anyHeading.test(item)))
-    : cleanedLines.filter((line) => /\b(?:years?|experience|required|must|proficien|ability|knowledge|degree|background)\b|ניסיון|חובה|יכולת|ידע|תואר/i.test(line));
-  if (!candidates.length) {
-    candidates = description.split(/[.!?]\s+/).map((line) => line.trim()).filter((line) => line.length >= 28 && line.length <= 220);
+  const lines = description.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+  const candidates: string[] = [];
+  let inRequirements = false;
+  for (const line of lines) {
+    const inlineHeading = line.match(/^(?:requirements?|qualifications?|skills?|experience|דרישות|כישורים|מה נדרש|ניסיון)\s*:\s*(.+)$/i);
+    if (inlineHeading) {
+      inRequirements = true;
+      candidates.push(...splitRequirementText(inlineHeading[1]));
+      continue;
+    }
+    const cleanLine = line.replace(/^\s*(?:[-–—•*✓]|\d+[.)])\s*/, "").trim();
+    if (requirementHeadings.test(cleanLine)) { inRequirements = true; continue; }
+    if (inRequirements && nonRequirementHeadings.test(cleanLine)) break;
+    if (inRequirements) candidates.push(...splitRequirementText(cleanLine));
   }
-  return candidates
-    .map((line) => line.replace(/^(?:requirements?|qualifications?|דרישות|כישורים)\s*:\s*/i, "").trim())
-    .filter((line) => line.length >= 8 && line.length <= 260 && !sectionHeading.test(line) && !anyHeading.test(line))
-    .slice(0, 6);
+  const signaled = lines.flatMap(splitRequirementText).filter((line) => /\b(?:years?|experience|required|must|proficien|ability|knowledge|degree|background)\b|ניסיון|חובה|יכולת|ידע|תואר/i.test(line));
+  const fallback = splitRequirementText(description).filter((line) => line.length >= 28 && line.length <= 220);
+  return uniqueRequirements(candidates.length ? candidates : signaled.length ? signaled : fallback);
 }
 
 function syncRequirementEvidence(requirements: string, current: RequirementEvidence[]) {
   const existing = new Map(current.map((item) => [item.requirement.trim().toLowerCase(), item.evidence]));
-  return requirements
-    .split(/\n|•/)
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .slice(0, 8)
-    .map((requirement) => ({ requirement, evidence: existing.get(requirement.toLowerCase()) || "" }));
+  const existingCategories = new Map(current.map((item) => [item.requirement.trim().toLowerCase(), item.category]));
+  return uniqueRequirements(splitRequirementText(requirements)).map((requirement) => ({
+    requirement,
+    evidence: existing.get(requirement.toLowerCase()) || "",
+    category: existingCategories.get(requirement.toLowerCase()) || requirementCategory(requirement),
+  }));
 }
 
 function jobSnapshotHealth(application: Application, language: "en" | "he") {
@@ -2393,6 +2424,58 @@ export default function Home() {
     }).filter((item) => !hiddenJobIds.includes(item.id));
   }, [hiddenJobIds, language, submittedSearch, submittedSearchProfile, showSearchResults]);
 
+  function replaceDraftRequirements(items: RequirementEvidence[]) {
+    const normalized = items
+      .map((item) => ({ ...item, requirement: item.requirement.trim(), category: item.category || requirementCategory(item.requirement) }))
+      .filter((item) => item.requirement)
+      .slice(0, 12);
+    setApplicationDraft((current) => ({
+      ...current,
+      requirements: normalized.map((item) => item.requirement).join("\n"),
+      requirementEvidence: normalized,
+    }));
+  }
+
+  function detectDraftRequirements() {
+    const detected = extractJobRequirements(applicationDraft.jobDescription);
+    if (!detected.length) {
+      setNotice(language === "he" ? "לא זוהו דרישות ברורות. אפשר להוסיף אותן ידנית." : "No clear requirements were detected. You can add them manually.");
+      return;
+    }
+    const synced = syncRequirementEvidence(detected.join("\n"), applicationDraft.requirementEvidence);
+    replaceDraftRequirements(synced);
+    setNotice(language === "he" ? `${synced.length} דרישות זוהו וסודרו. כדאי לעבור עליהן לפני השמירה.` : `${synced.length} requirements were detected and organized. Review them before saving.`);
+  }
+
+  function updateDraftRequirement(index: number, patch: Partial<RequirementEvidence>) {
+    setApplicationDraft((current) => {
+      const requirementEvidence = current.requirementEvidence.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item);
+      return { ...current, requirements: requirementEvidence.map((item) => item.requirement).join("\n"), requirementEvidence };
+    });
+  }
+
+  function splitDraftRequirement(index: number) {
+    const item = applicationDraft.requirementEvidence[index];
+    const parts = uniqueRequirements(splitRequirementText(item.requirement), 12);
+    if (parts.length < 2) return;
+    replaceDraftRequirements(applicationDraft.requirementEvidence.flatMap((entry, itemIndex) => itemIndex === index
+      ? parts.map((requirement, partIndex) => ({ requirement, evidence: partIndex === 0 ? entry.evidence : "", category: requirementCategory(requirement) }))
+      : [entry]));
+  }
+
+  function mergeDraftRequirement(index: number) {
+    if (index < 1) return;
+    const items = [...applicationDraft.requirementEvidence];
+    const previous = items[index - 1];
+    const current = items[index];
+    items.splice(index - 1, 2, {
+      requirement: `${previous.requirement}; ${current.requirement}`,
+      evidence: [previous.evidence, current.evidence].filter(Boolean).join(" · "),
+      category: previous.category || current.category || "Other",
+    });
+    replaceDraftRequirements(items);
+  }
+
   function smartCaptureApplication() {
     setSmartCaptureError("");
     let parsed: URL;
@@ -2419,7 +2502,7 @@ export default function Home() {
       jobUrl: parsed.toString(),
       jobDescription: smartCaptureText.trim(),
       requirements: detectedRequirements.join("\n"),
-      requirementEvidence: detectedRequirements.map((requirement) => ({ requirement, evidence: "" })),
+      requirementEvidence: detectedRequirements.map((requirement) => ({ requirement, evidence: "", category: requirementCategory(requirement) })),
       capturedAt: new Date().toISOString(),
       source: /linkedin/i.test(host) ? "LinkedIn" : /indeed/i.test(host) ? "Indeed" : "Company careers page",
       nextStep: language === "he" ? "בדיקת התפקיד והתאמת קורות החיים" : "Review the role and tailor the CV",
@@ -4246,7 +4329,20 @@ export default function Home() {
             </div>
             <div className="grid gap-4 sm:grid-cols-2"><Field label={language === "he" ? "עיר / מיקום" : "City / location"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, location: e.target.value })} value={applicationDraft.location} /></Field><Field label={language === "he" ? "מדינה" : "Country"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, country: e.target.value })} value={applicationDraft.country} /></Field></div>
             <Field label={language === "he" ? "קישור למשרה" : "Job link"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, jobUrl: e.target.value })} placeholder="https://…" type="url" value={applicationDraft.jobUrl} /></Field>
-            <section className="application-snapshot-fields"><div><p><FileText className="h-4 w-4" />{language === "he" ? "צילום מצב של המשרה" : "Job snapshot"}</p><small>{language === "he" ? "שמרו את התוכן החשוב גם אם המודעה המקורית תוסר." : "Keep the important context even if the original listing is removed."}</small></div><Field label={language === "he" ? "תיאור המשרה" : "Job description"}><textarea className="form-control min-h-32 resize-y" onChange={(e) => setApplicationDraft({ ...applicationDraft, jobDescription: e.target.value })} placeholder={language === "he" ? "תחומי אחריות, הקשר על הצוות ופרטי התפקיד" : "Responsibilities, team context, and role details"} value={applicationDraft.jobDescription} /></Field><Field label={language === "he" ? "דרישות מרכזיות" : "Key requirements"}><textarea className="form-control min-h-24 resize-y" onChange={(e) => { const requirements = e.target.value; setApplicationDraft((current) => ({ ...current, requirements, requirementEvidence: syncRequirementEvidence(requirements, current.requirementEvidence) })); }} placeholder={language === "he" ? "דרישה אחת בכל שורה" : "One requirement per line"} value={applicationDraft.requirements} /></Field>{applicationDraft.requirementEvidence.length > 0 && <div className="requirement-evidence-editor"><div><p><Target className="h-4 w-4" />{language === "he" ? "מפת ראיות להתאמה" : "Fit evidence map"}</p><small>{language === "he" ? "לכל דרישה, הוסיפו דוגמה קצרה שמוכיחה התאמה. השאירו ריק אם אין עדיין ראיה." : "Add one concise proof point for each requirement. Leave it blank when evidence is still missing."}</small></div>{applicationDraft.requirementEvidence.map((item, index) => <label key={`${item.requirement}-${index}`}><span>{item.requirement}</span><textarea className="form-control" onChange={(event) => setApplicationDraft((current) => ({ ...current, requirementEvidence: current.requirementEvidence.map((entry, entryIndex) => entryIndex === index ? { ...entry, evidence: event.target.value } : entry) }))} placeholder={language === "he" ? "דוגמה, הישג או תוצאה מהניסיון שלכם" : "Example, achievement, or result from your experience"} value={item.evidence} /></label>)}</div>}</section>
+            <section className="application-snapshot-fields">
+              <div><p><FileText className="h-4 w-4" />{language === "he" ? "צילום מצב של המשרה" : "Job snapshot"}</p><small>{language === "he" ? "הטקסט המקורי נשמר כמקור אמת. הדרישות המסודרות נשארות נפרדות וניתנות לעריכה." : "The original text stays as the source of truth. Organized requirements remain separate and editable."}</small></div>
+              <Field label={language === "he" ? "תיאור המשרה המקורי" : "Original job description"}><textarea className="form-control min-h-32 resize-y" onChange={(e) => setApplicationDraft({ ...applicationDraft, jobDescription: e.target.value })} placeholder={language === "he" ? "הדביקו את תוכן המודעה כפי שפורסם" : "Paste the listing exactly as published"} value={applicationDraft.jobDescription} /></Field>
+              <div className="requirements-detection-bar"><div><strong>{language === "he" ? "חילוץ דרישות מקומי" : "Local requirement extraction"}</strong><small>{language === "he" ? "מזהה רשימות, משפטים ונקודה־פסיק בלי להמציא תוכן." : "Understands lists, sentences, and semicolons without inventing content."}</small></div><button className="secondary-button" disabled={!applicationDraft.jobDescription.trim()} onClick={detectDraftRequirements} type="button"><WandSparkles className="h-4 w-4" />{language === "he" ? "זיהוי וסידור דרישות" : "Detect and organize"}</button></div>
+              <Field label={language === "he" ? "דרישות מסודרות" : "Organized requirements"}><textarea className="form-control min-h-24 resize-y" onChange={(e) => { const requirements = e.target.value; setApplicationDraft((current) => ({ ...current, requirements, requirementEvidence: syncRequirementEvidence(requirements, current.requirementEvidence) })); }} placeholder={language === "he" ? "דרישה אחת בכל שורה, או טקסט המופרד בנקודה־פסיק" : "One requirement per line, or text separated by semicolons"} value={applicationDraft.requirements} /></Field>
+              <div className="requirement-evidence-editor">
+                <div className="requirement-editor-heading"><div><p><Target className="h-4 w-4" />{language === "he" ? "עורך דרישות וראיות" : "Requirements and evidence editor"}</p><small>{language === "he" ? "תקנו ניסוח, סווגו, פצלו או מזגו—והוסיפו רק ראיות אמיתיות." : "Refine, categorize, split, or merge—and add only real evidence."}</small></div><button className="text-button" onClick={() => replaceDraftRequirements([...applicationDraft.requirementEvidence, { requirement: language === "he" ? "דרישה חדשה" : "New requirement", evidence: "", category: "Other" }])} type="button"><Plus className="h-4 w-4" />{language === "he" ? "הוספת דרישה" : "Add requirement"}</button></div>
+                {applicationDraft.requirementEvidence.length === 0 ? <p className="requirements-empty">{language === "he" ? "הדביקו תיאור ולחצו על זיהוי, או הוסיפו דרישה ידנית." : "Paste a description and detect requirements, or add one manually."}</p> : applicationDraft.requirementEvidence.map((item, index) => <article className="requirement-editor-row" key={index}>
+                  <div className="requirement-editor-main"><input aria-label={language === "he" ? `דרישה ${index + 1}` : `Requirement ${index + 1}`} className="form-control" onChange={(event) => updateDraftRequirement(index, { requirement: event.target.value })} value={item.requirement} /><select aria-label={language === "he" ? `סוג דרישה ${index + 1}` : `Requirement ${index + 1} category`} className="form-control requirement-category" onChange={(event) => updateDraftRequirement(index, { category: event.target.value as RequirementCategory })} value={item.category || requirementCategory(item.requirement)}>{(["Experience", "Skills", "Tools", "Education", "Other"] as RequirementCategory[]).map((category) => <option key={category} value={category}>{language === "he" ? ({ Experience: "ניסיון", Skills: "כישורים", Tools: "כלים", Education: "השכלה", Other: "אחר" } as Record<RequirementCategory, string>)[category] : category}</option>)}</select></div>
+                  <textarea aria-label={language === "he" ? `ראיה לדרישה ${index + 1}` : `Evidence for requirement ${index + 1}`} className="form-control" onChange={(event) => updateDraftRequirement(index, { evidence: event.target.value })} placeholder={language === "he" ? "דוגמה, הישג או תוצאה מהניסיון שלכם (אופציונלי)" : "Example, achievement, or result from your experience (optional)"} value={item.evidence} />
+                  <div className="requirement-row-actions"><button disabled={splitRequirementText(item.requirement).length < 2} onClick={() => splitDraftRequirement(index)} type="button">{language === "he" ? "פיצול" : "Split"}</button><button disabled={index === 0} onClick={() => mergeDraftRequirement(index)} type="button">{language === "he" ? "מיזוג לקודמת" : "Merge above"}</button><button aria-label={language === "he" ? `מחיקת דרישה ${index + 1}` : `Delete requirement ${index + 1}`} onClick={() => replaceDraftRequirements(applicationDraft.requirementEvidence.filter((_, itemIndex) => itemIndex !== index))} type="button"><Trash2 className="h-3.5 w-3.5" />{language === "he" ? "מחיקה" : "Delete"}</button></div>
+                </article>)}
+              </div>
+            </section>
             <div className="grid gap-4 sm:grid-cols-2"><Field label={language === "he" ? "מקור" : "Source"}><input className="form-control" list="application-source-options" onChange={(e) => setApplicationDraft({ ...applicationDraft, source: e.target.value })} placeholder={language === "he" ? "בחרו או כתבו מקור" : "Choose or type a source"} value={applicationDraft.source} /></Field><Field label={applicationDraft.status === "Considering" ? (language === "he" ? "תאריך שמירה" : "Saved date") : (language === "he" ? "תאריך הגשה" : "Applied date")}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, appliedDate: e.target.value })} type="date" value={applicationDraft.appliedDate} /></Field></div>
             <div className="grid gap-4 sm:grid-cols-2"><Field label={language === "he" ? "רמת התאמה" : "Fit level"}><select className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, priority: e.target.value as ApplicationDraft["priority"] })} value={applicationDraft.priority}>{priorities.map((priority) => <option key={priority} value={priority}>{language === "he" ? ({ Low: "נמוכה", Medium: "בינונית", High: "גבוהה" } as Record<string, string>)[priority] : priority}</option>)}</select></Field><Field label={language === "he" ? "מודל עבודה" : "Work model"}><select className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, workModel: e.target.value as ApplicationDraft["workModel"] })} value={applicationDraft.workModel}>{workModels.map((model) => <option key={model || "unset"} value={model}>{model || (language === "he" ? "לא צוין" : "Not specified")}</option>)}</select></Field></div>
             <Field label={language === "he" ? "איש או אשת קשר בחברה" : "Company contact"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, contactName: e.target.value })} placeholder={language === "he" ? "מגייסת, מנהל מגייס או רפרל" : "Recruiter, hiring manager, or referral"} value={applicationDraft.contactName} /></Field>
