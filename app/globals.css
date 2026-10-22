@@ -8887,6 +8887,120 @@ html[data-carvio-theme="light"] {
   margin-inline-end: 0.22rem;
 }
 
+.smart-capture-steps {
+  display: grid;
+  grid-template-columns: auto 1fr auto 1fr auto;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.smart-capture-steps li {
+  display: flex;
+  align-items: center;
+  gap: 0.38rem;
+  color: var(--cv-muted-strong);
+  font-size: 0.68rem;
+  font-weight: 750;
+}
+
+.smart-capture-steps li span {
+  display: grid;
+  place-items: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border: 1px solid var(--cv-border-strong);
+  border-radius: 50%;
+  color: var(--cv-body);
+  background: var(--cv-surface-soft);
+}
+
+.smart-capture-steps li[aria-current="step"] {
+  color: var(--cv-text);
+}
+
+.smart-capture-steps li[aria-current="step"] span {
+  border-color: var(--cv-primary);
+  color: var(--cv-primary-ink);
+  background: var(--cv-primary);
+}
+
+.smart-capture-steps > i {
+  height: 1px;
+  background: var(--cv-border-strong);
+}
+
+.smart-capture-optional {
+  border: 1px solid var(--cv-border);
+  border-radius: 0.8rem;
+  background: var(--cv-surface-soft);
+}
+
+.smart-capture-optional summary {
+  padding: 0.75rem 0.85rem;
+  color: var(--cv-body);
+  font-size: 0.72rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.smart-capture-optional[open] summary {
+  border-bottom: 1px solid var(--cv-border);
+}
+
+.smart-capture-optional > label {
+  padding: 0.85rem;
+}
+
+.smart-capture-review-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.8rem;
+  border: 1px solid color-mix(in srgb, var(--cv-success) 40%, var(--cv-border));
+  border-radius: 0.8rem;
+  color: var(--cv-success);
+  background: color-mix(in srgb, var(--cv-success) 7%, var(--cv-surface));
+}
+
+.smart-capture-review-heading div,
+.smart-capture-review-heading strong,
+.smart-capture-review-heading small {
+  display: block;
+}
+
+.smart-capture-review-heading strong {
+  color: var(--cv-text);
+  font-size: 0.78rem;
+}
+
+.smart-capture-review-heading small {
+  margin-top: 0.14rem;
+  color: var(--cv-muted-strong);
+  font-size: 0.66rem;
+}
+
+.smart-capture-review-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.smart-capture-review-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+
+@media (max-width: 640px) {
+  .smart-capture-steps li { font-size: 0.62rem; }
+  .smart-capture-review-grid { grid-template-columns: 1fr; }
+  .smart-capture-review-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .smart-capture-review-actions .primary-button { grid-column: 1 / -1; grid-row: 1; }
+}
+
 .workspace-role-snapshot {
   grid-column: 1 / -1;
   min-height: auto !important;
