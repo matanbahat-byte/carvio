@@ -8994,6 +8994,65 @@ html[data-carvio-theme="light"] {
   gap: 0.55rem;
 }
 
+.smart-capture-success {
+  display: grid;
+  justify-items: center;
+  gap: 0.8rem;
+  padding: 1.25rem 0.5rem 0.25rem;
+  text-align: center;
+}
+
+.smart-capture-success-icon {
+  display: grid;
+  place-items: center;
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 50%;
+  color: var(--cv-success);
+  background: color-mix(in srgb, var(--cv-success) 12%, var(--cv-surface));
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--cv-success) 5%, transparent);
+}
+
+.smart-capture-success strong,
+.smart-capture-success span {
+  display: block;
+}
+
+.smart-capture-success strong {
+  color: var(--cv-text);
+  font-size: 1rem;
+}
+
+.smart-capture-success span {
+  margin-top: 0.18rem;
+  color: var(--cv-muted-strong);
+  font-size: 0.75rem;
+}
+
+.smart-capture-success p {
+  max-width: 26rem;
+  color: var(--cv-body);
+  font-size: 0.74rem;
+  line-height: 1.55;
+}
+
+.smart-capture-success .primary-button {
+  width: min(100%, 22rem);
+  justify-content: center;
+}
+
+.smart-capture-not-now {
+  min-height: 2.5rem;
+  padding: 0.45rem 0.75rem;
+  color: var(--cv-muted-strong);
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.smart-capture-not-now:hover {
+  color: var(--cv-text);
+}
+
 @media (max-width: 640px) {
   .smart-capture-steps li { font-size: 0.62rem; }
   .smart-capture-review-grid { grid-template-columns: 1fr; }

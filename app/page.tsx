@@ -1679,7 +1679,8 @@ export default function Home() {
   const [mobileInsightCategory, setMobileInsightCategory] = useState<"pipeline" | "activity" | "networking">("pipeline");
   const [applicationViewMode, setApplicationViewMode] = useState<ApplicationViewMode>("table");
   const [showSmartCapture, setShowSmartCapture] = useState(false);
-  const [smartCaptureStep, setSmartCaptureStep] = useState<"link" | "review">("link");
+  const [smartCaptureStep, setSmartCaptureStep] = useState<"link" | "review" | "success">("link");
+  const [smartCaptureSavedId, setSmartCaptureSavedId] = useState<string | null>(null);
   const [smartCaptureUrl, setSmartCaptureUrl] = useState("");
   const [smartCaptureText, setSmartCaptureText] = useState("");
   const [smartCaptureError, setSmartCaptureError] = useState("");
@@ -2571,6 +2572,7 @@ export default function Home() {
     setSmartCaptureUrl("");
     setSmartCaptureText("");
     setSmartCaptureError("");
+    setSmartCaptureSavedId(null);
   }
 
   function saveSmartCapture() {
@@ -2581,8 +2583,15 @@ export default function Home() {
     const savedApplication = normalizeApplication({ ...applicationDraft, id: makeId("app"), lastActivityAt: new Date().toISOString() });
     setApplications((items) => [savedApplication, ...items]);
     recordActionEvent("application_created", savedApplication.id, { company: savedApplication.company, status: savedApplication.status });
-    setNotice(language === "he" ? "המשרה נשמרה ב־CARVIO ומוכנה להמשך עבודה." : "The role is saved in CARVIO and ready for your next step.");
     setSearchOutcome("found");
+    setSmartCaptureSavedId(savedApplication.id);
+    setSmartCaptureStep("success");
+  }
+
+  function openSavedCapture() {
+    if (!smartCaptureSavedId) return;
+    setActiveView("applications");
+    setWorkspaceApplicationId(smartCaptureSavedId);
     resetSmartCapture();
   }
 
@@ -4326,9 +4335,9 @@ export default function Home() {
       )}
 
       {showSmartCapture && (
-        <Modal title={language === "he" ? "שמירת משרה ב־CARVIO" : "Save a job to CARVIO"} description={smartCaptureStep === "link" ? (language === "he" ? "הדביקו קישור למשרה. בשלב הבא תבדקו את הפרטים לפני השמירה." : "Paste a job link. You will review the details before saving.") : (language === "he" ? "בדקו רק את הפרטים החשובים. אפשר להשלים את השאר בהמשך." : "Review only the essentials. You can complete everything else later.")} closeLabel={language === "he" ? "סגירת החלון" : "Close modal"} onClose={resetSmartCapture}>
+        <Modal title={smartCaptureStep === "success" ? (language === "he" ? "המשרה נשמרה" : "Job saved") : (language === "he" ? "שמירת משרה ב־CARVIO" : "Save a job to CARVIO")} description={smartCaptureStep === "link" ? (language === "he" ? "הדביקו קישור למשרה. בשלב הבא תבדקו את הפרטים לפני השמירה." : "Paste a job link. You will review the details before saving.") : smartCaptureStep === "review" ? (language === "he" ? "בדקו רק את הפרטים החשובים. אפשר להשלים את השאר בהמשך." : "Review only the essentials. You can complete everything else later.") : (language === "he" ? "ההזדמנות נוספה ל־CARVIO." : "The opportunity is now in CARVIO.")} closeLabel={language === "he" ? "סגירת החלון" : "Close modal"} onClose={resetSmartCapture}>
           <div className="smart-capture">
-            <ol aria-label={language === "he" ? "שלבי שמירת המשרה" : "Job save steps"} className="smart-capture-steps"><li aria-current={smartCaptureStep === "link" ? "step" : undefined}><span>1</span>{language === "he" ? "קישור" : "Link"}</li><i /><li aria-current={smartCaptureStep === "review" ? "step" : undefined}><span>2</span>{language === "he" ? "בדיקה" : "Review"}</li><i /><li><span>3</span>{language === "he" ? "שמירה" : "Save"}</li></ol>
+            <ol aria-label={language === "he" ? "שלבי שמירת המשרה" : "Job save steps"} className="smart-capture-steps"><li aria-current={smartCaptureStep === "link" ? "step" : undefined}><span>1</span>{language === "he" ? "קישור" : "Link"}</li><i /><li aria-current={smartCaptureStep === "review" ? "step" : undefined}><span>2</span>{language === "he" ? "בדיקה" : "Review"}</li><i /><li aria-current={smartCaptureStep === "success" ? "step" : undefined}><span>3</span>{language === "he" ? "שמירה" : "Save"}</li></ol>
             {smartCaptureStep === "link" ? <>
               <div className="smart-capture-icon"><WandSparkles className="h-7 w-7" /></div>
               <Field label={language === "he" ? "קישור למשרה" : "Job URL"}><input autoFocus className="form-control" onChange={(event) => { setSmartCaptureUrl(event.target.value); setSmartCaptureError(""); }} onKeyDown={(event) => { if (event.key === "Enter") smartCaptureApplication(); }} placeholder="https://www.linkedin.com/jobs/view/…" type="url" value={smartCaptureUrl} /></Field>
@@ -4337,7 +4346,7 @@ export default function Home() {
               {smartCaptureError && <p className="form-error">{smartCaptureError}</p>}
               <p>{language === "he" ? "הקישור נשמר כמקור. CARVIO לא ימציא פרטים שלא נמצאו." : "The link stays as the source. CARVIO will not invent missing details."}</p>
               <button className="primary-button w-full" onClick={smartCaptureApplication} type="button"><ArrowRight className="h-4 w-4" />{language === "he" ? "בדיקת הפרטים" : "Review details"}</button>
-            </> : <>
+            </> : smartCaptureStep === "review" ? <>
               <div className="smart-capture-review-heading"><CheckCircle2 className="h-5 w-5" /><div><strong>{language === "he" ? "הקישור נקלט" : "Link captured"}</strong><small>{applicationDraft.source} · {language === "he" ? "בדקו ותקנו לפי הצורך" : "Review and correct as needed"}</small></div></div>
               <div className="smart-capture-review-grid">
                 <Field label={language === "he" ? "תפקיד" : "Role"}><input autoFocus className="form-control" onChange={(event) => { setApplicationDraft((current) => ({ ...current, role: event.target.value })); setSmartCaptureError(""); }} placeholder={language === "he" ? "למשל Senior HR Business Partner" : "e.g. Senior HR Business Partner"} value={applicationDraft.role} /></Field>
@@ -4347,7 +4356,7 @@ export default function Home() {
               </div>
               {smartCaptureError && <p className="form-error">{smartCaptureError}</p>}
               <div className="smart-capture-review-actions"><button className="secondary-button" onClick={() => { setSmartCaptureStep("link"); setSmartCaptureError(""); }} type="button">{language === "he" ? "חזרה" : "Back"}</button><button className="secondary-button" onClick={openCapturedApplicationDetails} type="button">{language === "he" ? "פרטים נוספים" : "More details"}</button><button className="primary-button" onClick={saveSmartCapture} type="button"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "שמירת המשרה" : "Save job"}</button></div>
-            </>}
+            </> : <div className="smart-capture-success"><div className="smart-capture-success-icon"><CheckCircle2 className="h-9 w-9" /></div><div><strong>{applicationDraft.role}</strong><span>{applicationDraft.company}</span></div><p>{language === "he" ? "הפרטים נשמרו. כשתרצו, סביבת המועמדות תציג פעולה מומלצת אחת." : "The details are saved. When you are ready, the application workspace will show one recommended action."}</p><button className="primary-button" onClick={openSavedCapture} type="button">{language === "he" ? "פתיחת המועמדות" : "Open application"}<ArrowRight className="h-4 w-4" /></button><button className="smart-capture-not-now" onClick={resetSmartCapture} type="button">{language === "he" ? "לא עכשיו" : "Not now"}</button></div>}
           </div>
         </Modal>
       )}
