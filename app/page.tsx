@@ -2499,6 +2499,51 @@ export default function Home() {
     });
   }, [contactHealthFilter, contactMeetingFilter, contactQuery, contactSort, contacts]);
 
+  const networkingFocus = useMemo(() => {
+    const now = Date.now();
+    return contacts.map((contact) => {
+      const meetingAt = contact.eventDateTime ? Date.parse(contact.eventDateTime) : Number.NaN;
+      const hoursToMeeting = Number.isFinite(meetingAt) ? (meetingAt - now) / 3600000 : Number.POSITIVE_INFINITY;
+      const overdueDays = daysPast(contact.nextActionDue);
+      if (hoursToMeeting >= 0 && hoursToMeeting <= 168) return {
+        contact,
+        score: 130 - (hoursToMeeting / 24),
+        label: language === "he" ? `הכנה לשיחה עם ${contact.name}` : `Prepare for your conversation with ${contact.name}`,
+        detail: language === "he" ? `המפגש נקבע ל־${formatDate(contact.eventDateTime, true)}.` : `Scheduled for ${formatDate(contact.eventDateTime, true)}.`,
+        intent: "prepare" as const,
+      };
+      if (overdueDays > 0 && overdueDays <= 21) return {
+        contact,
+        score: 120 - Math.min(15, overdueDays / 2),
+        label: contact.nextAction || (language === "he" ? `חזרה אל ${contact.name}` : `Follow up with ${contact.name}`),
+        detail: language === "he" ? `היעד חלף לפני ${overdueDays} ימים.` : `The target date passed ${overdueDays} days ago.`,
+        intent: "message" as const,
+      };
+      if (overdueDays > 21) return {
+        contact,
+        score: 82,
+        label: language === "he" ? `בדיקת הקשר עם ${contact.name}` : `Review your connection with ${contact.name}`,
+        detail: language === "he" ? "הפעולה השמורה ישנה. עדכנו אותה או הסירו אותה כדי לשמור על רשימה אמינה." : "The saved action is old. Update or remove it to keep this list trustworthy.",
+        intent: "review" as const,
+      };
+      if (contact.trafficLight === "red") return {
+        contact,
+        score: 96,
+        label: language === "he" ? `בחירת הצעד הבא עם ${contact.name}` : `Choose the next move with ${contact.name}`,
+        detail: language === "he" ? "הקשר סומן כדורש תשומת לב." : "This relationship is marked as needing attention.",
+        intent: contact.nextAction ? "message" as const : "plan" as const,
+      };
+      if (!contact.nextAction.trim()) return {
+        contact,
+        score: 72,
+        label: language === "he" ? `הגדרת צעד הבא עם ${contact.name}` : `Set a next move with ${contact.name}`,
+        detail: language === "he" ? "עדיין לא נשמרה פעולה ברורה לקשר הזה." : "This relationship does not have a clear next action yet.",
+        intent: "plan" as const,
+      };
+      return null;
+    }).filter((item): item is NonNullable<typeof item> => Boolean(item)).sort((a, b) => b.score - a.score).slice(0, 3);
+  }, [contacts, language]);
+
   function uploadCompanyLogo(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -3857,9 +3902,13 @@ export default function Home() {
 
         <section className={`calm-view panel ${activeView !== "networking" ? "calm-view-hidden" : ""}`} id="networking">
           <div className="section-heading">
-            <div><p className="eyebrow text-fuchsia-300">{copy.networking}</p><h2 className="section-title">{copy.networkingTitle}</h2><p className="mt-2 text-sm text-slate-400">{language === "he" ? "נהלו קשרים, פעולות המשך ופגישות בתצוגה אחת מסודרת." : "Manage relationships, follow-ups and meetings in one organized view."}</p></div>
+            <div><p className="eyebrow text-fuchsia-300">{copy.networking}</p><h2 className="section-title">{copy.networkingTitle}</h2><p className="mt-2 text-sm text-slate-400">{language === "he" ? "ראו עם מי כדאי לדבר עכשיו ומה הצעד הבא." : "See who to talk to now and what to do next."}</p></div>
             <button className="primary-button bg-fuchsia-500 hover:bg-fuchsia-400" onClick={openNewContact} type="button"><Plus className="h-4 w-4" /> {copy.addContact}</button>
           </div>
+          {networkingFocus.length > 0 && <section className="applications-focus-strip networking-focus" aria-label={language === "he" ? "הקשרים החשובים עכשיו" : "Networking focus"}>
+            <header><span>{language === "he" ? "מיקוד עכשיו" : "Focus now"}</span><strong>{language === "he" ? "עד שלושה קשרים שכדאי לקדם" : "Up to three relationships worth moving forward"}</strong></header>
+            <div>{networkingFocus.map((item, index) => <button key={item.contact.id} onClick={() => item.intent === "message" ? openOutreachForContact(item.contact) : openEditContact(item.contact)} type="button"><span>{String(index + 1).padStart(2, "0")}</span><span><strong>{item.label}</strong><small>{item.detail}</small></span><ArrowUpRight className="h-4 w-4" /></button>)}</div>
+          </section>}
           <div className={`application-toolbar networking-table-toolbar ${showContactFilters ? "mobile-filters-expanded" : ""}`} aria-label={language === "he" ? "סינון ומיון אנשי קשר" : "Filter and sort contacts"}>
             <label className="application-search"><Search className="h-4 w-4" /><span className="sr-only">{language === "he" ? "חיפוש אנשי קשר" : "Search contacts"}</span><input aria-label={language === "he" ? "חיפוש אנשי קשר" : "Search contacts"} onChange={(event) => setContactQuery(event.target.value)} placeholder={language === "he" ? "חיפוש לפי שם, חברה, תפקיד או פעולה…" : "Search name, company, role or next action…"} type="search" value={contactQuery} /></label>
             <button aria-expanded={showContactFilters} className="mobile-filter-toggle" onClick={() => setShowContactFilters((current) => !current)} type="button"><SlidersHorizontal className="h-4 w-4" />{language === "he" ? "סינון ומיון" : "Filter & sort"}<ChevronDown className={`h-4 w-4 transition ${showContactFilters ? "rotate-180" : ""}`} /></button>
@@ -3913,13 +3962,9 @@ export default function Home() {
                 <table className="application-table networking-table">
                   <thead><tr>
                     <th>{language === "he" ? "איש קשר" : "Contact"}</th>
-                    <th>{language === "he" ? "חברה" : "Company"}</th>
-                    <th>{language === "he" ? "תפקיד" : "Role"}</th>
-                    <th>{language === "he" ? "סוג קשר" : "Relationship"}</th>
-                    <th>{language === "he" ? "קשר אחרון" : "Last contact"}</th>
-                    <th>{language === "he" ? "מצב" : "Health"}</th>
+                    <th>{language === "he" ? "הקשר" : "Context"}</th>
                     <th>{language === "he" ? "הפעולה הבאה" : "Next action"}</th>
-                    <th>{language === "he" ? "פגישה קרובה" : "Next meeting"}</th>
+                    <th>{language === "he" ? "תזמון" : "Timing"}</th>
                     <th className="application-actions-heading">{language === "he" ? "פעולות" : "Actions"}</th>
                   </tr></thead>
                   <tbody>
@@ -3927,17 +3972,13 @@ export default function Home() {
                       const isExpanded = expandedContactId === contact.id;
                       return <Fragment key={contact.id}>
                         <tr className={`application-table-row ${isExpanded ? "application-table-row-expanded" : ""}`}>
-                          <td className="networking-contact-cell"><span className="networking-avatar">{contact.name.slice(0, 1).toUpperCase()}</span><strong>{contact.name}</strong></td>
-                          <td>{contact.company || "—"}</td>
-                          <td><span className="application-primary-value">{contact.role || "—"}</span></td>
-                          <td>{contact.relationship || "—"}</td>
-                          <td>{contact.lastContactDate ? formatDate(contact.lastContactDate) : "—"}</td>
-                          <td><select aria-label={`${language === "he" ? "מצב הקשר עם" : "Relationship health for"} ${contact.name}`} className="networking-health-select" onChange={(event) => setContacts((items) => items.map((item) => item.id === contact.id ? { ...item, trafficLight: event.target.value as TrafficLight } : item))} value={contact.trafficLight}><option value="none">{language === "he" ? "ללא סטטוס" : "No signal"}</option><option value="green">{language === "he" ? "🟢 מתקדם" : "🟢 Progressing"}</option><option value="yellow">{language === "he" ? "🟡 ממתין" : "🟡 Waiting"}</option><option value="red">{language === "he" ? "🔴 דורש טיפול" : "🔴 Needs attention"}</option></select></td>
-                          <td><span className="networking-next-action"><strong>{contact.nextAction || "—"}</strong>{contact.nextActionDue && <small className={isPast(contact.nextActionDue) ? "text-rose-300" : ""}>{isPast(contact.nextActionDue) ? (language === "he" ? "באיחור · " : "Overdue · ") : ""}{formatDate(contact.nextActionDue)}</small>}</span></td>
-                          <td>{contact.eventDateTime ? <span className="application-meeting-cell"><CalendarClock className="h-4 w-4" />{formatDate(contact.eventDateTime, true)}</span> : "—"}</td>
-                          <td className="application-row-actions"><button aria-label={language === "he" ? `עריכת ${contact.name}` : `Edit ${contact.name}`} className="application-row-icon" onClick={() => openEditContact(contact)} type="button"><Pencil className="h-4 w-4" /></button><button aria-expanded={isExpanded} className="application-details-button" onClick={() => setExpandedContactId(isExpanded ? null : contact.id)} type="button"><span>{isExpanded ? (language === "he" ? "סגירה" : "Close") : (language === "he" ? "פרטים" : "Details")}</span><ChevronDown className={`h-4 w-4 transition ${isExpanded ? "rotate-180" : ""}`} /></button></td>
+                          <td className="networking-contact-cell"><span className="networking-avatar">{contact.name.slice(0, 1).toUpperCase()}</span><span><strong>{contact.name}</strong><small>{[contact.role, contact.company].filter(Boolean).join(" · ") || (language === "he" ? "קשר מקצועי" : "Professional contact")}</small></span></td>
+                          <td><span className="networking-context"><strong>{contact.relationship || (language === "he" ? "קשר מקצועי" : "Professional contact")}</strong><select aria-label={`${language === "he" ? "מצב הקשר עם" : "Relationship health for"} ${contact.name}`} className="networking-health-select" onChange={(event) => setContacts((items) => items.map((item) => item.id === contact.id ? { ...item, trafficLight: event.target.value as TrafficLight } : item))} value={contact.trafficLight}><option value="none">{language === "he" ? "ללא סטטוס" : "No signal"}</option><option value="green">{language === "he" ? "🟢 מתקדם" : "🟢 Progressing"}</option><option value="yellow">{language === "he" ? "🟡 ממתין" : "🟡 Waiting"}</option><option value="red">{language === "he" ? "🔴 דורש טיפול" : "🔴 Needs attention"}</option></select></span></td>
+                          <td><span className="networking-next-action"><strong>{contact.nextAction || (language === "he" ? "הגדירו צעד הבא" : "Set a next move")}</strong>{contact.nextActionDue && <small className={daysPast(contact.nextActionDue) > 0 && daysPast(contact.nextActionDue) <= 21 ? "text-rose-300" : ""}>{daysPast(contact.nextActionDue) > 21 ? (language === "he" ? "נדרש עדכון" : "Review status") : isPast(contact.nextActionDue) ? (language === "he" ? "באיחור · " : "Overdue · ") : ""}{formatDate(contact.nextActionDue)}</small>}</span></td>
+                          <td>{contact.eventDateTime && !isPast(contact.eventDateTime) ? <span className="application-meeting-cell"><CalendarClock className="h-4 w-4" /><span><strong>{language === "he" ? "פגישה קרובה" : "Upcoming meeting"}</strong><small>{formatDate(contact.eventDateTime, true)}</small></span></span> : contact.nextActionDue ? <span className={`application-meeting-cell ${daysPast(contact.nextActionDue) > 21 ? "application-timing-muted" : ""}`}><Clock3 className="h-4 w-4" /><span><strong>{daysPast(contact.nextActionDue) > 21 ? (language === "he" ? "בדיקת סטטוס" : "Status check") : (language === "he" ? "יעד לפעולה" : "Action date")}</strong><small>{formatDate(contact.nextActionDue)}</small></span></span> : contact.lastContactDate ? <span className="application-meeting-cell application-timing-muted"><span><strong>{language === "he" ? "קשר אחרון" : "Last contact"}</strong><small>{formatDate(contact.lastContactDate)}</small></span></span> : <span className="application-timing-empty">{language === "he" ? "ללא מועד" : "No date"}</span>}</td>
+                          <td className="application-row-actions"><button className="application-open-button" onClick={() => contact.nextAction ? openOutreachForContact(contact) : openEditContact(contact)} type="button">{contact.nextAction ? <MessagesSquare className="h-4 w-4" /> : <Plus className="h-4 w-4" />}{contact.nextAction ? (language === "he" ? "הודעה" : "Message") : (language === "he" ? "צעד הבא" : "Next move")}</button><button aria-expanded={isExpanded} className="application-details-button" onClick={() => setExpandedContactId(isExpanded ? null : contact.id)} type="button"><span>{isExpanded ? (language === "he" ? "סגירה" : "Close") : (language === "he" ? "פרטים" : "Details")}</span><ChevronDown className={`h-4 w-4 transition ${isExpanded ? "rotate-180" : ""}`} /></button></td>
                         </tr>
-                        {isExpanded && <tr className="application-detail-row"><td colSpan={9}>
+                        {isExpanded && <tr className="application-detail-row"><td colSpan={5}>
                           <div className="application-detail-grid">
                             <div className="application-detail-block"><span>{language === "he" ? "פרטי קשר" : "Contact details"}</span><strong>{contact.email || contact.phone || (language === "he" ? "לא נוספו פרטים" : "No details added")}</strong><small>{contact.linkedInUrl ? "LinkedIn profile available" : (language === "he" ? "ללא קישור LinkedIn" : "No LinkedIn link")}</small></div>
                             <div className="application-detail-block"><span>{language === "he" ? "פגישה" : "Meeting"}</span><strong>{contact.eventType || (language === "he" ? "לא הוגדר סוג אירוע" : "No event type")}</strong><small>{contact.eventDateTime ? formatDate(contact.eventDateTime, true) : (language === "he" ? "לא נקבע מועד" : "Not scheduled")}</small></div>

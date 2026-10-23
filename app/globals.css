@@ -1953,7 +1953,7 @@ html[data-carvio-theme="light"] {
 }
 
 .networking-table {
-  min-width: 72rem;
+  min-width: 58rem;
 }
 
 .networking-contact-cell {
@@ -1963,6 +1963,30 @@ html[data-carvio-theme="light"] {
   min-width: 10rem;
   color: #f1f5f9;
   background: rgba(11, 38, 30, 0.97);
+}
+
+.networking-contact-cell > span:last-child,
+.networking-context {
+  display: inline-grid;
+  gap: 0.18rem;
+  vertical-align: middle;
+}
+
+.networking-contact-cell small {
+  color: var(--cv-muted);
+  font-size: 0.66rem;
+  font-weight: 500;
+}
+
+.networking-context strong {
+  color: var(--cv-text);
+  font-size: 0.72rem;
+}
+
+.networking-focus {
+  margin-block: 1rem;
+  border-color: color-mix(in srgb, #d946ef 20%, var(--cv-border));
+  background: linear-gradient(110deg, color-mix(in srgb, #d946ef 7%, var(--cv-surface)), var(--cv-surface));
 }
 
 .networking-avatar {
