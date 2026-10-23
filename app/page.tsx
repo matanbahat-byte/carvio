@@ -850,7 +850,18 @@ function isPast(dateValue: string) {
   return endOfDay.getTime() < Date.now();
 }
 
+function daysPast(dateValue: string) {
+  if (!dateValue || !isPast(dateValue)) return 0;
+  const timestamp = new Date(/^\d{4}-\d{2}-\d{2}$/.test(dateValue) ? `${dateValue}T23:59:59` : dateValue).getTime();
+  return Number.isFinite(timestamp) ? Math.max(1, Math.floor((Date.now() - timestamp) / 86400000)) : 0;
+}
+
 function workspaceActionReason(application: Application, language: "en" | "he") {
+  if (daysPast(application.nextStepDue) > 21) {
+    return language === "he"
+      ? "התאריך ישן ולא בהכרח עדיין רלוונטי. בדקו אם התהליך פעיל, עדכנו אותו או העבירו אותו לסגורות."
+      : "This date is old and may no longer be relevant. Check whether the process is active, update it, or move it to Closed.";
+  }
   if (application.nextStepDue && isPast(application.nextStepDue)) {
     return language === "he"
       ? "תאריך היעד חלף. פעולה קצרה עכשיו תמנע מהמועמדות ליפול בין הכיסאות."
@@ -2052,32 +2063,51 @@ export default function Home() {
   const nextBestActions = useMemo(() => {
     const actions: NextBestAction[] = [];
     const now = Date.now();
+    const day = 86400000;
+    const daysSince = (value: string) => {
+      const timestamp = value ? Date.parse(value) : Number.NaN;
+      return Number.isFinite(timestamp) ? Math.max(0, Math.floor((now - timestamp) / day)) : 0;
+    };
+    const daysUntil = (value: string) => {
+      const timestamp = value ? Date.parse(value) : Number.NaN;
+      return Number.isFinite(timestamp) ? Math.ceil((timestamp - now) / day) : null;
+    };
     applications.forEach((item) => {
       const eventAt = item.eventDateTime ? new Date(item.eventDateTime).getTime() : 0;
       const activityAt = item.lastActivityAt || item.appliedDate;
-      const staleDays = activityAt ? Math.floor((now - new Date(activityAt).getTime()) / 86400000) : 0;
+      const staleDays = daysSince(activityAt);
+      const dueDays = daysUntil(item.nextStepDue);
+      const overdueDays = dueDays !== null && dueDays < 0 ? Math.abs(dueDays) : 0;
       const hasContact = Boolean(item.contactName || item.linkedContactIds?.length || contacts.some((contact) => contact.linkedApplicationId === item.id || contact.company.trim().toLowerCase() === item.company.trim().toLowerCase()));
       if (!isClosedApplicationStatus(item.status) && eventAt >= now && eventAt - now <= 72 * 60 * 60 * 1000) actions.push({ id: `app-event-${item.id}`, score: 140 - ((eventAt - now) / 3600000), label: language === "he" ? `הכנה ל${item.eventType || "ראיון"} עבור ${item.company}` : `Prepare for your ${item.eventType || "interview"} at ${item.company}`, detail: language === "he" ? `המועד הוא ${formatDate(item.eventDateTime, true)}. עברו על סיפורי STAR והשאלות שלכם.` : `It is scheduled for ${formatDate(item.eventDateTime, true)}. Review your STAR stories and questions.`, target: "applications", kind: language === "he" ? "פגישה קרובה" : "Meeting soon", applicationId: item.id, intent: "open" });
-      if (!isClosedApplicationStatus(item.status) && isPast(item.nextStepDue)) actions.push({ id: `app-due-${item.id}`, score: 125, label: item.nextStep || (language === "he" ? `פעולת המשך עבור ${item.company}` : `Follow up with ${item.company}`), detail: language === "he" ? `${item.role} · באיחור מאז ${formatDate(item.nextStepDue)}` : `${item.role} · overdue since ${formatDate(item.nextStepDue)}`, target: "applications", kind: language === "he" ? "באיחור" : "Overdue", applicationId: item.id, intent: "message" });
-      if (!isClosedApplicationStatus(item.status) && item.trafficLight === "yellow" && staleDays >= 10) actions.push({ id: `app-wait-${item.id}`, score: 98 + Math.min(12, staleDays / 2), label: language === "he" ? `בדיקת התהליך הממתין ב־${item.company}` : `Check the waiting process at ${item.company}`, detail: language === "he" ? `לא תועדה תנועה משמעותית כבר ${staleDays} ימים.` : `No meaningful movement has been recorded for ${staleDays} days.`, target: "applications", kind: language === "he" ? "תהליך ממתין" : "Stale waiting", applicationId: item.id, intent: "message" });
+      if (!isClosedApplicationStatus(item.status) && dueDays !== null && dueDays >= 0 && dueDays <= 7) actions.push({ id: `app-upcoming-${item.id}`, score: item.status === "Offer" ? 132 - dueDays : 104 - dueDays, label: item.nextStep || (language === "he" ? `הצעד הבא עבור ${item.company}` : `Next step for ${item.company}`), detail: language === "he" ? `${item.role} · היעד הוא ${formatDate(item.nextStepDue)}` : `${item.role} · due ${formatDate(item.nextStepDue)}`, target: "applications", kind: language === "he" ? "יעד קרוב" : "Due soon", applicationId: item.id, intent: "open" });
+      if (!isClosedApplicationStatus(item.status) && overdueDays > 0 && overdueDays <= 21) actions.push({ id: `app-due-${item.id}`, score: 125 - Math.min(18, overdueDays / 2), label: item.nextStep || (language === "he" ? `פעולת המשך עבור ${item.company}` : `Follow up with ${item.company}`), detail: language === "he" ? `${item.role} · היעד חלף לפני ${overdueDays} ימים` : `${item.role} · due ${overdueDays} days ago`, target: "applications", kind: language === "he" ? "נדרש עכשיו" : "Needs action", applicationId: item.id, intent: "message" });
+      if (!isClosedApplicationStatus(item.status) && (overdueDays > 21 || staleDays >= 30)) actions.push({ id: `app-review-${item.id}`, score: 82 + (item.priority === "High" ? 8 : 0), label: language === "he" ? `בדיקה או ארכוב של ${item.company}` : `Review or archive ${item.company}`, detail: language === "he" ? `לא תועדה פעילות כבר ${staleDays || overdueDays} ימים. בדקו אם התהליך עדיין פעיל.` : `No activity has been recorded for ${staleDays || overdueDays} days. Check whether this process is still active.`, target: "applications", kind: language === "he" ? "בדיקת סטטוס" : "Status check", applicationId: item.id, intent: "open" });
+      if (!isClosedApplicationStatus(item.status) && item.trafficLight === "yellow" && staleDays >= 10 && staleDays < 30 && overdueDays <= 21) actions.push({ id: `app-wait-${item.id}`, score: 98 + Math.min(10, staleDays / 2), label: language === "he" ? `בדיקת התהליך הממתין ב־${item.company}` : `Check the waiting process at ${item.company}`, detail: language === "he" ? `לא תועדה תנועה משמעותית כבר ${staleDays} ימים.` : `No meaningful movement has been recorded for ${staleDays} days.`, target: "applications", kind: language === "he" ? "תהליך ממתין" : "Stale waiting", applicationId: item.id, intent: "message" });
       if (item.priority === "High" && !hasContact && !["Accepted", "Rejected", "Withdrawn"].includes(item.status)) actions.push({ id: `app-contact-${item.id}`, score: 88, label: language === "he" ? `מציאת קשר רלוונטי ב־${item.company}` : `Add a relevant contact at ${item.company}`, detail: language === "he" ? "זו מועמדות בעדיפות גבוהה ללא מגייס, מנהל מגייס או רפרל מקושר." : "This high-priority application has no linked recruiter, hiring manager, or referral.", target: "networking", kind: language === "he" ? "חסר קשר" : "Contact gap", applicationId: item.id, intent: "open" });
       if (!["Accepted", "Rejected", "Withdrawn"].includes(item.status) && !item.nextStep.trim()) actions.push({ id: `app-plan-${item.id}`, score: 78, label: language === "he" ? `הגדרת הצעד הבא עבור ${item.company}` : `Define the next move for ${item.company}`, detail: language === "he" ? `למועמדות לתפקיד ${item.role} עדיין אין פעולה ברורה.` : `The ${item.role} application does not yet have a clear next action.`, target: "applications", kind: language === "he" ? "נדרש תכנון" : "Needs a plan", applicationId: item.id, intent: "open" });
       if (item.status === "Rejected" && !recoveryEntries.some((entry) => entry.applicationId === item.id)) actions.push({ id: `reset-${item.id}`, score: dailyMood === "difficult" ? 115 : 42, label: language === "he" ? `איפוס עדין לאחר התהליך ב־${item.company}` : `Take a gentle reset after ${item.company}`, detail: language === "he" ? "השהו, שמרו רק את מה שמועיל ובחרו צעד קטן שבשליטתכם." : "Pause, keep only what helps, and choose one manageable step within your control.", target: "carvio-reset", kind: language === "he" ? "התאוששות" : "Recover", applicationId: item.id, intent: "recover" });
     });
     contacts.forEach((item) => {
-      if (isPast(item.nextActionDue)) actions.push({ id: `contact-due-${item.id}`, score: 108, label: item.nextAction || (language === "he" ? `חזרה אל ${item.name}` : `Reconnect with ${item.name}`), detail: language === "he" ? `${item.name}${item.company ? ` · ${item.company}` : ""} · פעולת ההמשך באיחור` : `${item.name}${item.company ? ` · ${item.company}` : ""} · networking follow-up is overdue`, target: "networking", kind: language === "he" ? "פעולת נטוורקינג" : "Networking follow-up", contactId: item.id, intent: "open" });
+      const overdueDays = item.nextActionDue && isPast(item.nextActionDue) ? daysSince(item.nextActionDue) : 0;
+      if (overdueDays > 0 && overdueDays <= 21) actions.push({ id: `contact-due-${item.id}`, score: 108 - Math.min(12, overdueDays / 2), label: item.nextAction || (language === "he" ? `חזרה אל ${item.name}` : `Reconnect with ${item.name}`), detail: language === "he" ? `${item.name}${item.company ? ` · ${item.company}` : ""} · היעד חלף לפני ${overdueDays} ימים` : `${item.name}${item.company ? ` · ${item.company}` : ""} · due ${overdueDays} days ago`, target: "networking", kind: language === "he" ? "פעולת נטוורקינג" : "Networking follow-up", contactId: item.id, intent: "open" });
     });
     const lastMeaningfulActivity = [...applications.map((item) => item.lastActivityAt || item.appliedDate), ...contacts.map((item) => item.lastContactDate)].filter(Boolean).map(Date.parse).sort((a, b) => b - a)[0] || 0;
     const inactiveDays = lastMeaningfulActivity ? Math.floor((now - lastMeaningfulActivity) / 86400000) : 0;
-    if (inactiveDays >= 4) actions.push({ id: "restart-momentum", score: 62 + inactiveDays, label: language === "he" ? "בחירת פעולה קטנה לחידוש התנופה" : "Choose one small action to restart momentum", detail: language === "he" ? `לא תועדה פעילות משמעותית כבר ${inactiveDays} ימים. אין צורך להשלים הכול היום.` : `No meaningful activity has been recorded for ${inactiveDays} days. You do not need to catch up all at once.`, target: "applications", kind: language === "he" ? "חידוש תנופה" : "Restart", intent: "open" });
+    if (inactiveDays >= 4) actions.push({ id: "restart-momentum", score: 62 + Math.min(14, inactiveDays), label: language === "he" ? "בחירת פעולה קטנה לחידוש התנופה" : "Choose one small action to restart momentum", detail: language === "he" ? `לא תועדה פעילות משמעותית כבר ${inactiveDays} ימים. אין צורך להשלים הכול היום.` : `No meaningful activity has been recorded for ${inactiveDays} days. You do not need to catch up all at once.`, target: "applications", kind: language === "he" ? "חידוש תנופה" : "Restart", intent: "open" });
     if (actions.length === 0) actions.push({ id: "healthy", score: 10, label: language === "he" ? "התהליך בשליטה" : "Your pipeline is under control", detail: language === "he" ? "הוסיפו הזדמנות או קבעו שיחת נטוורקינג כדי לשמור על תנופה רגועה." : "Add an opportunity or schedule a networking conversation to maintain calm momentum.", target: "applications", kind: language === "he" ? "תנופה" : "Momentum", intent: "open" });
     const seenEntities = new Set<string>();
+    let staleReviewIncluded = false;
     return actions.sort((a, b) => b.score - a.score).filter((action) => {
       const entityKey = action.applicationId ? `application-${action.applicationId}` : action.contactId ? `contact-${action.contactId}` : action.id;
       if (seenEntities.has(entityKey)) return false;
+      if (action.id.startsWith("app-review-")) {
+        if (staleReviewIncluded) return false;
+        staleReviewIncluded = true;
+      }
       seenEntities.add(entityKey);
       return true;
-    });
+    }).slice(0, 3);
   }, [applications, contacts, dailyMood, language, recoveryEntries]);
 
   const primaryActionApplication = nextBestActions[0]?.applicationId
@@ -2103,6 +2133,18 @@ export default function Home() {
         headline: language === "he" ? `הכנה ל${application.eventType || "ראיון"} עבור ${roleAtCompany}` : `Prepare for your ${application.eventType?.toLowerCase() || "interview"} for ${roleAtCompany}`,
         reason: application.eventDateTime ? (language === "he" ? `המועד נקבע ל־${formatDate(application.eventDateTime, true)}. כדאי להשלים את ההכנה לפניו.` : `Scheduled for ${formatDate(application.eventDateTime, true)} · complete your preparation beforehand.`) : action.detail,
         cta: language === "he" ? "פתיחת ההכנה" : "Open preparation",
+        canComplete: false,
+      };
+      if (action.id.startsWith("app-upcoming-")) return {
+        headline: application.nextStep || (language === "he" ? `הצעד הבא עבור ${roleAtCompany}` : `Next step for ${roleAtCompany}`),
+        reason: application.nextStepDue ? (language === "he" ? `היעד נקבע ל־${formatDate(application.nextStepDue)}.` : `Due ${formatDate(application.nextStepDue)}.`) : action.detail,
+        cta: language === "he" ? "פתיחת המועמדות" : "Open application",
+        canComplete: true,
+      };
+      if (action.id.startsWith("app-review-")) return {
+        headline: language === "he" ? `בדיקה או ארכוב של ${roleAtCompany}` : `Review or archive ${roleAtCompany}`,
+        reason: action.detail,
+        cta: language === "he" ? "בדיקת הסטטוס" : "Review status",
         canComplete: false,
       };
       if (action.id.startsWith("app-due-") || action.id.startsWith("app-wait-")) return {
@@ -2159,6 +2201,24 @@ export default function Home() {
       tone: "soon",
       cta: language === "he" ? "פתיחת ההכנה" : "Prepare",
       icon: "meeting",
+    };
+    if (application && action.id.startsWith("app-upcoming-")) return {
+      action,
+      headline: application.nextStep || (language === "he" ? `הצעד הבא עבור ${applicationContext}` : `Next step for ${applicationContext}`),
+      reason: validDate(application.nextStepDue) ? (language === "he" ? `היעד נקבע ל־${formatDate(application.nextStepDue)}.` : `Due ${formatDate(application.nextStepDue)}.`) : action.detail,
+      urgency: validDate(application.nextStepDue) ? formatDate(application.nextStepDue) : "",
+      tone: "soon",
+      cta: language === "he" ? "פתיחה" : "Open",
+      icon: "meeting",
+    };
+    if (application && action.id.startsWith("app-review-")) return {
+      action,
+      headline: language === "he" ? `בדיקה או ארכוב של ${applicationContext}` : `Review or archive ${applicationContext}`,
+      reason: action.detail,
+      urgency: language === "he" ? "לא פעיל לאחרונה" : "Inactive",
+      tone: "neutral",
+      cta: language === "he" ? "בדיקת סטטוס" : "Review status",
+      icon: "review",
     };
     if (application && action.id.startsWith("app-due-")) return {
       action,
@@ -3768,8 +3828,8 @@ export default function Home() {
                                     {applicationStatuses.map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}
                                   </select>
                                 </td>
-                                <td><span className="applications-v2-next-action"><strong>{application.nextStep || (language === "he" ? "לא הוגדרה פעולה" : "No next action set")}</strong>{application.nextStepDue && <small className={isPast(application.nextStepDue) ? "is-overdue" : ""}>{isPast(application.nextStepDue) ? (language === "he" ? "באיחור" : "Overdue") : (language === "he" ? "מתוכנן" : "Planned")}</small>}</span></td>
-                                <td>{hasUpcomingEvent ? <span className="application-meeting-cell"><CalendarClock className="h-4 w-4" /><span><strong>{application.eventType || (language === "he" ? "פגישה קרובה" : "Upcoming meeting")}</strong><small>{formatDate(application.eventDateTime, true)}</small></span></span> : application.nextStepDue ? <span className="application-meeting-cell"><Clock3 className="h-4 w-4" /><span><strong>{isPast(application.nextStepDue) ? (language === "he" ? "דורש טיפול" : "Needs attention") : (language === "he" ? "תאריך יעד" : "Due date")}</strong><small>{formatDate(application.nextStepDue)}</small></span></span> : application.eventDateTime ? <span className="application-meeting-cell application-timing-muted"><Clock3 className="h-4 w-4" /><span><strong>{language === "he" ? "אירוע שהסתיים" : "Past event"}</strong><small>{formatDate(application.eventDateTime, true)}</small></span></span> : application.appliedDate ? <span className="application-meeting-cell application-timing-muted"><span><strong>{language === "he" ? "נוסף למעקב" : "Tracked"}</strong><small>{formatDate(application.appliedDate)}</small></span></span> : <span className="application-timing-empty">{language === "he" ? "ללא מועד" : "No date"}</span>}</td>
+                                <td><span className="applications-v2-next-action"><strong>{application.nextStep || (language === "he" ? "לא הוגדרה פעולה" : "No next action set")}</strong>{application.nextStepDue && <small className={daysPast(application.nextStepDue) > 0 && daysPast(application.nextStepDue) <= 21 ? "is-overdue" : ""}>{daysPast(application.nextStepDue) > 21 ? (language === "he" ? "נדרש עדכון" : "Review status") : isPast(application.nextStepDue) ? (language === "he" ? "באיחור" : "Overdue") : (language === "he" ? "מתוכנן" : "Planned")}</small>}</span></td>
+                                <td>{hasUpcomingEvent ? <span className="application-meeting-cell"><CalendarClock className="h-4 w-4" /><span><strong>{application.eventType || (language === "he" ? "פגישה קרובה" : "Upcoming meeting")}</strong><small>{formatDate(application.eventDateTime, true)}</small></span></span> : application.nextStepDue ? <span className={`application-meeting-cell ${daysPast(application.nextStepDue) > 21 ? "application-timing-muted" : ""}`}><Clock3 className="h-4 w-4" /><span><strong>{daysPast(application.nextStepDue) > 21 ? (language === "he" ? "בדיקת סטטוס" : "Status check") : isPast(application.nextStepDue) ? (language === "he" ? "דורש טיפול" : "Needs attention") : (language === "he" ? "תאריך יעד" : "Due date")}</strong><small>{formatDate(application.nextStepDue)}</small></span></span> : application.eventDateTime ? <span className="application-meeting-cell application-timing-muted"><Clock3 className="h-4 w-4" /><span><strong>{language === "he" ? "אירוע שהסתיים" : "Past event"}</strong><small>{formatDate(application.eventDateTime, true)}</small></span></span> : application.appliedDate ? <span className="application-meeting-cell application-timing-muted"><span><strong>{language === "he" ? "נוסף למעקב" : "Tracked"}</strong><small>{formatDate(application.appliedDate)}</small></span></span> : <span className="application-timing-empty">{language === "he" ? "ללא מועד" : "No date"}</span>}</td>
                                 <td className="application-row-actions">
                                   <button className="applications-v2-open-button" onClick={() => setWorkspaceApplicationId(application.id)} type="button">{language === "he" ? "פתיחה" : "Open"}<ArrowUpRight className="h-4 w-4" /></button>
                                 </td>
