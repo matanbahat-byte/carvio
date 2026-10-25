@@ -105,6 +105,7 @@ type ContactSort = "next-action" | "meeting-soonest" | "recent-contact" | "name-
 const trafficLights = ["none", "green", "yellow", "red"] as const;
 type TrafficLight = (typeof trafficLights)[number];
 type AppView = "home" | "search" | "applications" | "networking" | "tools" | "more";
+type CareerTool = "studio" | "social" | "cv" | "interview" | "offer";
 type ApplicationViewMode = "table" | "kanban" | "calendar";
 type ProcessStage = { id: string; name: string; date: string; dateTime?: string; trafficLight: TrafficLight; note?: string; nextTask?: string };
 type RequirementCategory = "Experience" | "Skills" | "Tools" | "Education" | "Other";
@@ -2038,6 +2039,18 @@ export default function Home() {
       return;
     }
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function openCareerTool(tool: CareerTool) {
+    setExpandedTools((current) => ({
+      ...current,
+      studio: tool === "studio",
+      social: tool === "social",
+      cv: tool === "cv",
+      interview: tool === "interview",
+      offer: tool === "offer",
+    }));
+    window.setTimeout(() => document.getElementById(tool === "studio" ? "message-studio" : tool === "social" ? "social-studio" : tool === "cv" ? "cv-lab" : tool === "interview" ? "interview-prep" : "offer-decision")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
   }
 
   const todayFocus = useMemo(() => {
@@ -4005,7 +4018,18 @@ export default function Home() {
           )}
         </section>
 
-        <section className={`calm-view message-studio-panel ${activeView !== "tools" ? "calm-view-hidden" : ""}`} id="message-studio">
+        <section className={`calm-view panel tools-hub ${activeView !== "tools" ? "calm-view-hidden" : ""}`} id="career-tools">
+          <div className="tools-hub-heading"><div><p className="eyebrow"><Wrench className="h-4 w-4" />{language === "he" ? "כלי קריירה" : "Career tools"}</p><h2>{language === "he" ? "מה תרצו לעשות עכשיו?" : "What do you want to do now?"}</h2><p>{language === "he" ? "בחרו משימה אחת. רק הכלי הנחוץ ייפתח." : "Choose one task. Only the tool you need will open."}</p></div></div>
+          <div className="tools-picker" role="list">
+            <button onClick={() => openCareerTool("studio")} role="listitem" type="button"><span className="tools-picker-icon tools-picker-icon-pink"><MessagesSquare className="h-5 w-5" /></span><span><strong>{language === "he" ? "כתיבת הודעה" : "Write a message"}</strong><small>{language === "he" ? "פנייה, מעקב או הודעת תודה" : "Outreach, follow-up, or thank-you"}</small></span><ArrowUpRight className="h-4 w-4" /></button>
+            <button onClick={() => openCareerTool("cv")} role="listitem" type="button"><span className="tools-picker-icon tools-picker-icon-green"><FileCheck2 className="h-5 w-5" /></span><span><strong>{language === "he" ? "בדיקת קורות חיים" : "Review my CV"}</strong><small>{language === "he" ? "שמירת גרסה ובדיקת מבנה" : "Save a version and review its structure"}</small></span><ArrowUpRight className="h-4 w-4" /></button>
+            <button onClick={() => openCareerTool("interview")} role="listitem" type="button"><span className="tools-picker-icon tools-picker-icon-amber"><Target className="h-5 w-5" /></span><span><strong>{language === "he" ? "הכנה לראיון" : "Prepare for an interview"}</strong><small>{language === "he" ? "סיפורים, ראיות ושאלות" : "Stories, evidence, and questions"}</small></span><ArrowUpRight className="h-4 w-4" /></button>
+            <button onClick={() => openCareerTool("offer")} role="listitem" type="button"><span className="tools-picker-icon tools-picker-icon-blue"><Scale className="h-5 w-5" /></span><span><strong>{language === "he" ? "בדיקת הצעה" : "Review an offer"}</strong><small>{language === "he" ? "תנאים, פערים ושאלות להחלטה" : "Terms, gaps, and decision questions"}</small></span><ArrowUpRight className="h-4 w-4" /></button>
+            <button onClick={() => openCareerTool("social")} role="listitem" type="button"><span className="tools-picker-icon tools-picker-icon-orange"><Sparkles className="h-5 w-5" /></span><span><strong>{language === "he" ? "כתיבת פוסט מקצועי" : "Write a professional post"}</strong><small>{language === "he" ? "רעיון קצר לפרסום בשליטתכם" : "A concise draft you control"}</small></span><ArrowUpRight className="h-4 w-4" /></button>
+          </div>
+        </section>
+
+        <section className={`calm-view message-studio-panel ${activeView !== "tools" || !expandedTools.studio ? "calm-view-hidden" : ""}`} id="message-studio">
           <div className="section-heading tool-card-heading relative">
             <div className="tool-card-copy">
               <p className="eyebrow flex items-center gap-2 text-pink-300"><MessagesSquare className="h-4 w-4" /> {copy.studio}</p>
@@ -4056,7 +4080,7 @@ export default function Home() {
           )}
         </section>
 
-        <section className={`calm-view social-studio-panel ${activeView !== "tools" ? "calm-view-hidden" : ""}`} id="social-studio">
+        <section className={`calm-view social-studio-panel ${activeView !== "tools" || !expandedTools.social ? "calm-view-hidden" : ""}`} id="social-studio">
           <div className="section-heading tool-card-heading relative">
             <div className="tool-card-copy">
               <p className="eyebrow flex items-center gap-2 text-orange-300"><Send className="h-4 w-4" /> {language === "he" ? "סטודיו פוסטים חכם" : "Smart Post Studio"}</p>
@@ -4098,7 +4122,7 @@ export default function Home() {
           )}
         </section>
 
-        <section className={`calm-view panel overflow-hidden ${activeView !== "tools" ? "calm-view-hidden" : ""}`} id="cv-lab">
+        <section className={`calm-view panel overflow-hidden ${activeView !== "tools" || !expandedTools.cv ? "calm-view-hidden" : ""}`} id="cv-lab">
           <div className="section-heading tool-card-heading">
             <div className="tool-card-copy"><p className="eyebrow flex items-center gap-2 text-emerald-300"><FileText className="h-4 w-4" /> {copy.cv}</p><h2 className="section-title">{language === "he" ? "הפכו כל גרסה של קורות החיים לסיפור מקצועי חזק יותר" : "Turn every CV version into a stronger story"}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">{language === "he" ? "שמרו עד שש גרסאות, קבלו בדיקת מבנה פרטית ובנו שכתוב אמין בלי להמציא ניסיון." : "Keep up to six versions, receive a private structure review, and build a grounded rewrite without inventing experience."}</p></div>
             <figure className="tool-card-illustration tool-card-illustration-cv"><Image alt={language === "he" ? "איור של השוואת מספר גרסאות קורות חיים ושיפורן בהדרגה" : "Illustration of comparing several CV versions and improving them step by step"} fill sizes="(max-width: 767px) 92px, 176px" src="/carvio-cv-review-versions-v2.webp" /><span aria-hidden="true"><FileCheck2 className="h-4 w-4" /></span></figure>
@@ -4122,7 +4146,7 @@ export default function Home() {
           )}
         </section>
 
-        <section className={`calm-view panel interview-prep-panel ${activeView !== "tools" ? "calm-view-hidden" : ""}`} id="interview-prep">
+        <section className={`calm-view panel interview-prep-panel ${activeView !== "tools" || !expandedTools.interview ? "calm-view-hidden" : ""}`} id="interview-prep">
           <div className="section-heading tool-card-heading">
             <div className="tool-card-copy"><p className="eyebrow flex items-center gap-2 text-amber-300"><Target className="h-4 w-4" />{language === "he" ? "הכנה ממוקדת־ראיות" : "Evidence-led preparation"}</p><h2 className="section-title">{language === "he" ? "הגיעו לראיון עם סיפורים שמוכיחים התאמה" : "Enter the interview with stories that prove your fit"}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">{language === "he" ? "Carvio מחבר בין דרישות המשרה, ראיות אמיתיות ופערים שכדאי להסביר—ללא המצאת ניסיון." : "Carvio connects role requirements, real proof points, and gaps worth explaining—without inventing experience."}</p></div>
             <figure className="tool-card-illustration"><Image alt={language === "he" ? "איור של הכנה לראיון מקצועי" : "Illustration of professional interview preparation"} fill sizes="(max-width: 767px) 92px, 176px" src="/carvio-interview-preparation-v1.jpg" /></figure>
@@ -4131,7 +4155,7 @@ export default function Home() {
           {expandedTools.interview && <div className="interview-prep-workspace"><div><h3>{language === "he" ? "מסמך ההכנה שלכם" : "Your preparation brief"}</h3><p>{language === "he" ? "ערכו את הסיפורים והשאלות עד שהם מדויקים, קצרים ואמיתיים." : "Edit the stories and questions until they are specific, concise, and true."}</p></div>{interviewPrepDraft ? <><textarea aria-label={language === "he" ? "מסמך הכנה לראיון" : "Interview preparation brief"} className="form-control" onChange={(event) => setInterviewPrepDraft(event.target.value)} value={interviewPrepDraft} /><div className="workspace-context-actions"><button className="secondary-button" onClick={() => { void navigator.clipboard.writeText(interviewPrepDraft); setNotice(language === "he" ? "מסמך ההכנה הועתק." : "Preparation brief copied."); }} type="button"><Copy className="h-4 w-4" />{language === "he" ? "העתקה" : "Copy brief"}</button></div></> : <div className="interview-prep-empty"><Target className="h-7 w-7" /><strong>{language === "he" ? "פתחו מועמדות כדי להתחיל" : "Open an application to begin"}</strong><p>{language === "he" ? "מתוך ה־Workspace בחרו ‘מרכז הכנה לראיון’." : "Choose ‘Interview preparation workspace’ from an application workspace."}</p></div>}</div>}
         </section>
 
-        <section className={`calm-view panel interview-prep-panel offer-decision-panel ${activeView !== "tools" ? "calm-view-hidden" : ""}`} id="offer-decision">
+        <section className={`calm-view panel interview-prep-panel offer-decision-panel ${activeView !== "tools" || !expandedTools.offer ? "calm-view-hidden" : ""}`} id="offer-decision">
           <div className="section-heading tool-card-heading">
             <div className="tool-card-copy"><p className="eyebrow flex items-center gap-2 text-emerald-300"><Scale className="h-4 w-4" />{language === "he" ? "החלטה מבוססת־מידע" : "Grounded offer decision"}</p><h2 className="section-title">{language === "he" ? "הבינו את ההצעה לפני שאתם משיבים" : "Understand the offer before you respond"}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">{language === "he" ? "Carvio מרכז את מה שכבר נשמר, מציף פרטים חסרים ומכין שאלות לשיחה—בלי להמציא תנאים." : "Carvio brings together what you saved, surfaces missing terms, and prepares questions for the conversation—without inventing details."}</p></div>
             <div className="offer-decision-visual" aria-hidden="true"><Scale className="h-8 w-8" /><span>{language === "he" ? "בהירות לפני החלטה" : "Clarity before commitment"}</span></div>

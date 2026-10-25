@@ -1989,6 +1989,92 @@ html[data-carvio-theme="light"] {
   background: linear-gradient(110deg, color-mix(in srgb, #d946ef 7%, var(--cv-surface)), var(--cv-surface));
 }
 
+.tools-hub {
+  display: grid;
+  gap: 1.2rem;
+}
+
+.tools-hub-heading h2 {
+  margin-top: 0.35rem;
+  color: var(--cv-text);
+  font-size: clamp(1.45rem, 2.4vw, 2rem);
+  font-weight: 760;
+  letter-spacing: -0.035em;
+}
+
+.tools-hub-heading .eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--cv-primary-ink);
+}
+
+.tools-hub-heading p:last-child {
+  margin-top: 0.45rem;
+  color: var(--cv-muted);
+  font-size: 0.86rem;
+}
+
+.tools-picker {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.tools-picker > button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.8rem;
+  min-height: 5.2rem;
+  padding: 0.9rem;
+  border: 1px solid var(--cv-border);
+  border-radius: 1rem;
+  color: var(--cv-text);
+  background: var(--cv-surface-soft);
+  text-align: start;
+  transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
+}
+
+.tools-picker > button:hover {
+  border-color: color-mix(in srgb, var(--cv-primary) 42%, var(--cv-border));
+  background: color-mix(in srgb, var(--cv-primary) 6%, var(--cv-surface-soft));
+  transform: translateY(-1px);
+}
+
+.tools-picker > button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--cv-primary) 28%, transparent);
+  outline-offset: 2px;
+}
+
+.tools-picker > button > span:nth-child(2) {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.tools-picker strong { font-size: 0.86rem; }
+.tools-picker small { color: var(--cv-muted); font-size: 0.72rem; line-height: 1.25rem; }
+.tools-picker > button > svg { color: var(--cv-primary-ink); }
+
+.tools-picker-icon {
+  display: grid;
+  width: 2.55rem;
+  height: 2.55rem;
+  place-items: center;
+  border-radius: 0.8rem;
+}
+
+.tools-picker-icon-pink { color: #ec4899; background: color-mix(in srgb, #ec4899 12%, transparent); }
+.tools-picker-icon-green { color: #10b981; background: color-mix(in srgb, #10b981 12%, transparent); }
+.tools-picker-icon-amber { color: #f59e0b; background: color-mix(in srgb, #f59e0b 12%, transparent); }
+.tools-picker-icon-blue { color: #0ea5e9; background: color-mix(in srgb, #0ea5e9 12%, transparent); }
+.tools-picker-icon-orange { color: #f97316; background: color-mix(in srgb, #f97316 12%, transparent); }
+
+@media (max-width: 700px) {
+  .tools-picker { grid-template-columns: 1fr; }
+  .tools-picker > button { min-height: 4.7rem; padding: 0.75rem; }
+}
+
 .networking-avatar {
   display: inline-grid;
   width: 2rem;
