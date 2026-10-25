@@ -1666,7 +1666,7 @@ export default function Home() {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [language, setLanguage] = useState<Language>("en");
   const [resumeProcessing, setResumeProcessing] = useState(false);
-  const [expandedTools, setExpandedTools] = useState({ studio: false, social: false, cv: false, interview: false, offer: false, search: true, analytics: true });
+  const [expandedTools, setExpandedTools] = useState({ studio: false, social: false, cv: false, interview: false, offer: false, search: true, analytics: false });
   const [userProfile, setUserProfile] = useState<UserProfile>(emptyUserProfile);
   const [showTrustCenter, setShowTrustCenter] = useState(false);
   const [dailyMood, setDailyMood] = useState<DailyMood>("");
@@ -1966,7 +1966,7 @@ export default function Home() {
       : meaningfulMoves > 0
         ? (language === "he" ? `${meaningfulMoves} ${meaningfulMoves === 1 ? "התקדמות משמעותית תועדה" : "התקדמויות משמעותיות תועדו"} השבוע` : `${meaningfulMoves} meaningful ${meaningfulMoves === 1 ? "move" : "moves"} recorded this week`)
         : interviews > 0
-          ? (language === "he" ? `${interviews} ${interviews === 1 ? "תהליך נמצא" : "תהליכים נמצאים"} בשלב ראיון` : `${interviews} ${interviews === 1 ? "opportunity is" : "opportunities are"} currently at interview stage`)
+          ? (language === "he" ? `${interviews} תהליכים הגיעו לראיון לאורך החיפוש` : `${interviews} opportunities have reached interview during your search`)
           : activeOpportunities > 0
             ? (language === "he" ? `${activeOpportunities} ${activeOpportunities === 1 ? "הזדמנות פעילה מוכנה" : "הזדמנויות פעילות מוכנות"} לצעד הבא` : `${activeOpportunities} active ${activeOpportunities === 1 ? "opportunity is" : "opportunities are"} ready for a next move`)
             : (language === "he" ? "השיחות שתועדו ממשיכות לבנות את החיפוש." : "Your recorded conversations are continuing to build the search.");
@@ -2367,7 +2367,7 @@ export default function Home() {
     const highFitWaiting = highFitOpportunities.find((item) => item.trafficLight === "yellow" || item.overdue);
     const conversionFunnel = [
       { label: language === "he" ? "מועמדויות שהוגשו" : "Submitted applications", value: applications.filter((item) => isSubmittedApplicationStatus(item.status)).length },
-      { label: language === "he" ? "הגיעו לראיון" : "Reached interview", value: applications.filter((item) => item.status === "Interview" || item.status === "Offer" || item.processStages.some((stage) => /interview|ראיון/i.test(stage.name))).length },
+      { label: language === "he" ? "הגיעו לראיון" : "Reached interview", value: searchProgress.interviews },
       { label: language === "he" ? "הצעות עבודה" : "Offers", value: applications.filter((item) => item.status === "Offer").length },
     ];
     return {
@@ -2387,7 +2387,7 @@ export default function Home() {
       conversionFunnel,
       followUps: [{ label: "Overdue", value: appOverdue + contactOverdue }, { label: "Upcoming", value: upcoming }, { label: "No date", value: noDate }],
     };
-  }, [applications, contacts, language]);
+  }, [applications, contacts, language, searchProgress.interviews]);
 
   const activeRecoveryEntry = recoveryApplication ? recoveryEntries.find((entry) => entry.applicationId === recoveryApplication.id) : undefined;
   const resolvedSearch = useMemo(() => normalizedSearchProfile(searchProfile), [searchProfile]);
@@ -3751,7 +3751,6 @@ export default function Home() {
         {activeView !== "home" && <section className={`calm-page-header ${activeView === "applications" ? "applications-v2-page-header" : ""}`}><div><p className="eyebrow text-cyan-300">Carvio</p><h1 className="text-2xl font-semibold">{activeView === "search" ? copy.search : activeView === "applications" ? copy.applications : activeView === "networking" ? copy.networking : activeView === "tools" ? copy.careerTools : copy.support}</h1><p className="mt-1 text-sm text-slate-400">{activeView === "search" ? (language === "he" ? "בחרו תפקיד ומיקום, הפעילו חיפוש ופתחו את התוצאות במקור." : "Choose a role and location, run the search, then open results at the source.") : activeView === "applications" ? (language === "he" ? "דעו מה פעיל, למה מחכים ומה דורש מכם פעולה." : "Know what’s active, what’s waiting, and what needs you next.") : activeView === "networking" ? copy.networkingIntro : activeView === "tools" ? copy.toolsIntro : copy.supportIntro}</p></div><figure className={`screen-illustration screen-illustration-${activeView}`}><Image alt={screenIllustration.alt} fill sizes="(max-width: 767px) 104px, 216px" src={screenIllustration.src} /></figure>{activeView === "search" ? <button className="primary-button" onClick={() => document.getElementById("search-form-fields")?.scrollIntoView({ behavior: "smooth", block: "start" })} type="button"><Search className="h-4 w-4" />{language === "he" ? "התחלת חיפוש" : "Start searching"}</button> : activeView !== "applications" ? <button className="icon-button" onClick={() => setShowQuickAdd(true)} type="button" aria-label={language === "he" ? "הוספה מהירה" : "Quick add"}><Plus className="h-5 w-5" /></button> : null}</section>}
 
         <section className={`calm-view insights-hub ${activeView !== "more" ? "calm-view-hidden" : ""}`} aria-label="Insights and support overview">
-          <div><p className="eyebrow text-cyan-300">{copy.reflection}</p><h2 className="mt-2 text-2xl font-semibold">{copy.whatHelps}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">{copy.destination}</p></div>
           <div className="insights-hub-grid">
             {([
               ["analytics", "📊", "תובנות החיפוש", "Search insights", "התקדמות והפעולה הבאה", "Progress and your next move"],
@@ -4256,15 +4255,15 @@ export default function Home() {
         <section className={`calm-view panel ${activeView !== "more" || insightPanel !== "analytics" ? "calm-view-hidden" : ""}`} id="analytics">
           <div className="insights-command">
             <div className="insights-command-copy">
-              <p className="eyebrow flex items-center gap-2 text-violet-300"><TrendingUp className="h-4 w-4" /> {language === "he" ? "מרכז התובנות" : "Insights command center"}</p>
-              <h2>{language === "he" ? "המספרים שלכם, מתורגמים להחלטות." : "Your numbers, translated into decisions."}</h2>
-              <p>{language === "he" ? "תמונת מצב חיה של התהליך — ומה כדאי לעשות עכשיו כדי לייצר תנופה." : "A live view of your search—and the clearest move to create momentum now."}</p>
-              <button className="primary-button" onClick={() => navigateToSection(todayFocus.target)} type="button"><Zap className="h-4 w-4" />{language === "he" ? "לביצוע הפעולה המומלצת" : "Take the recommended action"}</button>
+              <p className="eyebrow flex items-center gap-2 text-violet-300"><TrendingUp className="h-4 w-4" /> {language === "he" ? "תמונת מצב" : "Search snapshot"}</p>
+              <h2>{language === "he" ? "איך מתקדם החיפוש?" : "How is your search going?"}</h2>
+              <p>{language === "he" ? "המצב הנוכחי והצעד הבא, על סמך מה שתיעדתם." : "Your current position and next move, based on what you recorded."}</p>
             </div>
             <div className="insights-command-focus">
               <span>{language === "he" ? "הפעולה החשובה עכשיו" : "Most important now"}</span>
-              <strong>{todayFocus.title}</strong>
-              <small>{todayFocus.detail}</small>
+              <strong>{todayActionPresentation.headline}</strong>
+              <small>{todayActionPresentation.reason}</small>
+              <button className="primary-button" onClick={executeTodayPrimaryAction} type="button"><Zap className="h-4 w-4" />{todayActionPresentation.cta}</button>
               <div><i style={{ width: `${weeklyMomentum.progress}%` }} /></div>
               <p>{language === "he" ? `${weeklyMomentum.total} מתוך ${weeklyMomentum.goal} פעולות משמעותיות השבוע` : `${weeklyMomentum.total} of ${weeklyMomentum.goal} meaningful moves this week`}</p>
             </div>
@@ -4273,7 +4272,7 @@ export default function Home() {
             {[
               { label: language === "he" ? "משרות שנשמרו" : "Saved roles", value: applications.filter((item) => item.status === "Considering").length, icon: "🔖" },
               { label: language === "he" ? "מועמדויות פעילות" : "Active applications", value: applications.filter((item) => isActiveApplicationStatus(item.status)).length, icon: "💼" },
-              { label: language === "he" ? "בשלב ראיון" : "Interview stage", value: applications.filter((item) => item.status === "Interview").length, icon: "🎙️" },
+              { label: language === "he" ? "בראיון כרגע" : "Interviewing now", value: applications.filter((item) => item.status === "Interview").length, icon: "🎙️" },
               { label: language === "he" ? "הצעות" : "Offers", value: applications.filter((item) => item.status === "Offer").length, icon: "✨" },
               { label: language === "he" ? "פעולות באיחור" : "Overdue actions", value: analytics.followUps[0].value, icon: "⏰" },
               { label: language === "he" ? "קשרים מקצועיים" : "Network contacts", value: contacts.length, icon: "🤝" },
@@ -4314,6 +4313,8 @@ export default function Home() {
             </AnalyticsCard>
             <AnalyticsCard
               title={language === "he" ? "בריאות שלבי התהליך" : "Process-stage health"}
+              onAction={() => switchView("applications")}
+              actionLabel={language === "he" ? "פתיחת המועמדויות" : "Review applications"}
               subtitle={language === "he" ? "מה קורה בתוך כל ראיון ושלב" : "What is happening inside every interview and stage"}
               icon={<span className="text-lg">🚦</span>}
               insight={analytics.stageSignals.reduce((sum, item) => sum + item.value, 0)
@@ -4329,6 +4330,8 @@ export default function Home() {
             </AnalyticsCard>
             <AnalyticsCard
               title={language === "he" ? "מטריצת איכות הזדמנויות" : "Opportunity quality matrix"}
+              onAction={() => { const opportunity = analytics.highFitWaiting || analytics.highFitOpportunities[0]; if (opportunity) setWorkspaceApplicationId(opportunity.id); else switchView("applications"); }}
+              actionLabel={language === "he" ? "בדיקת ההזדמנות" : "Review opportunity"}
               subtitle={language === "he" ? "התאמה מול התקדמות — כדי לדעת היכן להשקיע" : "Fit versus progress—so you know where to invest"}
               icon={<span className="text-lg">🎯</span>}
               insight={analytics.highFitOpportunities.length
@@ -4350,6 +4353,8 @@ export default function Home() {
             </AnalyticsCard>
             <AnalyticsCard
               title={language === "he" ? "משפך ההתקדמות" : "Progression funnel"}
+              onAction={() => switchView("applications")}
+              actionLabel={language === "he" ? "פתיחת המועמדויות" : "Review applications"}
               subtitle={language === "he" ? "ממועמדות לראיון ולהצעת עבודה" : "From application to interview and offer"}
               icon={<TrendingUp className="h-5 w-5" />}
               insight={applications.length
@@ -4700,12 +4705,13 @@ function TrafficLightPicker({ label, value, language, onChange }: { label: strin
   );
 }
 
-function AnalyticsCard({ title, subtitle, icon, insight, recommendation, children }: { title: string; subtitle: string; icon: ReactNode; insight: string; recommendation: string; children: ReactNode }) {
+function AnalyticsCard({ title, subtitle, icon, insight, recommendation, children, onAction, actionLabel }: { title: string; subtitle: string; icon: ReactNode; insight: string; recommendation: string; children: ReactNode; onAction?: () => void; actionLabel?: string }) {
   return (
     <article className="analytics-card">
       <div className="flex items-start justify-between gap-3"><div><h3 className="font-semibold text-slate-100">{title}</h3><p className="mt-1 text-sm text-slate-500">{subtitle}</p></div><div className="rounded-xl bg-violet-400/10 p-2.5 text-violet-300">{icon}</div></div>
       <div className="mt-5 min-h-48">{children}</div>
       <div className="mt-5 grid gap-3 sm:grid-cols-2"><div className="insight-box"><p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-cyan-300"><Lightbulb className="h-4 w-4" /> Insight</p><p className="mt-2 text-sm leading-6 text-slate-300">{insight}</p></div><div className="recommendation-box"><p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-emerald-300"><Target className="h-4 w-4" /> Recommendation</p><p className="mt-2 text-sm leading-6 text-slate-300">{recommendation}</p></div></div>
+      {onAction && <button className="secondary-button mt-4" onClick={onAction} type="button">{actionLabel}<ArrowUpRight className="h-4 w-4" /></button>}
     </article>
   );
 }
