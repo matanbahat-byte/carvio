@@ -1688,6 +1688,7 @@ export default function Home() {
   const [showContactFilters, setShowContactFilters] = useState(false);
   const [searchStep, setSearchStep] = useState<1 | 2 | 3>(1);
   const [mobileInsightCategory, setMobileInsightCategory] = useState<"pipeline" | "activity" | "networking">("pipeline");
+  const [insightPanel, setInsightPanel] = useState<"analytics" | "reset" | "preferences" | "feedback">("analytics");
   const [applicationViewMode, setApplicationViewMode] = useState<ApplicationViewMode>("table");
   const [applicationScope, setApplicationScope] = useState<"active" | "closed">("active");
   const [showApplicationHistory, setShowApplicationHistory] = useState(false);
@@ -2026,6 +2027,7 @@ export default function Home() {
     const tool = target === "message-studio" ? "studio" : target === "social-studio" ? "social" : target === "cv-lab" ? "cv" : target === "interview-prep" ? "interview" : target === "offer-decision" ? "offer" : target === "job-search" ? "search" : target === "analytics" ? "analytics" : null;
     const view: AppView = target === "job-search" ? "search" : target === "applications" ? "applications" : target === "networking" ? "networking" : tool && tool !== "analytics" ? "tools" : target === "dashboard" ? "home" : "more";
     setActiveView(view);
+    if (view === "more") setInsightPanel(target === "carvio-reset" ? "reset" : target === "preferences" ? "preferences" : target === "pilot-feedback" ? "feedback" : "analytics");
     if (tool) setExpandedTools((current) => ({ ...current, [tool]: true }));
     window.setTimeout(() => document.getElementById(target)?.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
   }
@@ -2034,9 +2036,7 @@ export default function Home() {
     setShowMobileMore(false);
     setActiveView(view);
     if (view === "more") {
-      setExpandedTools((current) => ({ ...current, analytics: true }));
-      window.setTimeout(() => document.getElementById("analytics")?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
-      return;
+      setInsightPanel("analytics");
     }
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -3753,14 +3753,16 @@ export default function Home() {
         <section className={`calm-view insights-hub ${activeView !== "more" ? "calm-view-hidden" : ""}`} aria-label="Insights and support overview">
           <div><p className="eyebrow text-cyan-300">{copy.reflection}</p><h2 className="mt-2 text-2xl font-semibold">{copy.whatHelps}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">{copy.destination}</p></div>
           <div className="insights-hub-grid">
-            <button onClick={() => document.getElementById("analytics")?.scrollIntoView({ behavior: "smooth", block: "start" })} type="button"><span>📊</span><strong>Search insights</strong><small>Patterns, charts and recommendations</small></button>
-            <button onClick={() => document.getElementById("carvio-reset")?.scrollIntoView({ behavior: "smooth", block: "start" })} type="button"><span>🌿</span><strong>Carvio Reset</strong><small>Recover gently after a setback</small></button>
-            <button onClick={() => document.getElementById("preferences")?.scrollIntoView({ behavior: "smooth", block: "start" })} type="button"><span>🎨</span><strong>Preferences</strong><small>Appearance, language and privacy</small></button>
-            <button onClick={() => document.getElementById("pilot-feedback")?.scrollIntoView({ behavior: "smooth", block: "start" })} type="button"><span>💬</span><strong>Send feedback</strong><small>Help shape the next version</small></button>
+            {([
+              ["analytics", "📊", "תובנות החיפוש", "Search insights", "התקדמות והפעולה הבאה", "Progress and your next move"],
+              ["reset", "🌿", "רגע לעצמכם", "Carvio Reset", "עצירה ובחירת צעד קטן", "Pause and choose a small next step"],
+              ["preferences", "🎨", "העדפות", "Preferences", "מראה, שפה ופרטיות", "Appearance, language and privacy"],
+              ["feedback", "💬", "שליחת משוב", "Send feedback", "עזרו לשפר את Carvio", "Help improve Carvio"],
+            ] as const).map(([panel, icon, heTitle, enTitle, heDetail, enDetail]) => <button aria-pressed={insightPanel === panel} key={panel} onClick={() => setInsightPanel(panel)} type="button"><span aria-hidden="true">{icon}</span><strong>{language === "he" ? heTitle : enTitle}</strong><small>{language === "he" ? heDetail : enDetail}</small></button>)}
           </div>
         </section>
 
-        <section className={`calm-view reset-panel ${activeView !== "more" ? "calm-view-hidden" : ""}`} id="carvio-reset">
+        <section className={`calm-view reset-panel ${activeView !== "more" || insightPanel !== "reset" ? "calm-view-hidden" : ""}`} id="carvio-reset">
           <div className="pointer-events-none absolute right-4 top-3 text-7xl opacity-10" aria-hidden="true">🌿</div>
           <div className="relative grid gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
             <div>
@@ -4251,7 +4253,7 @@ export default function Home() {
           </div>)}
         </section>
 
-        <section className={`calm-view panel ${activeView !== "more" ? "calm-view-hidden" : ""}`} id="analytics">
+        <section className={`calm-view panel ${activeView !== "more" || insightPanel !== "analytics" ? "calm-view-hidden" : ""}`} id="analytics">
           <div className="insights-command">
             <div className="insights-command-copy">
               <p className="eyebrow flex items-center gap-2 text-violet-300"><TrendingUp className="h-4 w-4" /> {language === "he" ? "מרכז התובנות" : "Insights command center"}</p>
@@ -4281,9 +4283,9 @@ export default function Home() {
             <div><p className="eyebrow text-cyan-300">{language === "he" ? "ניתוח מעמיק" : "Deeper analysis"}</p><h3 className="section-title">{language === "he" ? "כל גרף מוביל לתובנה ולפעולה" : "Every chart leads to an insight and action"}</h3></div>
             <div className="flex flex-wrap items-center gap-2"><span className="rounded-full border border-violet-400/20 bg-violet-400/10 px-3 py-1 text-xs text-violet-200">{language === "he" ? "חי · מבוסס על המכשיר הזה" : "Live · based on this device"}</span><button aria-expanded={expandedTools.analytics} className="secondary-button" onClick={() => setExpandedTools((current) => ({ ...current, analytics: !current.analytics }))} type="button">{expandedTools.analytics ? (language === "he" ? "הסתרת הגרפים" : "Hide charts") : (language === "he" ? "הצגת כל הניתוחים" : "Explore analytics")}<ChevronDown className={`h-4 w-4 transition ${expandedTools.analytics ? "rotate-180" : ""}`} /></button></div>
           </div>
-          <div className="mobile-insight-tabs" role="tablist" aria-label={language === "he" ? "קטגוריית תובנות" : "Insight category"}>
+          {expandedTools.analytics && <div className="mobile-insight-tabs" role="tablist" aria-label={language === "he" ? "קטגוריית תובנות" : "Insight category"}>
             {([["pipeline", language === "he" ? "משפך" : "Pipeline"], ["activity", language === "he" ? "פעילות" : "Activity"], ["networking", language === "he" ? "קשרים" : "Network"]] as const).map(([value, label]) => <button aria-selected={mobileInsightCategory === value} key={value} onClick={() => setMobileInsightCategory(value)} role="tab" type="button">{label}</button>)}
-          </div>
+          </div>}
           {expandedTools.analytics && (
           <div className={`analytics-grid mobile-insights-${mobileInsightCategory} mt-6`}>
             <AnalyticsCard title="Pipeline distribution" subtitle="Where every application currently sits" icon={<BarChart3 className="h-5 w-5" />} insight={applications.length ? `${analytics.pipeline.reduce((best, item) => item.value > best.value ? item : best, analytics.pipeline[0]).label} is currently your largest pipeline stage.` : "Add applications to reveal your pipeline shape."} recommendation={applications.some((item) => item.status === "Follow-up due") ? "Start with follow-ups before adding more applications." : "Focus on moving the strongest active applications one stage forward."}>
@@ -4367,7 +4369,7 @@ export default function Home() {
           )}
         </section>
 
-        <section className={`calm-view panel ${activeView !== "more" ? "calm-view-hidden" : ""}`} id="preferences">
+        <section className={`calm-view panel ${activeView !== "more" || insightPanel !== "preferences" ? "calm-view-hidden" : ""}`} id="preferences">
           <div className="section-heading"><div><p className="eyebrow text-cyan-300">{copy.preferences}</p><h2 className="section-title">{copy.preferencesTitle}</h2></div><span className="text-3xl" aria-hidden="true">⚙️</span></div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <button className="calm-setting-button" onClick={() => setShowAppearance(!showAppearance)} type="button"><Palette className="h-5 w-5 text-cyan-300" /><span><strong>{copy.appearance}</strong><small>{copy.appearanceHelp}</small></span></button>
@@ -4384,7 +4386,7 @@ export default function Home() {
           ] as { value: ColorTheme; label: string; colors: string[] }[]).map((option) => <button aria-pressed={theme === option.value} className={`palette-option ${theme === option.value ? "palette-option-active" : ""}`} key={option.value} onClick={() => { selectTheme(option.value); setShowAppearance(false); }} type="button"><span className="flex" aria-hidden="true">{option.colors.map((color) => <span className="h-5 w-5 border border-white/20 first:rounded-s-full last:rounded-e-full" key={color} style={{ backgroundColor: color }} />)}</span><span>{option.label}</span></button>)}</div></div>}
         </section>
 
-        <section className={`calm-view compact-feedback-card ${activeView !== "more" ? "calm-view-hidden" : ""}`} id="pilot-feedback">
+        <section className={`calm-view compact-feedback-card ${activeView !== "more" || insightPanel !== "feedback" ? "calm-view-hidden" : ""}`} id="pilot-feedback">
           <div><span aria-hidden="true">🧪</span><div><strong>{copy.pilotQuestion}</strong><p>{copy.pilotHelp}</p></div></div>
           <button className="primary-button" onClick={() => { setFeedbackError(""); setShowFeedbackModal(true); }} type="button"><MessageCircleMore className="h-4 w-4" /> {copy.shareFeedback}</button>
         </section>

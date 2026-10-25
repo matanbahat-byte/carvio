@@ -3004,6 +3004,18 @@ html[data-carvio-theme="light"] {
   transform: translateY(-2px);
 }
 
+.insights-hub-grid button[aria-pressed="true"] {
+  border-color: var(--cv-primary);
+  background: color-mix(in srgb, var(--cv-primary) 10%, var(--cv-surface));
+}
+
+.insights-hub-grid button { text-align: start; }
+
+.insights-hub-grid button:focus-visible {
+  outline: 3px solid var(--cv-primary);
+  outline-offset: 3px;
+}
+
 .insights-hub-grid button > span {
   grid-row: span 2;
   font-size: 1.55rem;
