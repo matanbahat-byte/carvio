@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import { agendaEntries, scheduledTimestamp } from "@/lib/schedule";
+import { extractJobRequirements, splitRequirementText, uniqueRequirements, requirementCategory } from "@/lib/job-requirements";
 import { ChangeEvent, FormEvent, Fragment, ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   ArrowDown,
@@ -73,6 +75,8 @@ const LANGUAGE_KEY = "carvio.language.v1";
 const LANDING_KEY = "carvio.landing-seen.v1";
 const ANALYTICS_SAMPLE_PACK_KEY = "carvio.analytics-sample-pack.v1";
 const ACTION_EVENTS_KEY = "carvio.action-events.v1";
+const SEARCH_TASKS_KEY = "carvio.search-tasks.v1";
+type SearchTask = { id: string; role: string; location: string; action: string; due: string; completed: boolean };
 
 const applicationStatuses = [
   "Considering",
@@ -87,7 +91,7 @@ const applicationStatuses = [
 
 type ApplicationStatus = (typeof applicationStatuses)[number];
 const isClosedApplicationStatus = (status: ApplicationStatus) => ["Accepted", "Rejected", "Withdrawn"].includes(status);
-const isActiveApplicationStatus = (status: ApplicationStatus) => ["Applied", "Interview", "Offer", "Follow-up due"].includes(status);
+const isActiveApplicationStatus = (status: ApplicationStatus) => !isClosedApplicationStatus(status);
 const isSubmittedApplicationStatus = (status: ApplicationStatus) => status !== "Considering";
 type ApplicationMeetingFilter = "all" | "upcoming" | "past" | "unscheduled";
 type ApplicationSort =
@@ -229,6 +233,7 @@ type ResumeFile = {
   type: string;
   addedAt: string;
   extractedText: string;
+  readState?: "ready" | "empty" | "unsupported" | "too-large" | "error";
 };
 
 type SearchProfile = {
@@ -774,11 +779,20 @@ function makeId(prefix: string) {
 
 function readStored<T>(key: string, fallback: T): T {
   try {
-    const value = window.localStorage.getItem(key);
+    const value = workspaceStorage().getItem(key);
     return value ? (JSON.parse(value) as T) : fallback;
   } catch {
     return fallback;
   }
+}
+
+function workspaceStorage(): Storage {
+  return new URLSearchParams(window.location.search).get("demo") === "1" ? window.sessionStorage : window.localStorage;
+}
+
+function relativeDemoApplications() {
+  const date = (offset: number) => { const value = new Date(); value.setDate(value.getDate() + offset); return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`; };
+  return demoApplications.map((item, index) => ({ ...item, appliedDate: date(-7 - index), lastActivityAt: new Date().toISOString(), nextStepDue: item.nextStepDue ? `${date(1 + index)}T10:00` : "", eventDateTime: item.eventDateTime ? `${date(2 + index)}T11:00` : "", processStages: item.processStages?.map((stage, i) => ({ ...stage, date: date(-3 + i), dateTime: undefined })) }));
 }
 
 function normalizeApplication(value: Partial<Application>): Application {
@@ -883,56 +897,6 @@ function workspaceActionReason(application: Application, language: "en" | "he") 
     : "This is the next move saved for this opportunity—completing it keeps the process moving.";
 }
 
-const requirementHeadings = /^(?:requirements?|qualifications?|what you(?:'|’)ll bring|what we(?:'|’)re looking for|skills?|experience|דרישות|כישורים|מה נדרש|ניסיון)\s*:?\s*$/i;
-const nonRequirementHeadings = /^(?:responsibilities|about (?:the role|you|us)|benefits|what we offer|the opportunity|תחומי אחריות|על התפקיד|אודות|מה אנחנו מציעים)\s*:?\s*$/i;
-
-function splitRequirementText(value: string) {
-  return value
-    .replace(/\r/g, "")
-    .split(/\n+|\s*[;；]\s*|(?<=[.!?])\s+(?=[A-Z\u0590-\u05FF])/u)
-    .map((item) => item.replace(/^\s*(?:[-–—•*✓]|\d+[.)])\s*/, "").replace(/\s+/g, " ").trim())
-    .filter((item) => item.length >= 3);
-}
-
-function requirementCategory(requirement: string): RequirementCategory {
-  if (/\b(?:degree|bachelor|master|phd|education|certification)\b|תואר|השכלה|הסמכה/i.test(requirement)) return "Education";
-  if (/\b(?:years?|experience|background|led|managed|senior)\b|ניסיון|שנים|ניהול|הובלה/i.test(requirement)) return "Experience";
-  if (/\b(?:figma|sql|excel|jira|salesforce|python|javascript|typescript|react|software|platform|tool)\b|תוכנה|מערכת|כלי/i.test(requirement)) return "Tools";
-  if (/\b(?:skill|ability|communication|collaboration|analytical|strategic|fluent|language|proficien)\b|יכולת|כישורים|תקשורת|אנגלית|עברית/i.test(requirement)) return "Skills";
-  return "Other";
-}
-
-function uniqueRequirements(items: string[], limit = 12) {
-  const seen = new Set<string>();
-  return items.filter((item) => {
-    const key = item.toLocaleLowerCase().replace(/[.!?]+$/, "").trim();
-    if (item.length < 8 || item.length > 320 || seen.has(key) || requirementHeadings.test(item) || nonRequirementHeadings.test(item)) return false;
-    seen.add(key);
-    return true;
-  }).slice(0, limit);
-}
-
-function extractJobRequirements(description: string) {
-  if (!description.trim()) return [];
-  const lines = description.split(/\n+/).map((line) => line.trim()).filter(Boolean);
-  const candidates: string[] = [];
-  let inRequirements = false;
-  for (const line of lines) {
-    const inlineHeading = line.match(/^(?:requirements?|qualifications?|skills?|experience|דרישות|כישורים|מה נדרש|ניסיון)\s*:\s*(.+)$/i);
-    if (inlineHeading) {
-      inRequirements = true;
-      candidates.push(...splitRequirementText(inlineHeading[1]));
-      continue;
-    }
-    const cleanLine = line.replace(/^\s*(?:[-–—•*✓]|\d+[.)])\s*/, "").trim();
-    if (requirementHeadings.test(cleanLine)) { inRequirements = true; continue; }
-    if (inRequirements && nonRequirementHeadings.test(cleanLine)) break;
-    if (inRequirements) candidates.push(...splitRequirementText(cleanLine));
-  }
-  const signaled = lines.flatMap(splitRequirementText).filter((line) => /\b(?:years?|experience|required|must|proficien|ability|knowledge|degree|background)\b|ניסיון|חובה|יכולת|ידע|תואר/i.test(line));
-  const fallback = splitRequirementText(description).filter((line) => line.length >= 28 && line.length <= 220);
-  return uniqueRequirements(candidates.length ? candidates : signaled.length ? signaled : fallback);
-}
 
 function syncRequirementEvidence(requirements: string, current: RequirementEvidence[]) {
   const existing = new Map(current.map((item) => [item.requirement.trim().toLowerCase(), item.evidence]));
@@ -1139,7 +1103,7 @@ function reviewResumeText(text: string) {
   const clean = text.trim();
   if (!clean) return [
     "Paste the CV text below to receive content-specific feedback.",
-    "For PDF, DOCX, or image files, the pilot stores the file details locally but does not extract private content yet.",
+    "Text-based PDF, DOCX, and text files can be read on this device. Scanned PDFs and images need pasted text; OCR is not available.",
     "Keep the CV to one or two focused pages and tailor the headline to the target role.",
   ];
   const lower = clean.toLowerCase();
@@ -1621,6 +1585,10 @@ function ApplicationCalendarMenu({ application, language, onClose, onEdit }: { a
 }
 
 export default function Home() {
+  const [demoMode, setDemoMode] = useState(false);
+  const [searchTasks, setSearchTasks] = useState<SearchTask[]>([]);
+  const [showSearchTaskModal, setShowSearchTaskModal] = useState(false);
+  const [searchTaskDraft, setSearchTaskDraft] = useState({ role: "", location: "", action: "", due: "" });
   const [hydrated, setHydrated] = useState(false);
   const [showLanding, setShowLanding] = useState(false);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -1666,6 +1634,7 @@ export default function Home() {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [language, setLanguage] = useState<Language>("en");
   const [resumeProcessing, setResumeProcessing] = useState(false);
+  const [contactNameError, setContactNameError] = useState("");
   const [expandedTools, setExpandedTools] = useState({ studio: false, social: false, cv: false, interview: false, offer: false, search: true, analytics: false });
   const [userProfile, setUserProfile] = useState<UserProfile>(emptyUserProfile);
   const [showTrustCenter, setShowTrustCenter] = useState(false);
@@ -1736,41 +1705,26 @@ export default function Home() {
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
-      const storedApplications = readStored<Partial<Application>[]>(APPLICATIONS_KEY, demoApplications);
-      const samplePackAlreadyAdded = window.localStorage.getItem(ANALYTICS_SAMPLE_PACK_KEY) === "added";
-      const analyticsSamples = demoApplications.filter((application) =>
-        ["demo-app-4", "demo-app-5", "demo-app-6", "demo-app-7", "demo-app-8", "demo-app-9"].includes(application.id ?? ""),
-      );
-      const existingApplicationIds = new Set(storedApplications.map((application) => application.id));
-      const mergedApplications = samplePackAlreadyAdded
-        ? storedApplications
-        : [
-            ...storedApplications,
-            ...analyticsSamples.filter((application) => !existingApplicationIds.has(application.id)),
-          ];
-
-      if (!samplePackAlreadyAdded) {
-        window.localStorage.setItem(APPLICATIONS_KEY, JSON.stringify(mergedApplications));
-        window.localStorage.setItem(ANALYTICS_SAMPLE_PACK_KEY, "added");
-      }
-
-      setApplications(mergedApplications.map(normalizeApplication));
-      setContacts(readStored<(Partial<Contact> & { companyRole?: string })[]>(CONTACTS_KEY, demoContacts).map(normalizeContact));
+      const isDemo = new URLSearchParams(window.location.search).get("demo") === "1";
+      setDemoMode(isDemo);
+      setApplications(readStored<Partial<Application>[]>(APPLICATIONS_KEY, isDemo ? relativeDemoApplications() : []).map(normalizeApplication));
+      setContacts(readStored<(Partial<Contact> & { companyRole?: string })[]>(CONTACTS_KEY, isDemo ? demoContacts.map((item) => ({ ...item, nextActionDue: "", eventDateTime: "", lastContactDate: "" })) : []).map(normalizeContact));
       setResumes(readStored<ResumeFile[]>(RESUMES_KEY, []));
       setSearchProfile(migrateSearchProfile(readStored<Partial<SearchProfile>>(SEARCH_PROFILE_KEY, emptySearchProfile)));
       setRecoveryEntries(readStored<RecoveryEntry[]>(RECOVERY_KEY, []));
       setActionEvents(readStored<ActionEvent[]>(ACTION_EVENTS_KEY, []));
+      setSearchTasks(readStored<SearchTask[]>(SEARCH_TASKS_KEY, []));
       const savedTheme = readStored<ColorTheme>(THEME_KEY, "light");
       const hasExplicitTheme = readStored<boolean>(THEME_EXPLICIT_KEY, false);
       const validTheme = (["light", "dark", "ocean", "plum"] as ColorTheme[]).includes(savedTheme);
       setTheme(hasExplicitTheme && validTheme ? savedTheme : "light");
-      if (!hasExplicitTheme || !validTheme) window.localStorage.setItem(THEME_KEY, JSON.stringify("light"));
+      if (!hasExplicitTheme || !validTheme) workspaceStorage().setItem(THEME_KEY, JSON.stringify("light"));
       setLanguage(readStored<Language>(LANGUAGE_KEY, "en"));
       const savedProfile = { ...emptyUserProfile, ...readStored<Partial<UserProfile>>(PROFILE_KEY, emptyUserProfile) };
       setUserProfile(savedProfile);
       const checkIn = readStored<{ date: string; mood: DailyMood }>(CHECKIN_KEY, { date: "", mood: "" });
       setDailyMood(checkIn.date === new Date().toISOString().slice(0, 10) ? checkIn.mood : "");
-      window.localStorage.removeItem(LANDING_KEY);
+      workspaceStorage().removeItem(LANDING_KEY);
       setShowLanding(landingVisibleForUrl(window.location.search));
       setHydrated(true);
     }, 0);
@@ -1790,32 +1744,36 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (hydrated) window.localStorage.setItem(APPLICATIONS_KEY, JSON.stringify(applications));
+    if (hydrated) workspaceStorage().setItem(APPLICATIONS_KEY, JSON.stringify(applications));
   }, [applications, hydrated]);
 
   useEffect(() => {
-    if (hydrated) window.localStorage.setItem(CONTACTS_KEY, JSON.stringify(contacts));
+    if (hydrated) workspaceStorage().setItem(CONTACTS_KEY, JSON.stringify(contacts));
   }, [contacts, hydrated]);
 
   useEffect(() => {
-    if (hydrated) window.localStorage.setItem(RESUMES_KEY, JSON.stringify(resumes));
+    if (hydrated) workspaceStorage().setItem(SEARCH_TASKS_KEY, JSON.stringify(searchTasks));
+  }, [searchTasks, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) workspaceStorage().setItem(RESUMES_KEY, JSON.stringify(resumes));
   }, [resumes, hydrated]);
 
   useEffect(() => {
-    if (hydrated) window.localStorage.setItem(SEARCH_PROFILE_KEY, JSON.stringify(searchProfile));
+    if (hydrated) workspaceStorage().setItem(SEARCH_PROFILE_KEY, JSON.stringify(searchProfile));
   }, [searchProfile, hydrated]);
 
   useEffect(() => {
-    if (hydrated) window.localStorage.setItem(RECOVERY_KEY, JSON.stringify(recoveryEntries));
+    if (hydrated) workspaceStorage().setItem(RECOVERY_KEY, JSON.stringify(recoveryEntries));
   }, [recoveryEntries, hydrated]);
 
   useEffect(() => {
-    if (hydrated) window.localStorage.setItem(ACTION_EVENTS_KEY, JSON.stringify(actionEvents.slice(-500)));
+    if (hydrated) workspaceStorage().setItem(ACTION_EVENTS_KEY, JSON.stringify(actionEvents.slice(-500)));
   }, [actionEvents, hydrated]);
 
   useEffect(() => {
     if (!hydrated) return;
-    window.localStorage.setItem(THEME_KEY, JSON.stringify(theme));
+    workspaceStorage().setItem(THEME_KEY, JSON.stringify(theme));
     const isLight = theme === "light";
     const background = isLight ? "#ffffff" : "#08261f";
     document.documentElement.style.colorScheme = isLight ? "only light" : "dark";
@@ -1852,17 +1810,17 @@ export default function Home() {
 
   useEffect(() => {
     if (!hydrated) return;
-    window.localStorage.setItem(LANGUAGE_KEY, JSON.stringify(language));
+    workspaceStorage().setItem(LANGUAGE_KEY, JSON.stringify(language));
     document.documentElement.lang = language;
     document.documentElement.dir = language === "he" ? "rtl" : "ltr";
   }, [language, hydrated]);
 
   useEffect(() => {
-    if (hydrated) window.localStorage.setItem(PROFILE_KEY, JSON.stringify(userProfile));
+    if (hydrated) workspaceStorage().setItem(PROFILE_KEY, JSON.stringify(userProfile));
   }, [userProfile, hydrated]);
 
   useEffect(() => {
-    if (hydrated && dailyMood) window.localStorage.setItem(CHECKIN_KEY, JSON.stringify({ date: new Date().toISOString().slice(0, 10), mood: dailyMood }));
+    if (hydrated && dailyMood) workspaceStorage().setItem(CHECKIN_KEY, JSON.stringify({ date: new Date().toISOString().slice(0, 10), mood: dailyMood }));
   }, [dailyMood, hydrated]);
 
   useEffect(() => {
@@ -2013,13 +1971,13 @@ export default function Home() {
   }, [actionApplication, language]);
 
   function enterWorkspace() {
-    window.history.pushState({ carvioView: "workspace" }, "", "/?workspace=1");
+    window.history.pushState({ carvioView: "workspace" }, "", demoMode ? "/?workspace=1&demo=1" : "/?workspace=1");
     setShowLanding(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function selectTheme(nextTheme: ColorTheme) {
-    window.localStorage.setItem(THEME_EXPLICIT_KEY, JSON.stringify(true));
+    workspaceStorage().setItem(THEME_EXPLICIT_KEY, JSON.stringify(true));
     setTheme(nextTheme);
   }
 
@@ -2471,9 +2429,9 @@ export default function Home() {
   const activeApplicationCount = applications.filter((application) => !isClosedApplicationStatus(application.status)).length;
   const closedApplicationCount = applications.length - activeApplicationCount;
   const applicationFocusActions = nextBestActions.filter((action) => action.applicationId && applications.some((application) => application.id === action.applicationId && !isClosedApplicationStatus(application.status))).slice(0, 3);
-  const applicationAgenda = visibleApplications.filter((application) => application.eventDateTime || application.nextStepDue).sort((a, b) => Date.parse(a.eventDateTime || a.nextStepDue) - Date.parse(b.eventDateTime || b.nextStepDue));
-  const applicationAgendaUpcoming = applicationAgenda.filter((application) => Date.parse(application.eventDateTime || application.nextStepDue) >= Date.now());
-  const applicationAgendaPast = applicationAgenda.filter((application) => Date.parse(application.eventDateTime || application.nextStepDue) < Date.now()).reverse();
+  const applicationAgenda = agendaEntries(visibleApplications);
+  const applicationAgendaUpcoming = applicationAgenda.filter((application) => scheduledTimestamp(application.eventDateTime || application.nextStepDue, !application.eventDateTime) >= Date.now());
+  const applicationAgendaPast = applicationAgenda.filter((application) => scheduledTimestamp(application.eventDateTime || application.nextStepDue, !application.eventDateTime) < Date.now()).reverse();
 
   const visibleContacts = useMemo(() => {
     const query = contactQuery.trim().toLocaleLowerCase();
@@ -2984,6 +2942,7 @@ export default function Home() {
   }
 
   function openNewContact() {
+    setContactNameError("");
     setEditingContactId(null);
     setContactDraft(emptyContact);
     setShowContactDetails(false);
@@ -2991,6 +2950,7 @@ export default function Home() {
   }
 
   function openEditContact(contact: Contact) {
+    setContactNameError("");
     setEditingContactId(contact.id);
     const { id: _id, ...draft } = contact;
     void _id;
@@ -3001,6 +2961,14 @@ export default function Home() {
 
   function saveContact(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!contactDraft.name.trim()) {
+      setContactNameError(language === "he" ? "יש להזין שם איש קשר." : "Enter the contact’s name.");
+      const input = event.currentTarget.elements.namedItem("contactName") as HTMLInputElement | null;
+      input?.setCustomValidity(language === "he" ? "יש להזין שם איש קשר." : "Enter the contact’s name.");
+      input?.reportValidity();
+      input?.focus();
+      return;
+    }
     const contactId = editingContactId || makeId("contact");
     const savedContact = normalizeContact({ ...contactDraft, id: contactId });
     if (editingContactId) {
@@ -3032,12 +3000,17 @@ export default function Home() {
     }
     const selected = Array.from(files).slice(0, available);
     setResumeProcessing(true);
+    setRewriteDraft("");
+    setResumeText("");
     const additions = await Promise.all(selected.map(async (file) => {
       let extractedText = "";
-      if (file.size <= 10_000_000) {
-        try { extractedText = await extractResumeText(file); } catch { extractedText = ""; }
+      let readState: NonNullable<ResumeFile["readState"]> = "empty";
+      if (file.size > 10_000_000) readState = "too-large";
+      else if (!/\.(pdf|docx|txt|md|rtf|csv)$/i.test(file.name) && !file.type.startsWith("text/")) readState = "unsupported";
+      else {
+        try { extractedText = await extractResumeText(file); readState = extractedText.trim() ? "ready" : "empty"; } catch { readState = "error"; }
       }
-      return { id: makeId("resume"), name: file.name, size: file.size, type: file.type || "Unknown type", addedAt: new Date().toISOString(), extractedText } satisfies ResumeFile;
+      return { id: makeId("resume"), name: file.name, size: file.size, type: file.type || "Unknown type", addedAt: new Date().toISOString(), extractedText, readState } satisfies ResumeFile;
     }));
     setResumeProcessing(false);
     setResumes((items) => [...items, ...additions]);
@@ -3190,9 +3163,8 @@ export default function Home() {
 
   function saveSearchAsApplication() {
     const source = showSearchResults && submittedSearch ? submittedSearch : resolvedSearch;
-    setEditingApplicationId(null);
-    setApplicationDraft({ ...emptyApplication, role: source.role, company: "", location: source.location, source: "Carvio Job Search", nextStep: "Review matching roles and save the strongest one", priority: "Medium" });
-    setShowApplicationModal(true);
+    setSearchTaskDraft({ role: source.role, location: source.location, action: language === "he" ? "בדיקת משרות מתאימות ושמירת המשרה המובילה" : "Review matching roles and save the strongest one", due: "" });
+    setShowSearchTaskModal(true);
   }
 
   async function copySearchQuery(query: string) {
@@ -3496,7 +3468,7 @@ export default function Home() {
   }
 
   function exportCarvioData() {
-    const backup = { version: 1, exportedAt: new Date().toISOString(), applications, contacts, resumes, searchProfile, recoveryEntries, userProfile };
+    const backup = { version: 1, exportedAt: new Date().toISOString(), applications, contacts, resumes, searchProfile, recoveryEntries, userProfile, searchTasks };
     const url = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" }));
     const link = document.createElement("a");
     link.href = url;
@@ -3519,6 +3491,7 @@ export default function Home() {
       if (backup.searchProfile) setSearchProfile(migrateSearchProfile(backup.searchProfile));
       if (Array.isArray(backup.recoveryEntries)) setRecoveryEntries(backup.recoveryEntries);
       if (backup.userProfile) setUserProfile({ ...emptyUserProfile, ...backup.userProfile });
+      if (Array.isArray((backup as { searchTasks?: SearchTask[] }).searchTasks)) setSearchTasks((backup as { searchTasks: SearchTask[] }).searchTasks);
       setNotice("Backup restored successfully ✅");
     } catch {
       setNotice("This file is not a valid Carvio backup.");
@@ -3527,7 +3500,8 @@ export default function Home() {
 
   function deleteAllLocalData() {
     if (!window.confirm("Permanently delete all Carvio data stored in this browser? Download a backup first if you may need it later.")) return;
-    [APPLICATIONS_KEY, CONTACTS_KEY, FEEDBACK_KEY, RESUMES_KEY, SEARCH_PROFILE_KEY, RECOVERY_KEY, PROFILE_KEY, CHECKIN_KEY, ANALYTICS_SAMPLE_PACK_KEY].forEach((key) => window.localStorage.removeItem(key));
+    [APPLICATIONS_KEY, CONTACTS_KEY, FEEDBACK_KEY, RESUMES_KEY, SEARCH_PROFILE_KEY, RECOVERY_KEY, PROFILE_KEY, CHECKIN_KEY, ANALYTICS_SAMPLE_PACK_KEY, SEARCH_TASKS_KEY].forEach((key) => workspaceStorage().removeItem(key));
+    setSearchTasks([]);
     setApplications([]); setContacts([]); setResumes([]); setRecoveryEntries([]); setSearchProfile(emptySearchProfile); setUserProfile(emptyUserProfile); setDailyMood(""); setShowTrustCenter(false);
     setNotice("All local Carvio data was deleted.");
   }
@@ -3551,7 +3525,7 @@ export default function Home() {
       submittedAt: new Date().toISOString(),
     };
     const previous = readStored<Feedback[]>(FEEDBACK_KEY, []);
-    window.localStorage.setItem(FEEDBACK_KEY, JSON.stringify([...previous, entry]));
+    workspaceStorage().setItem(FEEDBACK_KEY, JSON.stringify([...previous, entry]));
 
     const answers = entry.answers.map((answer, index) => [
       `${index + 1}. ${answer.question}`,
@@ -3591,7 +3565,8 @@ export default function Home() {
     language,
     theme,
     actionEvents,
-  }), [applications, contacts, resumes, searchProfile, recoveryEntries, userProfile, dailyMood, language, theme, actionEvents]);
+    searchTasks,
+  }), [applications, contacts, resumes, searchProfile, recoveryEntries, userProfile, dailyMood, language, theme, actionEvents, searchTasks]);
 
   function restoreCloudWorkspace(payload: CloudWorkspacePayload) {
     if (Array.isArray(payload.applications)) setApplications((payload.applications as Partial<Application>[]).map(normalizeApplication));
@@ -3601,6 +3576,7 @@ export default function Home() {
     if (Array.isArray(payload.recoveryEntries)) setRecoveryEntries(payload.recoveryEntries as RecoveryEntry[]);
     if (payload.userProfile) setUserProfile({ ...emptyUserProfile, ...(payload.userProfile as Partial<UserProfile>) });
     if (Array.isArray(payload.actionEvents)) setActionEvents(payload.actionEvents as ActionEvent[]);
+    if (Array.isArray(payload.searchTasks)) setSearchTasks(payload.searchTasks as SearchTask[]);
     if (["", "ready", "low", "difficult"].includes(payload.dailyMood)) setDailyMood(payload.dailyMood as DailyMood);
     if (["en", "he"].includes(payload.language)) setLanguage(payload.language);
     if (["light", "dark", "ocean", "plum"].includes(payload.theme)) setTheme(payload.theme as ColorTheme);
@@ -3608,16 +3584,17 @@ export default function Home() {
   }
 
   const copy = uiCopy[language];
+  const selectedResumeReadState = resumes.find((item) => item.id === selectedResumeId)?.readState;
   const statusLabel = (status: ApplicationStatus) => language === "he" ? ({
     Considering: "נשמרה לבדיקה",
     Applied: "הוגשה מועמדות",
     Interview: "ראיון",
     Offer: "הצעה",
     Accepted: "התקבלה",
-    "Follow-up due": "נדרשת פעולת המשך",
+    "Follow-up due": "מעקב (ערך ישן — בחרו שלב גיוס)",
     Rejected: "נדחתה",
     Withdrawn: "הוסרה",
-  } as Record<ApplicationStatus, string>)[status] : status;
+  } as Record<ApplicationStatus, string>)[status] : status === "Follow-up due" ? "Follow-up due (legacy — choose stage)" : status;
 
   const screenIllustration = activeView === "applications"
     ? { src: "/carvio-application-timeline-v1.jpg", alt: language === "he" ? "איור של מועמדויות מאורגנות לאורך מסלול התקדמות ברור" : "Illustration of applications organized along a clear progress path" }
@@ -3646,6 +3623,7 @@ export default function Home() {
             <h1>{language === "he" ? "כל חיפוש העבודה שלכם. צעד ברור אחד בכל פעם." : "Your whole job search. One clear next move at a time."}</h1>
             <p>{language === "he" ? "רכזו מועמדויות, קשרים, פגישות ופעולות המשך במקום אחד — וקבלו בכל יום הכוונה שמקדמת אתכם." : "Bring applications, conversations, interviews and follow-ups into one focused workspace—and know what matters today."}</p>
             <WelcomeAccountAccess language={language} onContinueLocal={enterWorkspace} />
+            <button className="secondary-button mt-3" type="button" onClick={() => window.location.assign("/?workspace=1&demo=1")}>{language === "he" ? "סיור עם נתוני דוגמה נפרדים" : "Explore with separate demo data"}</button>
           </div>
           <figure className="landing-hero-visual">
             <div className="landing-hero-image"><Image alt={language === "he" ? "איור של אדם שהופך חלקים מפוזרים למסלול ברור של צעדים בחיפוש העבודה" : "An illustration of a person turning scattered pieces into a clear job-search path"} fill priority sizes="(max-width: 760px) min(calc(100vw - 2rem), 336px), 448px" src="/carvio-landing-warm-accents-v8.png" /></div>
@@ -3667,6 +3645,7 @@ export default function Home() {
   return (
     <main className={`carvio-shell min-h-screen px-4 py-6 text-slate-100 sm:px-6 sm:py-8 lg:px-8 ${theme === "light" ? "carvio-light" : theme === "ocean" ? "carvio-ocean" : theme === "plum" ? "carvio-plum" : ""}`} dir={language === "he" ? "rtl" : "ltr"}>
       <div className="calm-content mx-auto flex max-w-7xl flex-col gap-8">
+        {demoMode && <aside className="demo-mode-banner" role="status"><strong>{language === "he" ? "מצב דמו · נתונים פיקטיביים בלבד" : "Demo mode · fictional data only"}</strong><p>{language === "he" ? "השינויים בדמו נשמרים בנפרד לזמן הסיור ואינם מסונכרנים לחשבון." : "Demo changes stay separate for this browser session and are never synced to your account."}</p><button className="secondary-button" type="button" onClick={() => window.location.assign("/?workspace=1")}>{language === "he" ? "מעבר לסביבה האישית" : "Open personal workspace"}</button></aside>}
         <nav aria-label={language === "he" ? "ניווט ראשי ב־Carvio" : "Carvio main navigation"} className="calm-desktop-nav">
           {([
             ["home", House, copy.overview],
@@ -3686,7 +3665,7 @@ export default function Home() {
               <span>{language === "he" ? "זה מה שחשוב היום." : "Here’s what matters today."}</span>
             </div>
             <div className="hero-utility-actions">
-              <CloudAccount language={language} onRestore={restoreCloudWorkspace} workspace={cloudWorkspace} />
+              {!demoMode && <CloudAccount language={language} onRestore={restoreCloudWorkspace} workspace={cloudWorkspace} />}
               <button aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} className="hero-icon-button" onClick={() => selectTheme(theme === "light" ? "dark" : "light")} title={theme === "light" ? copy.dark : copy.light} type="button">{theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}</button>
               <div className="relative">
                 <button aria-expanded={showAppearance} aria-haspopup="dialog" aria-label={language === "he" ? "צבעים ונגישות" : "Colors and accessibility"} className="hero-icon-button" onClick={() => setShowAppearance((current) => !current)} title={language === "he" ? "צבעים ונגישות" : "Colors & accessibility"} type="button"><Palette className="h-4 w-4" /></button>
@@ -3884,7 +3863,7 @@ export default function Home() {
                                 <td className="application-company-cell"><span aria-hidden="true" className={`application-company-logo ${application.logoUrl ? "application-company-logo-image" : ""}`} style={application.logoUrl ? { backgroundImage: `url("${application.logoUrl}")` } : undefined}>{application.logoUrl ? "" : application.company.slice(0, 1).toUpperCase()}</span><span className="applications-v2-opportunity"><strong>{application.company}</strong><small>{application.role}</small></span></td>
                                 <td>
                                   <select aria-label={`${language === "he" ? "סטטוס עבור" : "Status for"} ${application.role}`} className={`status-select application-table-status ${statusStyles[application.status]}`} onChange={(event) => updateApplicationStatus(application, event.target.value as ApplicationStatus)} value={application.status}>
-                                    {applicationStatuses.map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}
+                                    {applicationStatuses.filter((status) => status !== "Follow-up due" || application.status === status).map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}
                                   </select>
                                 </td>
                                 <td><span className="applications-v2-next-action"><strong>{application.nextStep || (language === "he" ? "לא הוגדרה פעולה" : "No next action set")}</strong>{application.nextStepDue && <small className={daysPast(application.nextStepDue) > 0 && daysPast(application.nextStepDue) <= 21 ? "is-overdue" : ""}>{daysPast(application.nextStepDue) > 21 ? (language === "he" ? "נדרש עדכון" : "Review status") : isPast(application.nextStepDue) ? (language === "he" ? "באיחור" : "Overdue") : (language === "he" ? "מתוכנן" : "Planned")}</small>}</span></td>
@@ -3906,7 +3885,7 @@ export default function Home() {
                 </div>
                 <div className={`application-calendar desktop-record-table ${applicationViewMode !== "calendar" ? "application-desktop-view-hidden" : ""}`}>
                   <header><div><CalendarClock className="h-5 w-5" /><span><strong>{language === "he" ? "הבא בתהליך" : "Next up"}</strong><small>{language === "he" ? "פגישות ופעולות עתידיות, לפי סדר" : "Upcoming meetings and actions, in order"}</small></span></div>{applicationAgendaPast.length > 0 && <button aria-expanded={showApplicationHistory} onClick={() => setShowApplicationHistory((current) => !current)} type="button">{showApplicationHistory ? (language === "he" ? "הסתרת עבר" : "Hide history") : (language === "he" ? `הצגת עבר (${applicationAgendaPast.length})` : `Show history (${applicationAgendaPast.length})`)}</button>}</header>
-                  <div>{applicationAgendaUpcoming.length ? applicationAgendaUpcoming.map((application) => <button className="calendar-agenda-row" key={application.id} onClick={() => setWorkspaceApplicationId(application.id)} type="button"><time><strong>{new Date(application.eventDateTime || application.nextStepDue).toLocaleDateString(language === "he" ? "he-IL" : "en-US", { day: "2-digit" })}</strong><span>{new Date(application.eventDateTime || application.nextStepDue).toLocaleDateString(language === "he" ? "he-IL" : "en-US", { month: "short" })}</span></time><i className={trafficLightMeta[application.trafficLight].dot} /><span><strong>{application.eventType || application.nextStep || statusLabel(application.status)}</strong><small>{application.role} · {application.company}</small></span><ChevronRight className="h-4 w-4" /></button>) : <div className="application-agenda-empty"><CheckCircle2 className="h-5 w-5" /><span><strong>{language === "he" ? "אין מועדים קרובים" : "No upcoming dates"}</strong><small>{language === "he" ? "אפשר להוסיף מועד מתוך סביבת המועמדות." : "Add a date from the application workspace."}</small></span></div>}{showApplicationHistory && applicationAgendaPast.length > 0 && <section className="application-agenda-history"><h4>{language === "he" ? "אירועים שהסתיימו" : "Past events"}</h4>{applicationAgendaPast.map((application) => <button className="calendar-agenda-row" key={`past-${application.id}`} onClick={() => setWorkspaceApplicationId(application.id)} type="button"><time><strong>{new Date(application.eventDateTime || application.nextStepDue).toLocaleDateString(language === "he" ? "he-IL" : "en-US", { day: "2-digit" })}</strong><span>{new Date(application.eventDateTime || application.nextStepDue).toLocaleDateString(language === "he" ? "he-IL" : "en-US", { month: "short" })}</span></time><i className={trafficLightMeta[application.trafficLight].dot} /><span><strong>{application.eventType || application.nextStep || statusLabel(application.status)}</strong><small>{application.role} · {application.company}</small></span><ChevronRight className="h-4 w-4" /></button>)}</section>}</div>
+                  <div>{applicationAgendaUpcoming.length ? applicationAgendaUpcoming.map((application) => <button className="calendar-agenda-row" key={application.agendaKey} onClick={() => setWorkspaceApplicationId(application.id)} type="button"><time><strong>{new Date(scheduledTimestamp(application.eventDateTime || application.nextStepDue)).toLocaleDateString(language === "he" ? "he-IL" : "en-US", { day: "2-digit" })}</strong><span>{new Date(scheduledTimestamp(application.eventDateTime || application.nextStepDue)).toLocaleDateString(language === "he" ? "he-IL" : "en-US", { month: "short" })}</span></time><i className={trafficLightMeta[application.trafficLight].dot} /><span><strong>{application.eventType || application.nextStep || statusLabel(application.status)}</strong><small>{application.role} · {application.company}</small></span><ChevronRight className="h-4 w-4" /></button>) : <div className="application-agenda-empty"><CheckCircle2 className="h-5 w-5" /><span><strong>{language === "he" ? "אין מועדים קרובים" : "No upcoming dates"}</strong><small>{language === "he" ? "אפשר להוסיף מועד מתוך סביבת המועמדות." : "Add a date from the application workspace."}</small></span></div>}{showApplicationHistory && applicationAgendaPast.length > 0 && <section className="application-agenda-history"><h4>{language === "he" ? "אירועים שהסתיימו" : "Past events"}</h4>{applicationAgendaPast.map((application) => <button className="calendar-agenda-row" key={`past-${application.agendaKey}`} onClick={() => setWorkspaceApplicationId(application.id)} type="button"><time><strong>{new Date(scheduledTimestamp(application.eventDateTime || application.nextStepDue)).toLocaleDateString(language === "he" ? "he-IL" : "en-US", { day: "2-digit" })}</strong><span>{new Date(scheduledTimestamp(application.eventDateTime || application.nextStepDue)).toLocaleDateString(language === "he" ? "he-IL" : "en-US", { month: "short" })}</span></time><i className={trafficLightMeta[application.trafficLight].dot} /><span><strong>{application.eventType || application.nextStep || statusLabel(application.status)}</strong><small>{application.role} · {application.company}</small></span><ChevronRight className="h-4 w-4" /></button>)}</section>}</div>
                 </div></>
               )}
             </div>
@@ -4133,12 +4112,16 @@ export default function Home() {
           <div className="mt-6 grid gap-5 xl:grid-cols-[0.8fr_1.2fr]">
             <div className="space-y-3">
               <div className="flex items-center justify-between text-sm"><span className="text-slate-400">{language === "he" ? "גרסאות שמורות" : "Saved versions"}</span><span className="rounded-full bg-emerald-400/10 px-2.5 py-1 text-xs text-emerald-300">{resumes.length}/6</span></div>
-              {resumes.length === 0 ? <div className="rounded-2xl border border-dashed border-emerald-400/20 bg-emerald-400/5 p-8 text-center"><FileText className="mx-auto h-9 w-9 text-emerald-300" /><p className="mt-3 font-medium">{language === "he" ? "העלאת קורות החיים הראשונים" : "Upload your first CV"}</p><p className="mt-2 text-sm leading-6 text-slate-400">{language === "he" ? "קובצי PDF, Word וטקסט נקראים באופן פרטי במכשיר ומנותחים אוטומטית." : "PDF, Word and text CVs are read privately on this device and reviewed automatically."}</p></div> : resumes.map((resume) => <button className={`content-card flex w-full items-center gap-3 text-left ${selectedResumeId === resume.id ? "border-emerald-400/35 bg-emerald-400/5" : ""}`} key={resume.id} onClick={() => selectResume(resume)} type="button"><div className="rounded-xl bg-emerald-400/10 p-2.5 text-emerald-300"><FileCheck2 className="h-5 w-5" /></div><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-100">{resume.name}</p><p className="mt-1 text-xs text-slate-500">{formatFileSize(resume.size)} · {language === "he" ? (resume.extractedText ? "מוכן לבדיקה ✨" : "נדרש טקסט לעריכה") : (resume.extractedText ? "Review ready ✨" : "Needs editable text")}</p></div><span className="icon-button h-8 w-8" onClick={(event) => { event.stopPropagation(); removeResume(resume); }} role="button" tabIndex={0}><X className="h-4 w-4" /></span></button>)}
+              {resumes.length === 0 ? <div className="rounded-2xl border border-dashed border-emerald-400/20 bg-emerald-400/5 p-8 text-center"><FileText className="mx-auto h-9 w-9 text-emerald-300" /><p className="mt-3 font-medium">{language === "he" ? "העלאת קורות החיים הראשונים" : "Upload your first CV"}</p><p className="mt-2 text-sm leading-6 text-slate-400">{language === "he" ? "ניתן לקרוא PDF עם טקסט, DOCX וקובצי טקסט במכשיר. מקבצים סרוקים יש להדביק טקסט." : "Text-based PDF, DOCX, and text files can be read on this device. For scanned files, paste the text."}</p></div> : resumes.map((resume) => <button className={`content-card flex w-full items-center gap-3 text-left ${selectedResumeId === resume.id ? "border-emerald-400/35 bg-emerald-400/5" : ""}`} key={resume.id} onClick={() => selectResume(resume)} type="button"><div className="rounded-xl bg-emerald-400/10 p-2.5 text-emerald-300"><FileCheck2 className="h-5 w-5" /></div><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-100">{resume.name}</p><p className="mt-1 text-xs text-slate-500">{formatFileSize(resume.size)} · {language === "he" ? (resume.extractedText ? "מוכן לבדיקה ✨" : "נדרש טקסט לעריכה") : (resume.extractedText ? "Review ready ✨" : "Needs editable text")}</p></div><span className="icon-button h-8 w-8" onClick={(event) => { event.stopPropagation(); removeResume(resume); }} role="button" tabIndex={0}><X className="h-4 w-4" /></span></button>)}
             </div>
             <div className="rounded-2xl border border-white/10 bg-slate-950/55 p-5">
               <div className="flex items-center gap-3"><div className="rounded-xl bg-violet-400/10 p-2.5 text-violet-300"><WandSparkles className="h-5 w-5" /></div><div><h3 className="font-semibold">{language === "he" ? "בדיקה מקצועית של קורות החיים ✨" : "Professional CV review ✨"}</h3><p className="text-xs text-slate-500">{language === "he" ? "בדיקת פיילוט פרטית, מבוססת כללים, במכשיר הזה" : "Private, rules-based pilot review on this device"}</p></div></div>
-              {resumeText ? <div className="mt-5 rounded-2xl border border-emerald-400/20 bg-emerald-400/5 p-4"><p className="flex items-center gap-2 text-sm font-semibold text-emerald-200"><CheckCircle2 className="h-4 w-4" /> CV content read successfully</p><p className="mt-1 text-xs leading-5 text-slate-400">Your professional review below was created automatically from the uploaded file. The text stays on this device.</p></div> : <div className="mt-5 rounded-2xl border border-amber-400/20 bg-amber-400/5 p-4"><p className="text-sm font-semibold text-amber-200">This file does not contain readable text</p><p className="mt-1 text-xs leading-5 text-slate-400">This can happen with scanned PDFs or unsupported formats. Paste the text below to receive the same review.</p></div>}
-              <details className="mt-4"><summary className="cursor-pointer text-sm font-medium text-slate-400 hover:text-slate-200">View or edit extracted CV text</summary><Field label="CV text for review"><textarea className="form-control mt-1 min-h-44 resize-y" onChange={(event) => setResumeText(event.target.value)} placeholder="Paste CV text here if the file is scanned or could not be read." value={resumeText} /></Field></details>
+              <div className="mt-5 rounded-2xl border border-emerald-400/20 bg-emerald-400/5 p-4" role="status">
+                {!resumeProcessing && !resumeText.trim() && selectedResumeReadState && <p className="text-sm">{selectedResumeReadState === "too-large" ? (language === "he" ? "הקובץ גדול מ־10MB. העלו קובץ קטן יותר או הדביקו טקסט." : "This file exceeds 10 MB. Upload a smaller file or paste text.") : selectedResumeReadState === "unsupported" ? (language === "he" ? "פורמט הקובץ אינו נתמך. הדביקו את התוכן כטקסט." : "This file format is unsupported. Paste its text instead.") : selectedResumeReadState === "error" ? (language === "he" ? "קריאת הקובץ נכשלה. אפשר לנסות קובץ אחר או להדביק טקסט." : "The file couldn’t be read. Try another file or paste text.") : (language === "he" ? "לא נמצא טקסט קריא; ייתכן שזהו קובץ סרוק." : "No readable text was found; this may be a scanned file.")}</p>}
+                <p className="text-sm font-semibold">{resumeProcessing ? (language === "he" ? "קוראים את הקובץ…" : "Reading your file…") : resumeText.trim() ? (language === "he" ? "הטקסט מוכן לבדיקה" : "Your text is ready for review") : selectedResumeId ? (language === "he" ? "לא חולץ טקסט מהקובץ שנבחר" : "No text could be extracted from the selected file") : (language === "he" ? "העלו קובץ או הדביקו טקסט כדי להתחיל" : "Upload a file or paste text to begin")}</p>
+                <p className="mt-1 text-xs leading-5 text-slate-400">{language === "he" ? "ניתן לקרוא PDF עם טקסט, DOCX וקובצי טקסט. PDF סרוק, תמונות וקובצי Word ישנים מצריכים הדבקת טקסט. הקובץ המקורי נשאר במכשיר." : "Text-based PDF, DOCX, and text files are supported. Scanned PDFs, images, and older Word files need pasted text. The original file stays on your device."}</p>
+              </div>
+              <details className="mt-4" open={!resumeText.trim()}><summary className="cursor-pointer text-sm font-medium text-slate-400 hover:text-slate-200">{language === "he" ? "הדבקת טקסט או עריכת הטקסט שחולץ" : "Paste text or edit extracted text"}</summary><Field label={language === "he" ? "טקסט קורות החיים לבדיקה" : "CV text for review"}><textarea className="form-control mt-1 min-h-44 resize-y" onChange={(event) => setResumeText(event.target.value)} placeholder={language === "he" ? "הדביקו את טקסט קורות החיים כאן" : "Paste CV text here if the file is scanned or could not be read."} value={resumeText} /></Field></details>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">{reviewResumeText(resumeText).map((item, index) => <div className="insight-box" key={item}><p className="text-xs font-semibold text-cyan-300">{index === 0 ? "Top observation" : `Review point ${index + 1}`}</p><p className="mt-2 text-sm leading-6 text-slate-300">{item}</p></div>)}</div>
               <div className="mt-5 flex flex-wrap items-center gap-3"><button className="primary-button bg-violet-500 hover:bg-violet-400" onClick={createRewriteDraft} type="button"><WandSparkles className="h-4 w-4" /> Create rewrite workspace</button><span className="text-xs leading-5 text-slate-500">Generative AI is not claimed in this local pilot; a secure server connection is required before AI rewriting can be enabled.</span></div>
               {rewriteDraft && <div className="mt-5"><Field label="Improved working draft"><textarea className="form-control min-h-64 resize-y" onChange={(event) => setRewriteDraft(event.target.value)} value={rewriteDraft} /></Field><button className="secondary-button mt-3" onClick={() => { void navigator.clipboard.writeText(rewriteDraft); setNotice("Rewrite draft copied."); }} type="button">📋 Copy draft</button></div>}
@@ -4153,6 +4136,7 @@ export default function Home() {
             <figure className="tool-card-illustration"><Image alt={language === "he" ? "איור של הכנה לראיון מקצועי" : "Illustration of professional interview preparation"} fill sizes="(max-width: 767px) 92px, 176px" src="/carvio-interview-preparation-v1.jpg" /></figure>
             <div className="tool-card-actions"><button aria-expanded={expandedTools.interview} className="secondary-button" onClick={() => setExpandedTools((current) => ({ ...current, interview: !current.interview, cv: false, offer: false, studio: false, social: false }))} type="button">{expandedTools.interview ? (language === "he" ? "סגירת ההכנה" : "Close preparation") : (language === "he" ? "פתיחת הכנת ראיון" : "Open interview preparation")}<ChevronDown className={`h-4 w-4 transition ${expandedTools.interview ? "rotate-180" : ""}`} /></button></div>
           </div>
+          <Field label={language === "he" ? "בחירת משרה להכנה" : "Choose a role to prepare for"}><select className="form-control" value="" onChange={(event) => { const application = applications.find((item) => item.id === event.target.value); if (application) openInterviewPreparation(application); }}><option value="">{language === "he" ? "בחרו משרה…" : "Choose a role…"}</option>{applications.filter((item) => !isClosedApplicationStatus(item.status)).map((item) => <option key={item.id} value={item.id}>{item.role} · {item.company}</option>)}</select></Field>{!applications.some((item) => !isClosedApplicationStatus(item.status)) && <button className="secondary-button" onClick={openNewApplication} type="button">{language === "he" ? "הוספת המשרה הראשונה" : "Add your first role"}</button>}
           {expandedTools.interview && <div className="interview-prep-workspace"><div><h3>{language === "he" ? "מסמך ההכנה שלכם" : "Your preparation brief"}</h3><p>{language === "he" ? "ערכו את הסיפורים והשאלות עד שהם מדויקים, קצרים ואמיתיים." : "Edit the stories and questions until they are specific, concise, and true."}</p></div>{interviewPrepDraft ? <><textarea aria-label={language === "he" ? "מסמך הכנה לראיון" : "Interview preparation brief"} className="form-control" onChange={(event) => setInterviewPrepDraft(event.target.value)} value={interviewPrepDraft} /><div className="workspace-context-actions"><button className="secondary-button" onClick={() => { void navigator.clipboard.writeText(interviewPrepDraft); setNotice(language === "he" ? "מסמך ההכנה הועתק." : "Preparation brief copied."); }} type="button"><Copy className="h-4 w-4" />{language === "he" ? "העתקה" : "Copy brief"}</button></div></> : <div className="interview-prep-empty"><Target className="h-7 w-7" /><strong>{language === "he" ? "פתחו מועמדות כדי להתחיל" : "Open an application to begin"}</strong><p>{language === "he" ? "מתוך ה־Workspace בחרו ‘מרכז הכנה לראיון’." : "Choose ‘Interview preparation workspace’ from an application workspace."}</p></div>}</div>}
         </section>
 
@@ -4162,6 +4146,7 @@ export default function Home() {
             <div className="offer-decision-visual" aria-hidden="true"><Scale className="h-8 w-8" /><span>{language === "he" ? "בהירות לפני החלטה" : "Clarity before commitment"}</span></div>
             <div className="tool-card-actions"><button aria-expanded={expandedTools.offer} className="secondary-button" onClick={() => setExpandedTools((current) => ({ ...current, offer: !current.offer, interview: false, cv: false, studio: false, social: false }))} type="button">{expandedTools.offer ? (language === "he" ? "סגירת המסמך" : "Close decision brief") : (language === "he" ? "פתיחת מסמך החלטה" : "Open decision brief")}<ChevronDown className={`h-4 w-4 transition ${expandedTools.offer ? "rotate-180" : ""}`} /></button></div>
           </div>
+          <Field label={language === "he" ? "בחירת הצעה לבדיקה" : "Choose an offer to review"}><select className="form-control" value="" onChange={(event) => { const application = applications.find((item) => item.id === event.target.value); if (application) openOfferDecision(application); }}><option value="">{language === "he" ? "בחרו הצעה…" : "Choose an offer…"}</option>{applications.filter((item) => item.status === "Offer").map((item) => <option key={item.id} value={item.id}>{item.role} · {item.company}</option>)}</select></Field>{!applications.some((item) => item.status === "Offer") && <button className="secondary-button" onClick={() => switchView("applications")} type="button">{language === "he" ? "למועמדויות ולעדכון שלב" : "Review applications and update a stage"}</button>}
           {expandedTools.offer && <div className="interview-prep-workspace offer-decision-workspace"><div><h3>{language === "he" ? "מסמך ההחלטה שלכם" : "Your offer decision brief"}</h3><p>{language === "he" ? "השלימו את החסר, כתבו מה חשוב לכם ואמתו כל תנאי מול ההצעה הרשמית." : "Fill the gaps, capture what matters to you, and verify every term against the official offer."}</p></div>{offerDecisionDraft ? <><textarea aria-label={language === "he" ? "מסמך החלטה על הצעה" : "Offer decision brief"} className="form-control" onChange={(event) => setOfferDecisionDraft(event.target.value)} value={offerDecisionDraft} /><div className="workspace-context-actions"><button className="secondary-button" onClick={() => { void navigator.clipboard.writeText(offerDecisionDraft); setNotice(language === "he" ? "מסמך ההחלטה הועתק." : "Offer decision brief copied."); }} type="button"><Copy className="h-4 w-4" />{language === "he" ? "העתקה" : "Copy brief"}</button></div></> : <div className="interview-prep-empty"><Scale className="h-7 w-7" /><strong>{language === "he" ? "פתחו הצעה כדי להתחיל" : "Open an offer to begin"}</strong><p>{language === "he" ? "מתוך סביבת מועמדות בשלב הצעה, בחרו ‘בדיקת ההצעה’." : "From an application at Offer stage, choose ‘Review offer’."}</p></div>}</div>}
         </section>
 
@@ -4178,6 +4163,8 @@ export default function Home() {
               <small>{language === "he" ? "מקורות רשמיים מוצגים ראשונים" : "Official sources appear first"}</small>
             </div>
           </div>
+
+          {searchTasks.length > 0 && <section className="mt-5 space-y-3" aria-label={language === "he" ? "משימות החיפוש" : "Search tasks"}><h3>{language === "he" ? "משימות החיפוש שלכם" : "Your search tasks"}</h3>{searchTasks.map((task) => <article className="content-card" key={task.id}><strong>{task.role} · {task.location}</strong><p>{task.action}</p><small>{task.due ? formatDate(task.due, true) : (language === "he" ? "ללא מועד" : "No date")}</small><button className="secondary-button" onClick={() => setSearchTasks((items) => items.map((item) => item.id === task.id ? { ...item, completed: !item.completed } : item))} type="button">{task.completed ? (language === "he" ? "בוצע · פתיחה מחדש" : "Done · reopen") : (language === "he" ? "סימון כבוצע" : "Mark done")}</button></article>)}</section>}
 
           {expandedTools.search && (<div className={`advanced-section-body mobile-search-flow mobile-search-flow-${searchStep}`}>
 
@@ -4416,7 +4403,7 @@ export default function Home() {
       {showTrustCenter && (
         <Modal title="Your data & privacy 🔒" description="Carvio's pilot stores your information only in this browser. You stay in control." closeLabel={language === "he" ? "סגירת החלון" : "Close modal"} onClose={() => setShowTrustCenter(false)}>
           <div className="space-y-4">
-            <div className="trust-status"><ShieldCheck className="h-7 w-7 shrink-0 text-emerald-300" /><div><p className="font-semibold">All changes are saved on this device</p><p className="mt-1 text-sm leading-6 text-slate-400">The founders cannot see your applications, contacts, salary expectations or CV content. This pilot does not synchronize between devices.</p></div></div>
+            <div className="trust-status"><ShieldCheck className="h-7 w-7 shrink-0 text-emerald-300" /><div><p className="font-semibold">{language === "he" ? "המידע נשמר קודם במכשיר הזה" : "Your data is saved on this device first"}</p><p className="mt-1 text-sm leading-6 text-slate-400">{language === "he" ? "התחברות לחשבון אינה גיבוי. אפשר לגבות ולשחזר בין מכשירים דרך חלון הענן. סנכרון אוטומטי פועל רק אם הפעלתם אותו. גיבוי עשוי לכלול את התוכן ששמרתם בקורות החיים." : "Signing in does not back up your workspace. Use Cloud to back up or restore it across devices. Automatic sync runs only when you enable it. Backups may include saved CV text."}</p></div></div>
             <div className="grid gap-3 sm:grid-cols-2"><button className="secondary-button min-h-14" onClick={exportCarvioData} type="button"><Download className="h-5 w-5" /> Download backup</button><label className="secondary-button min-h-14"><UploadCloud className="h-5 w-5" /> Restore backup<input accept="application/json,.json" className="sr-only" onChange={(event) => { void importCarvioData(event); }} type="file" /></label></div>
             <div className="rounded-2xl border border-amber-400/15 bg-amber-400/5 p-4 text-sm leading-6 text-slate-400"><strong className="text-amber-200">Important:</strong> clearing browser data, using private browsing, or switching devices can remove or hide your information. Download a backup regularly during the pilot.</div>
             <div className="border-t border-white/10 pt-4"><button className="text-button text-rose-300 hover:text-rose-200" onClick={deleteAllLocalData} type="button"><Trash2 className="h-4 w-4" /> Delete all Carvio data from this browser</button></div>
@@ -4467,7 +4454,7 @@ export default function Home() {
           <div className="quick-update-panel">
             <figure className="workflow-illustration workflow-illustration-compact"><Image alt={language === "he" ? "איור של כרטיס תהליך ורמזור ברור" : "Illustration of a process card and clear traffic light"} fill sizes="150px" src="/carvio-quick-update-v1.jpg" /></figure>
             <div className="quick-update-fields">
-              <Field label={language === "he" ? "שלב בתהליך" : "Pipeline stage"}><select className="form-control" onChange={(event) => applyQuickUpdate({ status: event.target.value as ApplicationStatus })} value={quickUpdateDraft.status}>{applicationStatuses.map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}</select></Field>
+              <Field label={language === "he" ? "שלב בתהליך" : "Pipeline stage"}><select className="form-control" onChange={(event) => applyQuickUpdate({ status: event.target.value as ApplicationStatus })} value={quickUpdateDraft.status}>{applicationStatuses.filter((status) => status !== "Follow-up due" || quickUpdateDraft.status === status).map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}</select></Field>
               <TrafficLightPicker label={language === "he" ? "מצב השלב" : "Stage signal"} language={language} onChange={(trafficLight) => applyQuickUpdate({ trafficLight })} value={quickUpdateDraft.trafficLight} />
               <div className="grid gap-3 sm:grid-cols-[1fr_190px]"><Field label={language === "he" ? "הפעולה הבאה" : "Next action"}><input className="form-control" onChange={(event) => applyQuickUpdate({ nextStep: event.target.value })} value={quickUpdateDraft.nextStep} /></Field><Field label={language === "he" ? "תאריך ושעת יעד" : "Due date and time"}><input className="form-control" onChange={(event) => applyQuickUpdate({ nextStepDue: event.target.value })} type="datetime-local" value={quickUpdateDraft.nextStepDue} /></Field></div>
               <div className="quick-update-meeting"><div><CalendarPlus className="h-4 w-4" /><strong>{language === "he" ? "ראיון או פגישה" : "Interview or meeting"}</strong></div><div className="grid gap-3 sm:grid-cols-2"><Field label={language === "he" ? "סוג האירוע" : "Event type"}><input className="form-control" list="application-event-options" onChange={(event) => applyQuickUpdate({ eventType: event.target.value })} value={quickUpdateDraft.eventType} /></Field><Field label={language === "he" ? "תאריך ושעה" : "Date and time"}><input className="form-control" onChange={(event) => applyQuickUpdate({ eventDateTime: event.target.value })} type="datetime-local" value={quickUpdateDraft.eventDateTime} /></Field></div></div>
@@ -4552,6 +4539,16 @@ export default function Home() {
         </Modal>
       )}
 
+      {showSearchTaskModal && <Modal title={language === "he" ? "משימת חיפוש" : "Search task"} onClose={() => setShowSearchTaskModal(false)}>
+        <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); setSearchTasks((items) => [{ ...searchTaskDraft, id: makeId("search-task"), completed: false }, ...items]); setShowSearchTaskModal(false); setNotice(language === "he" ? "משימת החיפוש נשמרה בחיפוש משרות." : "Search task saved in Job Search."); }}>
+          <Field label={language === "he" ? "תפקיד (חובה)" : "Role (required)"}><input className="form-control" required value={searchTaskDraft.role} onChange={(event) => setSearchTaskDraft((item) => ({ ...item, role: event.target.value }))} /></Field>
+          <Field label={language === "he" ? "מיקום" : "Location"}><input className="form-control" value={searchTaskDraft.location} onChange={(event) => setSearchTaskDraft((item) => ({ ...item, location: event.target.value }))} /></Field>
+          <Field label={language === "he" ? "פעולה (חובה)" : "Action (required)"}><input className="form-control" required value={searchTaskDraft.action} onChange={(event) => setSearchTaskDraft((item) => ({ ...item, action: event.target.value }))} /></Field>
+          <Field label={language === "he" ? "מועד" : "Due date and time"}><input className="form-control" type="datetime-local" value={searchTaskDraft.due} onChange={(event) => setSearchTaskDraft((item) => ({ ...item, due: event.target.value }))} /></Field>
+          <button className="primary-button" type="submit">{language === "he" ? "שמירת המשימה" : "Save task"}</button>
+        </form>
+      </Modal>}
+
       {showApplicationModal && (
         <Modal title={language === "he" ? (editingApplicationId ? "עריכת מועמדות" : "הוספת מועמדות") : (editingApplicationId ? "Edit application" : "Add application")} description={language === "he" ? "תעדו את ההזדמנות, מצב התהליך, לוחות הזמנים והצעד הבא." : "Capture the opportunity, its signal, timing, and your next move."} closeLabel={language === "he" ? "סגירת החלון" : "Close modal"} onClose={() => setShowApplicationModal(false)}>
           <form className="application-form-compact space-y-4" onSubmit={saveApplication}>
@@ -4565,8 +4562,8 @@ export default function Home() {
               <Field label={language === "he" ? "תפקיד" : "Role"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, role: e.target.value })} required value={applicationDraft.role} /></Field>
             </div>
             <div className="application-stage-signal">
-              <Field label={language === "he" ? "שלב בתהליך" : "Pipeline stage"}><select className="form-control" onChange={(e) => { const status = e.target.value as ApplicationStatus; setApplicationDraft((current) => ({ ...current, status, ...(status === "Applied" && !current.appliedDate ? { appliedDate: new Date().toISOString().slice(0, 10) } : {}) })); }} value={applicationDraft.status}>{applicationStatuses.map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}</select></Field>
-              <TrafficLightPicker label={language === "he" ? "צבע הרמזור בשלב הזה" : "Traffic light for this stage"} language={language} onChange={(trafficLight) => setApplicationDraft((current) => ({ ...current, trafficLight }))} value={applicationDraft.trafficLight} />
+              <Field label={language === "he" ? "שלב בתהליך" : "Pipeline stage"}><select className="form-control" onChange={(e) => { const status = e.target.value as ApplicationStatus; setApplicationDraft((current) => ({ ...current, status, ...(status === "Applied" && !current.appliedDate ? { appliedDate: new Date().toISOString().slice(0, 10) } : {}) })); }} value={applicationDraft.status}>{applicationStatuses.filter((status) => status !== "Follow-up due" || applicationDraft.status === status).map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}</select></Field>
+              <TrafficLightPicker label={language === "he" ? "מצב ההתקדמות (למשל: ממתין לתשובה)" : "Progress signal (for example: waiting for a reply)"} language={language} onChange={(trafficLight) => setApplicationDraft((current) => ({ ...current, trafficLight }))} value={applicationDraft.trafficLight} />
             </div>
             <div className="grid gap-4 sm:grid-cols-[1fr_210px]"><Field label={language === "he" ? "הפעולה הבאה" : "Next action"}><input className="form-control" id="application-next-action" list="application-action-options" onChange={(e) => setApplicationDraft({ ...applicationDraft, nextStep: e.target.value })} placeholder={language === "he" ? "בחרו הצעה או כתבו פעולה" : "Choose a suggestion or type an action"} required value={applicationDraft.nextStep} /></Field><Field label={language === "he" ? "תאריך ושעת יעד" : "Due date and time"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, nextStepDue: e.target.value })} type="datetime-local" value={applicationDraft.nextStepDue} /></Field></div>
             <button aria-expanded={showApplicationDetails} className="progressive-toggle" onClick={() => setShowApplicationDetails((current) => !current)} type="button"><span><Sparkles className="h-4 w-4" /><strong>{language === "he" ? (showApplicationDetails ? "הסתרת פרטים נוספים" : "הוספת פרטים נוספים") : (showApplicationDetails ? "Hide optional details" : "Add more details")}</strong><small>{language === "he" ? "שכר, מקור, פגישה, הערות וקישור למשרה" : "Salary, source, event, notes and job link"}</small></span><ChevronDown className={`h-5 w-5 transition ${showApplicationDetails ? "rotate-180" : ""}`} /></button>
@@ -4587,7 +4584,7 @@ export default function Home() {
             <section className="application-snapshot-fields">
               <div><p><FileText className="h-4 w-4" />{language === "he" ? "צילום מצב של המשרה" : "Job snapshot"}</p><small>{language === "he" ? "הטקסט המקורי נשמר כמקור אמת. הדרישות המסודרות נשארות נפרדות וניתנות לעריכה." : "The original text stays as the source of truth. Organized requirements remain separate and editable."}</small></div>
               <Field label={language === "he" ? "תיאור המשרה המקורי" : "Original job description"}><textarea className="form-control min-h-32 resize-y" id="application-job-description" onChange={(e) => setApplicationDraft({ ...applicationDraft, jobDescription: e.target.value })} placeholder={language === "he" ? "הדביקו את תוכן המודעה כפי שפורסם" : "Paste the listing exactly as published"} value={applicationDraft.jobDescription} /></Field>
-              <div className="requirements-detection-bar"><div><strong>{language === "he" ? "חילוץ דרישות מקומי" : "Local requirement extraction"}</strong><small>{language === "he" ? "מזהה רשימות, משפטים ונקודה־פסיק בלי להמציא תוכן." : "Understands lists, sentences, and semicolons without inventing content."}</small></div><button className="secondary-button" disabled={!applicationDraft.jobDescription.trim()} onClick={detectDraftRequirements} type="button"><WandSparkles className="h-4 w-4" />{language === "he" ? "זיהוי וסידור דרישות" : "Detect and organize"}</button></div>
+              <div className="requirements-detection-bar"><div><strong>{language === "he" ? "חילוץ דרישות מקומי" : "Local requirement extraction"}</strong><small>{language === "he" ? "הצעות מתוך רשימות, משפטים ונקודה־פסיק. בדקו שאין חוסרים; המקור נשמר." : "Suggestions from lists, sentences, and semicolons. Review for omissions; your original text is preserved."}</small></div><button className="secondary-button" disabled={!applicationDraft.jobDescription.trim()} onClick={detectDraftRequirements} type="button"><WandSparkles className="h-4 w-4" />{language === "he" ? "זיהוי וסידור דרישות" : "Detect and organize"}</button></div>
               <Field label={language === "he" ? "דרישות מסודרות" : "Organized requirements"}><textarea className="form-control min-h-24 resize-y" id="application-requirements" onChange={(e) => { const requirements = e.target.value; setApplicationDraft((current) => ({ ...current, requirements, requirementEvidence: syncRequirementEvidence(requirements, current.requirementEvidence) })); }} placeholder={language === "he" ? "דרישה אחת בכל שורה, או טקסט המופרד בנקודה־פסיק" : "One requirement per line, or text separated by semicolons"} value={applicationDraft.requirements} /></Field>
               <div className="requirement-evidence-editor">
                 <div className="requirement-editor-heading"><div><p><Target className="h-4 w-4" />{language === "he" ? "עורך דרישות וראיות" : "Requirements and evidence editor"}</p><small>{language === "he" ? "תקנו ניסוח, סווגו, פצלו או מזגו—והוסיפו רק ראיות אמיתיות." : "Refine, categorize, split, or merge—and add only real evidence."}</small></div><button className="text-button" onClick={() => replaceDraftRequirements([...applicationDraft.requirementEvidence, { requirement: language === "he" ? "דרישה חדשה" : "New requirement", evidence: "", category: "Other" }])} type="button"><Plus className="h-4 w-4" />{language === "he" ? "הוספת דרישה" : "Add requirement"}</button></div>
@@ -4622,10 +4619,11 @@ export default function Home() {
             <datalist id="network-action-options">{["Send a thank-you", "Ask for a short call", "Share an update", "Follow up on referral", "Send relevant article", "Congratulate on milestone", "Schedule coffee chat", "Check in"].map((option) => <option key={option} value={option} />)}</datalist>
             <datalist id="network-event-options">{["Coffee chat", "Networking call", "Introductory call", "Mentoring conversation", "Industry event", "Follow-up meeting", "Informational interview"].map((option) => <option key={option} value={option} />)}</datalist>
             {contactDraft.linkedApplicationId && <div className="workflow-help"><figure className="workflow-illustration"><Image alt={language === "he" ? "איור של שיחת נטוורקינג מקצועית" : "Illustration of a professional networking conversation"} fill sizes="180px" src="/carvio-networking-conversation-v1.jpg" /></figure><div><strong>{language === "he" ? "השיחה תקושר למועמדות" : "This conversation will link to the application"}</strong><small>{language === "he" ? "הרשומה תישאר ב־Networking ולא תיספר כשלב ראיון." : "The record stays in Networking and will not count as an interview stage."}</small></div></div>}
-            <Field label="Name"><input autoFocus className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, name: e.target.value })} required value={contactDraft.name} /></Field>
-            <div className="grid gap-4 sm:grid-cols-2"><Field label="Company"><input className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, company: e.target.value })} value={contactDraft.company} /></Field><Field label="Role"><input className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, role: e.target.value })} required value={contactDraft.role} /></Field></div>
-            <Field label="Relationship"><input className="form-control" list="relationship-options" onChange={(e) => setContactDraft({ ...contactDraft, relationship: e.target.value })} placeholder={language === "he" ? "בחרו או כתבו סוג קשר" : "Choose or type a relationship"} required value={contactDraft.relationship} /></Field>
-            <div className="grid gap-4 sm:grid-cols-[1fr_190px]"><Field label="Next action"><input className="form-control" list="network-action-options" onChange={(e) => setContactDraft({ ...contactDraft, nextAction: e.target.value })} placeholder={language === "he" ? "בחרו או כתבו פעולה" : "Choose or type an action"} required value={contactDraft.nextAction} /></Field><Field label="Due date"><input className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, nextActionDue: e.target.value })} type="date" value={contactDraft.nextActionDue} /></Field></div>
+            <Field label={language === "he" ? "שם איש קשר (חובה)" : "Name (required)"}><input aria-invalid={Boolean(contactNameError)} aria-describedby={contactNameError ? "contact-name-error" : undefined} onInvalid={() => setContactNameError(language === "he" ? "שם איש קשר הוא שדה חובה." : "A contact name is required.")} name="contactName" autoFocus className="form-control" onChange={(e) => { e.target.setCustomValidity(""); setContactNameError(""); setContactDraft({ ...contactDraft, name: e.target.value }); }} required value={contactDraft.name} /></Field>
+            {contactNameError && <p id="contact-name-error" role="alert" className="text-sm text-red-500">{contactNameError}</p>}
+            <div className="grid gap-4 sm:grid-cols-2"><Field label="Company"><input className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, company: e.target.value })} value={contactDraft.company} /></Field><Field label="Role"><input className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, role: e.target.value })} value={contactDraft.role} /></Field></div>
+            <Field label="Relationship"><input className="form-control" list="relationship-options" onChange={(e) => setContactDraft({ ...contactDraft, relationship: e.target.value })} placeholder={language === "he" ? "בחרו או כתבו סוג קשר" : "Choose or type a relationship"} value={contactDraft.relationship} /></Field>
+            <div className="grid gap-4 sm:grid-cols-[1fr_190px]"><Field label="Next action"><input className="form-control" list="network-action-options" onChange={(e) => setContactDraft({ ...contactDraft, nextAction: e.target.value })} placeholder={language === "he" ? "בחרו או כתבו פעולה" : "Choose or type an action"} value={contactDraft.nextAction} /></Field><Field label="Due date"><input className="form-control" onChange={(e) => setContactDraft({ ...contactDraft, nextActionDue: e.target.value })} type="date" value={contactDraft.nextActionDue} /></Field></div>
             <button aria-expanded={showContactDetails} className="progressive-toggle" onClick={() => setShowContactDetails((current) => !current)} type="button"><span><Sparkles className="h-4 w-4" /><strong>{showContactDetails ? "Hide optional details" : "Add more details"}</strong><small>Signal, contact details, meeting and notes</small></span><ChevronDown className={`h-5 w-5 transition ${showContactDetails ? "rotate-180" : ""}`} /></button>
             {showContactDetails && <div className="progressive-content space-y-5">
             <TrafficLightPicker label={language === "he" ? "רמזור הקשר" : "Relationship signal"} language={language} onChange={(trafficLight) => setContactDraft({ ...contactDraft, trafficLight })} value={contactDraft.trafficLight} />

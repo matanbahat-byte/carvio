@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { ArrowUpRight, CheckCircle2, Cloud, CloudOff, Download, LoaderCircle, LogOut, Mail, ShieldCheck, UploadCloud, X } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { authErrorMessage } from "@/lib/supabase/auth-feedback";
 
 export type CloudWorkspacePayload = {
   schemaVersion: 1;
@@ -18,6 +19,7 @@ export type CloudWorkspacePayload = {
   language: "en" | "he";
   theme: string;
   actionEvents: unknown[];
+  searchTasks?: unknown[];
 };
 
 type SyncState = "idle" | "saving" | "saved" | "error";
@@ -33,42 +35,68 @@ export function WelcomeAccountAccess({ language, onContinueLocal }: { language: 
   const [email, setEmail] = useState("");
   const [showEmail, setShowEmail] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(() => {
+    if (typeof window === "undefined" || !new URLSearchParams(window.location.search).has("auth")) return "";
+    return language === "he" ? "לא ניתן להשלים את הכניסה. בקשו קישור חדש ופתחו אותו באותו דפדפן, או המשיכו ללא חשבון." : "Sign-in couldn’t be completed. Request a new link and open it in the same browser, or continue without an account.";
+  });
+  const [sentTo, setSentTo] = useState("");
+  const [retryAfter, setRetryAfter] = useState(0);
+
+  useEffect(() => {
+    if (!retryAfter) return;
+    const timer = window.setTimeout(() => setRetryAfter((value) => Math.max(0, value - 1)), 1000);
+    return () => window.clearTimeout(timer);
+  }, [retryAfter]);
 
   useEffect(() => {
     const supabase = supabaseRef.current;
     if (!supabase) return;
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    supabase.auth.getSession().then(({ data }) => setSession(data.session)).catch(() => setSession(null));
     const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => setSession(nextSession));
     return () => data.subscription.unsubscribe();
   }, []);
 
   async function signInWithGoogle() {
     const supabase = supabaseRef.current;
-    if (!supabase) return;
+    if (!supabase || busy) return;
     setBusy(true);
     setMessage("");
-    const { error } = await supabase.auth.signInWithOAuth({
+    try {
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: `${window.location.origin}/auth/callback`, skipBrowserRedirect: true },
     });
-    if (error) {
+    if (error) throw error;
+    if (data.url) window.location.assign(data.url);
+    else throw new Error("Missing sign-in URL");
+    } catch (error) {
+      setMessage(authErrorMessage(error, language));
+    } finally {
       setBusy(false);
-      setMessage(error.message);
     }
   }
 
   async function sendMagicLink(event: FormEvent) {
     event.preventDefault();
     const supabase = supabaseRef.current;
-    if (!supabase || !email.trim()) return;
+    if (!supabase || !email.trim() || busy || retryAfter > 0) return;
     setBusy(true);
+    setMessage("");
+    setSentTo("");
+    try {
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     });
-    setBusy(false);
-    setMessage(error ? error.message : language === "he" ? "קישור כניסה מאובטח נשלח למייל." : "A secure sign-in link is on its way.");
+    if (error) throw error;
+    setSentTo(email.trim());
+    setRetryAfter(60);
+    setMessage(language === "he" ? "בדקו את תיבת הדואר וגם את תיקיית הספאם. פתחו את הקישור באותו דפדפן כדי להשלים את הכניסה. אין צורך בסיסמה." : "Check your inbox and spam folder. Open the link in this same browser to finish signing in. No password needed.");
+    } catch (error) {
+      setMessage(authErrorMessage(error, language));
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (session) {
@@ -82,8 +110,8 @@ export function WelcomeAccountAccess({ language, onContinueLocal }: { language: 
     {configured && <>
       <button className="welcome-google-button" disabled={busy} onClick={() => void signInWithGoogle()} type="button"><GoogleMark />{language === "he" ? "המשך באמצעות Google" : "Continue with Google"}</button>
       <button className="welcome-email-toggle" onClick={() => setShowEmail((current) => !current)} type="button"><Mail />{language === "he" ? "או קישור כניסה במייל" : "Or use a secure email link"}</button>
-      {showEmail && <form className="welcome-email-form" onSubmit={sendMagicLink}><input aria-label={language === "he" ? "כתובת מייל" : "Email address"} autoComplete="email" onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" required type="email" value={email}/><button disabled={busy} type="submit">{language === "he" ? "שליחת קישור" : "Send link"}</button></form>}
-      {message && <p className="welcome-auth-message">{message}</p>}
+      {showEmail && <form aria-busy={busy} className="welcome-email-form" onSubmit={sendMagicLink}><input aria-label={language === "he" ? "כתובת מייל" : "Email address"} autoComplete="email" disabled={busy} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" required type="email" value={email}/><button disabled={busy || retryAfter > 0} type="submit">{busy ? (language === "he" ? "מתחברים…" : "Connecting…") : retryAfter > 0 ? (language === "he" ? `שליחה חוזרת בעוד ${retryAfter} שניות` : `Resend in ${retryAfter}s`) : (language === "he" ? "שליחת קישור" : "Send link")}</button></form>}
+      {message && <div className="welcome-auth-message" role="status">{sentTo && <strong>{language === "he" ? "בדקו את האימייל: " : "Check your email: "}{sentTo}</strong>}<p>{message}</p></div>}
       <div className="welcome-access-divider"><span>{language === "he" ? "או" : "or"}</span></div>
     </>}
     <button className="welcome-local-button" onClick={onContinueLocal} type="button">{language === "he" ? "המשך ללא חשבון במכשיר הזה" : "Continue on this device without an account"}</button>
@@ -156,14 +184,21 @@ export function CloudAccount({
   async function sendMagicLink(event: FormEvent) {
     event.preventDefault();
     const supabase = supabaseRef.current;
-    if (!supabase || !email.trim()) return;
+    if (!supabase || !email.trim() || syncState === "saving") return;
     setSyncState("saving");
+    setMessage("");
+    try {
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     });
-    setSyncState(error ? "error" : "idle");
-    setMessage(error ? error.message : language === "he" ? "שלחנו קישור כניסה מאובטח למייל." : "A secure sign-in link is on its way.");
+    if (error) throw error;
+    setSyncState("idle");
+    setMessage(language === "he" ? "בדקו את תיבת הדואר והספאם ופתחו את הקישור באותו דפדפן." : "Check your inbox and spam folder, then open the link in this same browser.");
+    } catch (error) {
+      setSyncState("error");
+      setMessage(authErrorMessage(error, language));
+    }
   }
 
   async function saveToCloud(silent = false) {

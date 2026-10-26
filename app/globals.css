@@ -1989,6 +1989,22 @@ html[data-carvio-theme="light"] {
   background: linear-gradient(110deg, color-mix(in srgb, #d946ef 7%, var(--cv-surface)), var(--cv-surface));
 }
 
+.demo-mode-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--cv-border);
+  border-radius: 1rem;
+  background: var(--cv-surface-soft);
+  color: var(--cv-text);
+  font-size: 0.8rem;
+}
+.demo-mode-banner strong { flex: 1 0 100%; }
+.demo-mode-banner p { flex: 1 1 16rem; color: var(--cv-muted); }
+.demo-mode-banner button { flex-shrink: 0; }
+
 .tools-hub {
   display: grid;
   gap: 1.2rem;
