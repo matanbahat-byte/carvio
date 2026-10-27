@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { emptySearchProfile, sanitizeSearchProfile, normalizedSearchProfile, migrateSearchProfile, nextSearchDateWindow, skillSuggestionsForRole, localizedSearchFilter, companyJobSearchRoute, jobSearchSources, searchProfileChanged, broadenSearchProfile, patchSearchProfile, captureJobLink, type SearchProfile, type SearchOutcome, type JobSearchSource } from "@/lib/job-search";
 import { agendaEntries, scheduledTimestamp } from "@/lib/schedule";
 import { extractJobRequirements, splitRequirementText, uniqueRequirements, requirementCategory } from "@/lib/job-requirements";
 import { ChangeEvent, FormEvent, Fragment, ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
@@ -239,34 +240,6 @@ type ResumeFile = {
   readState?: "ready" | "empty" | "unsupported" | "too-large" | "error";
 };
 
-type SearchProfile = {
-  role: string;
-  filterRole: string;
-  location: string;
-  country: string;
-  radius: string;
-  skills: string;
-  seniority: string;
-  workModel: string;
-  employmentType: string;
-  datePosted: string;
-  industry: string;
-  exclude: string;
-};
-
-type SearchOutcome = "unreviewed" | "found" | "none";
-
-type JobSearchSource = {
-  name: string;
-  emoji: string;
-  featured: boolean;
-  freshness: string;
-  accuracy: string;
-  query: string;
-  description: string;
-  url: string;
-  directUrl?: string;
-};
 
 type MessageProfile = {
   recipientType: "Recruiter" | "Hiring manager" | "Referral" | "Networking contact";
@@ -303,6 +276,7 @@ type RecoveryEntry = {
 };
 
 type UserProfile = {
+  usageIntent?: "active" | "improving" | "market" | "networking" | "skip";
   name: string;
   avatarDataUrl: string;
   targetRole: string;
@@ -387,11 +361,7 @@ type ContactDraft = Omit<Contact, "id">;
 type QuickUpdateDraft = Pick<Application, "status" | "trafficLight" | "nextStep" | "nextStepDue" | "eventType" | "eventDateTime">;
 type NextBestAction = { id: string; score: number; label: string; detail: string; target: string; kind: string; applicationId?: string; contactId?: string; intent?: "open" | "message" | "calendar" | "recover" };
 
-const emptySearchProfile: SearchProfile = { role: "", filterRole: "", location: "", country: "Netherlands", radius: "25", skills: "", seniority: "", workModel: "", employmentType: "Full-time", datePosted: "Past 24 hours", industry: "", exclude: "" };
 
-const supplyChainSkillSuggestions = ["Inventory management", "Demand planning", "Procurement", "Logistics", "S&OP", "ERP", "Supplier management", "Warehouse operations", "Forecasting"];
-const hrSkillSuggestions = ["Business partnering", "Talent management", "Employee relations", "Organizational development", "Change management", "Workforce planning", "Coaching", "HR analytics", "People strategy", "Recruitment", "Compensation & benefits", "Labor law"];
-const neutralSkillSuggestions = ["Stakeholder management", "Project management", "Process improvement", "Cross-functional collaboration", "Data analysis", "Change management", "Communication", "Operations"];
 const roleSuggestions = ["Supply Chain Manager", "Operations Manager", "Procurement Manager", "Logistics Manager", "HR Business Partner", "Senior HR Business Partner", "People Partner", "HR Manager", "People Operations Manager", "Talent Acquisition Partner", "Organizational Development Manager", "Employee Experience Manager"];
 const countryOptions = ["Netherlands", "Israel", "United Kingdom", "Germany", "France", "Spain", "Portugal", "Belgium", "United States", "Canada", "Other"];
 const pilotQuestions = [
@@ -1149,121 +1119,6 @@ async function extractResumeText(file: File) {
   return "";
 }
 
-function normalizeSearchText(value: string) {
-  return value.trim().replace(/\s+/g, " ");
-}
-
-function sanitizeSearchProfile(profile: SearchProfile): SearchProfile {
-  return {
-    ...profile,
-    role: normalizeSearchText(profile.role),
-    filterRole: normalizeSearchText(profile.filterRole),
-    location: normalizeSearchText(profile.location),
-    country: normalizeSearchText(profile.country),
-    radius: normalizeSearchText(profile.radius),
-    skills: profile.skills.split(",").map(normalizeSearchText).filter(Boolean).join(", "),
-    seniority: normalizeSearchText(profile.seniority),
-    workModel: normalizeSearchText(profile.workModel),
-    employmentType: normalizeSearchText(profile.employmentType),
-    datePosted: normalizeSearchText(profile.datePosted),
-    industry: normalizeSearchText(profile.industry),
-    exclude: profile.exclude.split(",").map(normalizeSearchText).filter(Boolean).join(", "),
-  };
-}
-
-function normalizedSearchProfile(profile: SearchProfile) {
-  const clean = sanitizeSearchProfile(profile);
-  const city = clean.location;
-  const location = [city, clean.country].filter(Boolean).join(", ");
-  return { ...clean, location, city };
-}
-
-function migrateSearchProfile(stored: Partial<SearchProfile>): SearchProfile {
-  const merged = { ...emptySearchProfile, ...stored };
-  const role = normalizeSearchText(merged.role);
-  const filtersBelongToRole = Boolean(merged.filterRole) && normalizeSearchText(merged.filterRole).toLocaleLowerCase() === role.toLocaleLowerCase();
-  return sanitizeSearchProfile({
-    ...merged,
-    filterRole: role,
-    ...(filtersBelongToRole ? {} : { skills: "", seniority: "", industry: "", exclude: "" }),
-  });
-}
-
-function linkedInDistanceFromKilometers(radius: string) {
-  const kilometers = Number(radius);
-  if (!Number.isFinite(kilometers) || kilometers <= 0) return "";
-  return String(Math.max(1, Math.round(kilometers / 1.609344)));
-}
-
-function linkedInRoleTerms(role: string) {
-  const cleanRole = normalizeSearchText(role).replace(/["“”]/g, "");
-  const normalizedRole = cleanRole.toLocaleLowerCase();
-  const terms = [cleanRole];
-
-  if (/\b(senior\s+)?hr\s*business\s+partner\b|\b(senior\s+)?hrbp\b|\b(senior\s+)?human\s+resources\s+business\s+partner\b/.test(normalizedRole)) {
-    const senior = /\bsenior\b/.test(normalizedRole);
-    terms.push(
-      senior ? "Senior HRBP" : "HRBP",
-      senior ? "Senior Human Resources Business Partner" : "Human Resources Business Partner",
-    );
-  }
-
-  return Array.from(new Set(terms.filter(Boolean)));
-}
-
-function linkedInKeywordQuery(profile: SearchProfile) {
-  const quote = (value: string) => `"${value.replace(/["“”]/g, "").trim()}"`;
-  const roleTerms = linkedInRoleTerms(profile.role);
-  const roleQuery = roleTerms.length > 1
-    ? `(${roleTerms.map(quote).join(" OR ")})`
-    : quote(roleTerms[0] || profile.role);
-  const userExclusions = profile.exclude
-    .split(",")
-    .map((term) => normalizeSearchText(term).replace(/^-+/, ""))
-    .filter(Boolean);
-  const roleGuardrails = /\bhr\s*business\s+partner\b|\bhrbp\b|\bhuman\s+resources\s+business\s+partner\b/i.test(profile.role)
-    ? ["Controller", "Financial Controller"]
-    : [];
-  const exclusions = Array.from(new Set([...userExclusions, ...roleGuardrails]));
-  return [roleQuery, ...exclusions.map((term) => `NOT ${quote(term)}`)].join(" ");
-}
-
-function nextSearchDateWindow(datePosted: string) {
-  if (datePosted === "Past 24 hours") return "Past week";
-  if (datePosted === "Past week") return "Past month";
-  if (datePosted === "Past month") return "Any time";
-  return datePosted;
-}
-
-function skillSuggestionsForRole(role: string) {
-  const normalizedRole = normalizeSearchText(role).toLocaleLowerCase();
-  if (/supply chain|procurement|logistics|inventory|warehouse|operations|שרשרת אספקה|רכש|לוגיסטיקה/.test(normalizedRole)) return supplyChainSkillSuggestions;
-  if (/\bhr\b|hrbp|human resources|people|talent|employee|organizational|משאבי אנוש|גיוס|אנשים/.test(normalizedRole)) return hrSkillSuggestions;
-  return neutralSkillSuggestions;
-}
-
-function localizedSearchFilter(value: string, language: Language) {
-  if (language === "en") return value;
-  return ({
-    "Past 24 hours": "24 השעות האחרונות",
-    "Past week": "השבוע האחרון",
-    "Past month": "החודש האחרון",
-    "Any time": "ללא הגבלת זמן",
-    "Full-time": "משרה מלאה",
-    "Part-time": "משרה חלקית",
-    Contract: "חוזה",
-    Temporary: "זמני",
-    Internship: "התמחות",
-    "Entry level": "דרגת כניסה",
-    Associate: "עמית/ה",
-    "Mid-Senior level": "דרגת ביניים–בכיר/ה",
-    Director: "דירקטור/ית",
-    Executive: "הנהלה בכירה",
-    Remote: "מרחוק",
-    Hybrid: "היברידי",
-    "On-site": "באתר",
-  } as Record<string, string>)[value] || value;
-}
 
 function companyLogoFromWebsite(value: string) {
   const raw = value.trim();
@@ -1276,90 +1131,6 @@ function companyLogoFromWebsite(value: string) {
   }
 }
 
-function companyJobSearchRoute(profile: SearchProfile, company: string, routeIndex = 0, officialCareerUrl = "") {
-  const clean = normalizedSearchProfile(profile);
-  const freshness = clean.datePosted === "Past 24 hours" ? "r86400" : clean.datePosted === "Past week" ? "r604800" : clean.datePosted === "Past month" ? "r2592000" : "";
-  const indeedDomains: Record<string, string> = { Netherlands: "nl.indeed.com", Israel: "il.indeed.com", "United Kingdom": "uk.indeed.com", Germany: "de.indeed.com", France: "fr.indeed.com", Spain: "es.indeed.com", Portugal: "pt.indeed.com", Belgium: "be.indeed.com", Canada: "ca.indeed.com", "United States": "www.indeed.com" };
-  const googleDomains: Record<string, string> = { Netherlands: "www.google.nl", Israel: "www.google.co.il", "United Kingdom": "www.google.co.uk", Germany: "www.google.de", France: "www.google.fr", Spain: "www.google.es", Portugal: "www.google.pt", Belgium: "www.google.be", Canada: "www.google.ca", "United States": "www.google.com" };
-  const indeedAge = clean.datePosted === "Past 24 hours" ? "1" : clean.datePosted === "Past week" ? "7" : clean.datePosted === "Past month" ? "30" : "";
-  const provider = routeIndex % 3;
-
-  if (provider === 0) {
-    const query = encodeURIComponent(`"${clean.role}" "${company}"`);
-    const location = encodeURIComponent(clean.location);
-    return {
-      provider: `Indeed · ${company}`,
-      url: `https://${indeedDomains[clean.country] || "www.indeed.com"}/jobs?q=${query}&l=${location}&radius=${encodeURIComponent(clean.radius)}${indeedAge ? `&fromage=${indeedAge}` : ""}&sort=date`,
-    };
-  }
-
-  if (provider === 1) {
-    const officialDomain = officialCareerUrl ? new URL(officialCareerUrl).hostname : "";
-    const siteFilter = officialDomain ? `site:${officialDomain}` : "";
-    const query = [siteFilter, `"${clean.role}"`, `"${company}"`, clean.city ? `"${clean.city}"` : "", `"${clean.country}"`, "jobs"].filter(Boolean).join(" ");
-    return {
-      provider: officialDomain ? `Official-site results · ${company}` : `Web results · ${company}`,
-      url: `https://${googleDomains[clean.country] || "www.google.com"}/search?q=${encodeURIComponent(query)}`,
-    };
-  }
-
-  const params = new URLSearchParams({
-    keywords: `"${clean.role}" "${company}"`,
-    location: clean.location,
-    distance: linkedInDistanceFromKilometers(clean.radius),
-    sortBy: "DD",
-  });
-  if (freshness) params.set("f_TPR", freshness);
-  return {
-    provider: `LinkedIn · ${company}`,
-    url: `https://www.linkedin.com/jobs/search/?${params.toString()}`,
-  };
-}
-
-function jobSearchSources(profile: SearchProfile, language: Language = "en"): JobSearchSource[] {
-  const clean = normalizedSearchProfile(profile);
-  const indeedDomains: Record<string, string> = { Netherlands: "nl.indeed.com", Israel: "il.indeed.com", "United Kingdom": "uk.indeed.com", Germany: "de.indeed.com", France: "fr.indeed.com", Spain: "es.indeed.com", Portugal: "pt.indeed.com", Belgium: "be.indeed.com", Canada: "ca.indeed.com", "United States": "www.indeed.com" };
-  const googleDomains: Record<string, string> = { Netherlands: "www.google.nl", Israel: "www.google.co.il", "United Kingdom": "www.google.co.uk", Germany: "www.google.de", France: "www.google.fr", Spain: "www.google.es", Portugal: "www.google.pt", Belgium: "www.google.be", Canada: "www.google.ca", "United States": "www.google.com" };
-  const countryCodes: Record<string, string> = { Netherlands: "nl", Israel: "il", "United Kingdom": "gb", Germany: "de", France: "fr", Spain: "es", Portugal: "pt", Belgium: "be", Canada: "ca", "United States": "us" };
-  const indeedDomain = indeedDomains[clean.country] || "www.indeed.com";
-  const googleDomain = googleDomains[clean.country] || "www.google.com";
-  const quote = (value: string) => `"${value.replace(/["“”]/g, "").trim()}"`;
-  const skills = clean.skills.split(",").map(normalizeSearchText).filter(Boolean);
-  const exclusions = clean.exclude.split(",").map((term) => normalizeSearchText(term).replace(/^-+/, "")).filter(Boolean);
-  const supplement = skills.map(quote);
-  const negative = exclusions.map((term) => `-${quote(term)}`);
-  const exactRole = `intitle:${quote(clean.role)}`;
-  const indeedQuery = [quote(clean.role), ...supplement.map((term) => `AND ${term}`), ...negative, clean.workModel ? `AND ${quote(clean.workModel)}` : ""].filter(Boolean).join(" ");
-  const googleQuery = [exactRole, "jobs", clean.city ? quote(clean.city) : "", quote(clean.country), ...supplement, clean.industry ? quote(clean.industry) : "", clean.workModel ? quote(clean.workModel) : "", ...negative].filter(Boolean).join(" ");
-  const indeedAge = clean.datePosted === "Past 24 hours" ? "1" : clean.datePosted === "Past week" ? "7" : clean.datePosted === "Past month" ? "30" : "";
-  const linkedInAge = clean.datePosted === "Past 24 hours" ? "r86400" : clean.datePosted === "Past week" ? "r604800" : clean.datePosted === "Past month" ? "r2592000" : "";
-  const googleAge = clean.datePosted === "Past 24 hours" ? "qdr:d" : clean.datePosted === "Past week" ? "qdr:w" : clean.datePosted === "Past month" ? "qdr:m" : "";
-  const countryCode = countryCodes[clean.country] || clean.country.slice(0, 2).toLowerCase();
-  const linkedInQuery = linkedInKeywordQuery(clean);
-  const linkedInParams = new URLSearchParams({ keywords: linkedInQuery, location: clean.location, distance: linkedInDistanceFromKilometers(clean.radius), sortBy: "DD", origin: "JOB_SEARCH_PAGE_JOB_FILTER" });
-  if (linkedInAge) linkedInParams.set("f_TPR", linkedInAge);
-  const linkedInSeniority: Record<string, string> = { "Entry level": "2", Associate: "3", "Mid-Senior level": "4", Director: "5", Executive: "6" };
-  const linkedInEmployment: Record<string, string> = { "Full-time": "F", "Part-time": "P", Contract: "C", Temporary: "T", Internship: "I" };
-  const linkedInWorkModel: Record<string, string> = { "On-site": "1", Remote: "2", Hybrid: "3" };
-  if (linkedInSeniority[clean.seniority]) linkedInParams.set("f_E", linkedInSeniority[clean.seniority]);
-  if (linkedInEmployment[clean.employmentType]) linkedInParams.set("f_JT", linkedInEmployment[clean.employmentType]);
-  if (linkedInWorkModel[clean.workModel]) linkedInParams.set("f_WT", linkedInWorkModel[clean.workModel]);
-  const indeedEmployment: Record<string, string> = { "Full-time": "fulltime", "Part-time": "parttime", Contract: "contract", Temporary: "temporary", Internship: "internship" };
-  const indeedParams = new URLSearchParams({ q: indeedQuery, l: clean.location, radius: clean.radius, sort: "date" });
-  if (indeedAge) indeedParams.set("fromage", indeedAge);
-  if (indeedEmployment[clean.employmentType]) indeedParams.set("jt", indeedEmployment[clean.employmentType]);
-  const googleParams = new URLSearchParams({ q: googleQuery, hl: language === "he" ? "he" : "en", gl: countryCode });
-  if (googleAge) googleParams.set("tbs", googleAge);
-  const freshnessLabel = language === "he"
-    ? ({ "Past 24 hours": "24 השעות האחרונות", "Past week": "השבוע האחרון", "Past month": "החודש האחרון", "Any time": "ללא הגבלת זמן" }[clean.datePosted] || clean.datePosted)
-    : clean.datePosted;
-  const sentSummary = `${quote(clean.role)} · ${clean.location || clean.country} · ${freshnessLabel}`;
-  return [
-    { name: language === "he" ? "LinkedIn — התאמות מדויקות" : "LinkedIn — exact role matches", emoji: "in", featured: true, freshness: freshnessLabel, accuracy: sentSummary, query: linkedInQuery, description: language === "he" ? "LinkedIn ייפתח עם שם התפקיד כביטוי מדויק, שמות חלופיים רלוונטיים בלבד, המיקום והמסננים שבחרתם. אם אין התאמות, CARVIO ירחיב בכל פעם מסנן אחד — לעולם לא את משמעות התפקיד ללא אישור." : "LinkedIn opens with the role as an exact phrase, only relevant title aliases, your location, and selected filters. If no matches appear, CARVIO broadens one filter at a time—never the role meaning without your approval.", url: `https://www.linkedin.com/jobs/search/?${linkedInParams.toString()}` },
-    { name: language === "he" ? "Indeed — חיפוש מקומי" : "Indeed — local search", emoji: "🌍", featured: false, freshness: freshnessLabel, accuracy: sentSummary, query: indeedQuery, description: language === "he" ? "Indeed מקבל חיפוש title בביטוי מלא, מיקום, רדיוס וטריות. אם אין התאמה, האתר עדיין עשוי להציע משרות קרובות או מותאמות אישית." : "Indeed receives an exact title phrase plus location, radius, and freshness. When matches are scarce, it may still suggest nearby or personalized jobs.", url: `https://${indeedDomain}/jobs?${indeedParams.toString()}` },
-    { name: language === "he" ? "Google — חיפוש ממוקד משרות" : "Google — jobs-focused search", emoji: "🔎", featured: false, freshness: freshnessLabel, accuracy: sentSummary, query: googleQuery, description: language === "he" ? "Google מקבל את ביטוי התפקיד במרכאות, כוונת jobs, מיקום ומילות החרגה. זוהי שאילתה ממוקדת, לא הבטחה שכל תוצאה תהיה התאמה מלאה." : "Google receives the quoted role, jobs intent, location, and exclusions. This is a focused query, not a guarantee that every result is an exact match.", url: `https://${googleDomain}/search?${googleParams.toString()}` },
-  ];
-}
 
 function messageSubject(profile: MessageProfile, language: Language) {
   const role = profile.role.trim() || (language === "he" ? "ההזדמנות" : "the opportunity");
@@ -1566,6 +1337,24 @@ function Modal({
   );
 }
 
+function UsageIntentPicker({ intent, language, onChange }: { intent: UserProfile["usageIntent"]; language: Language; onChange: (value: UserProfile["usageIntent"]) => void }) {
+  return <Field label={language === "he" ? "מה מתאים לכם כרגע? (אופציונלי)" : "What brings you here? (optional)"}><select className="form-control" value={intent || ""} onChange={(event) => onChange(event.target.value as UserProfile["usageIntent"])}>
+    <option value="">{language === "he" ? "בחרו או המשיכו בלי לבחור" : "Choose, or continue without choosing"}</option>
+    <option value="active">{language === "he" ? "מחפש/ת עבודה עכשיו" : "Looking for work now"}</option>
+    <option value="improving">{language === "he" ? "עובד/ת ובוחן/ת שיפור" : "Working and exploring a better role"}</option>
+    <option value="market">{language === "he" ? "בודק/ת את השוק" : "Exploring the market"}</option>
+    <option value="networking">{language === "he" ? "מתמקד/ת בקשרים מקצועיים" : "Focusing on professional connections"}</option>
+    <option value="skip">{language === "he" ? "לדלג כרגע" : "Skip for now"}</option>
+  </select><small>{language === "he" ? "אפשר לשנות בהגדרות. הבחירה לא משנה משרות או מסננים." : "Change this in Settings anytime. It never changes jobs or search filters."}</small></Field>;
+}
+
+function SearchFilterNotice({ source, language }: { source: JobSearchSource; language: Language }) {
+  return <aside className="search-mapping-summary" aria-label={language === "he" ? "מסננים בקישור LinkedIn" : "Filters in the LinkedIn link"}>
+    {source.notApplied.length > 0 && <div className="search-unapplied" role="status"><strong>{language === "he" ? "לא יופעלו בקישור הזה:" : "Not applied in this link:"}</strong><ul>{source.notApplied.map((item) => <li key={item}>{item}</li>)}</ul></div>}
+    <details><summary>{language === "he" ? "מה נשלח בקישור?" : "What is sent in the link?"}</summary><ul>{source.applied.map((item) => <li key={item}>{item}</li>)}</ul><p>{language === "he" ? "נשלח בקישור, אך לא מובטח שיופעל במקור. מסכי LinkedIn מסוימים עשויים לא לשמור מסננים מהקישור; בדקו ובחרו מחדש את המיקום וסוג ההעסקה שם." : "Sent in the link, not guaranteed to be applied by the source. Some LinkedIn screens may not retain link filters; check and reselect the location and employment type there."}</p></details>
+  </aside>;
+}
+
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block text-sm font-medium text-slate-200">
@@ -1601,6 +1390,7 @@ export default function Home() {
   const [editingApplicationId, setEditingApplicationId] = useState<string | null>(null);
   const [editingContactId, setEditingContactId] = useState<string | null>(null);
   const [showApplicationModal, setShowApplicationModal] = useState(false);
+  const [applicationValidationAttempted, setApplicationValidationAttempted] = useState(false);
   const [quickUpdateId, setQuickUpdateId] = useState<string | null>(null);
   const [quickUpdateDraft, setQuickUpdateDraft] = useState<QuickUpdateDraft | null>(null);
   const [timelineDraft, setTimelineDraft] = useState({ name: "Recruiter screen", dateTime: "", trafficLight: "none" as TrafficLight, note: "", nextTask: "" });
@@ -2096,6 +1886,12 @@ export default function Home() {
   const todayActionPresentation = useMemo(() => {
     const action = nextBestActions[0];
     const joinContext = (...parts: string[]) => parts.filter((part) => part.trim()).join(language === "he" ? " ב־" : " at ");
+    if (!applications.length && !contacts.length && userProfile.usageIntent && userProfile.usageIntent !== "skip") return {
+      headline: userProfile.usageIntent === "networking" ? (language === "he" ? "התחילו מקשר מקצועי אחד" : "Start with one professional connection") : userProfile.usageIntent === "market" ? (language === "he" ? "בדקו את השוק בקצב שלכם" : "Explore the market at your own pace") : userProfile.usageIntent === "improving" ? (language === "he" ? "גלו את ההזדמנות הבאה שלכם" : "Explore your next career move") : (language === "he" ? "מצאו משרה שכדאי להתקדם איתה" : "Find a role worth moving forward with"),
+      reason: userProfile.usageIntent === "networking" ? (language === "he" ? "אפשר להתחיל מאיש קשר, בלי להוסיף משרה." : "Start with a contact, without adding a job.") : (language === "he" ? "התחילו בתפקיד ומיקום. שמרו משרה רק לאחר שבדקתם אותה במקור." : "Start with a role and location. Save a job after reviewing it at the source."),
+      cta: userProfile.usageIntent === "networking" ? (language === "he" ? "הוספת איש קשר" : "Add a contact") : (language === "he" ? "התחלת חיפוש" : "Start searching"),
+      canComplete: false,
+    };
     if (!action || (!applications.length && !contacts.length)) return {
       headline: language === "he" ? "הוספת ההזדמנות הראשונה" : "Add your first opportunity",
       reason: language === "he" ? "הוסיפו הזדמנות כדי ש־CARVIO יוכל להמליץ על הצעד הבא." : "Add an opportunity so CARVIO can recommend a useful next move.",
@@ -2160,7 +1956,7 @@ export default function Home() {
     }
     if (action.intent === "recover") return { headline: action.label, reason: action.detail, cta: language === "he" ? "פתיחת האיפוס" : "Open reset", canComplete: false };
     return { headline: action.label, reason: action.detail, cta: language === "he" ? "לבדיקת המועמדויות" : "Review applications", canComplete: false };
-  }, [applications.length, contacts.length, homepageAction.support, homepageAction.title, language, nextBestActions, primaryActionApplication, primaryActionContact]);
+  }, [applications.length, contacts.length, homepageAction.support, homepageAction.title, language, nextBestActions, primaryActionApplication, primaryActionContact, userProfile.usageIntent]);
 
   const attentionPresentations = useMemo(() => nextBestActions.slice(1).map((action) => {
     const application = action.applicationId ? applications.find((item) => item.id === action.applicationId) || null : null;
@@ -2375,7 +2171,8 @@ export default function Home() {
       : searchProfile.seniority
         ? (language === "he" ? "הסרת מסנן הדרגה" : "Remove seniority filter")
         : "";
-  const searchDraftChanged = useMemo(() => submittedSearchProfile ? JSON.stringify(sanitizeSearchProfile(searchProfile)) !== JSON.stringify(submittedSearchProfile) : false, [searchProfile, submittedSearchProfile]);
+  const searchDraftChanged = useMemo(() => submittedSearchProfile ? searchProfileChanged(searchProfile, submittedSearchProfile) : false, [searchProfile, submittedSearchProfile]);
+  const draftSearchSource = useMemo(() => jobSearchSources(searchProfile, language)[0], [searchProfile, language]);
   const visibleApplications = useMemo(() => {
     const query = applicationQuery.trim().toLocaleLowerCase();
     const now = Date.now();
@@ -2621,36 +2418,22 @@ export default function Home() {
 
   function smartCaptureApplication() {
     setSmartCaptureError("");
-    let parsed: URL;
+    let captured: ReturnType<typeof captureJobLink>;
     try {
-      parsed = new URL(smartCaptureUrl.trim());
+      captured = captureJobLink(smartCaptureUrl);
     } catch {
-      setSmartCaptureError(language === "he" ? "יש להדביק כתובת מלאה ותקינה." : "Paste a complete, valid job URL.");
+      setSmartCaptureError(language === "he" ? "יש להדביק קישור מלא שמתחיל ב־https:// או http://." : "Paste a complete https:// or http:// job URL.");
       return;
     }
-    const host = parsed.hostname.replace(/^www\./, "");
-    const knownBoard = /linkedin|indeed|glassdoor|google/i.test(host);
-    const companyToken = host.split(".")[0].replace(/[-_]/g, " ");
-    const pathParts = decodeURIComponent(parsed.pathname).split("/").filter(Boolean).filter((part) => !/^(jobs?|careers?|view|position|vacancy)$/i.test(part));
-    const rawRoleToken = ([...pathParts].reverse().find((part) => !/^\d+$/.test(part)) || "").replace(/[-_]/g, " ").replace(/\b\d{5,}\b/g, "").trim();
-    const linkedInTitleParts = /linkedin/i.test(host) ? rawRoleToken.split(/\s+at\s+/i) : [rawRoleToken];
-    const roleToken = linkedInTitleParts[0]?.trim() || "";
-    const inferredCompany = linkedInTitleParts.slice(1).join(" at ").trim();
-    const titleCase = (value: string) => value.replace(/\b\w/g, (letter) => letter.toUpperCase());
     setEditingApplicationId(null);
     const detectedRequirements = extractJobRequirements(smartCaptureText);
     setApplicationDraft({
       ...emptyApplication,
-      company: knownBoard ? titleCase(inferredCompany) : titleCase(companyToken),
-      companyWebsite: knownBoard ? "" : parsed.origin,
-      logoUrl: knownBoard ? "" : companyLogoFromWebsite(parsed.origin),
-      role: titleCase(roleToken),
-      jobUrl: parsed.toString(),
+      ...captured,
       jobDescription: smartCaptureText.trim(),
       requirements: detectedRequirements.join("\n"),
       requirementEvidence: detectedRequirements.map((requirement) => ({ requirement, evidence: "", category: requirementCategory(requirement) })),
       capturedAt: new Date().toISOString(),
-      source: /linkedin/i.test(host) ? "LinkedIn" : /indeed/i.test(host) ? "Indeed" : "Company careers page",
       nextStep: language === "he" ? "בדיקת התפקיד והתאמת קורות החיים" : "Review the role and tailor the CV",
     });
     setSmartCaptureStep("review");
@@ -2668,6 +2451,7 @@ export default function Home() {
   function saveSmartCapture() {
     if (!applicationDraft.role.trim() || !applicationDraft.company.trim()) {
       setSmartCaptureError(language === "he" ? "יש להשלים תפקיד וחברה לפני השמירה." : "Add the role and company before saving.");
+      document.getElementById(!applicationDraft.role.trim() ? "capture-role" : "capture-company")?.focus();
       return;
     }
     const savedApplication = normalizeApplication({ ...applicationDraft, id: makeId("app"), lastActivityAt: new Date().toISOString() });
@@ -2826,6 +2610,7 @@ export default function Home() {
   }
 
   function openNewApplication() {
+    setApplicationValidationAttempted(false);
     setEditingApplicationId(null);
     setApplicationDraft(emptyApplication);
     setShowApplicationDetails(false);
@@ -2833,6 +2618,7 @@ export default function Home() {
   }
 
   function openEditApplication(application: Application) {
+    setApplicationValidationAttempted(false);
     setEditingApplicationId(application.id);
     const { id: _id, ...draft } = application;
     void _id;
@@ -2854,6 +2640,9 @@ export default function Home() {
 
   function saveApplication(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setApplicationValidationAttempted(true);
+    const missing = !applicationDraft.company.trim() ? "company" : !applicationDraft.role.trim() ? "role" : "";
+    if (missing) { document.getElementById(`application-${missing}`)?.focus(); return; }
     const previousApplication = editingApplicationId ? applications.find((item) => item.id === editingApplicationId) || null : null;
     const savedApplication = normalizeApplication({ ...applicationDraft, id: editingApplicationId || makeId("app"), lastActivityAt: new Date().toISOString() });
     const closureOutcome = savedApplication.offerDetails.decisionOutcome;
@@ -3095,13 +2884,15 @@ export default function Home() {
   }
 
   function toggleSearchSkill(skill: string) {
-    const current = searchProfile.skills.split(",").map((item) => item.trim()).filter(Boolean);
-    const next = current.some((item) => item.toLowerCase() === skill.toLowerCase()) ? current.filter((item) => item.toLowerCase() !== skill.toLowerCase()) : [...current, skill];
-    updateSearchProfile({ skills: next.join(", ") });
+    setSearchProfile((profile) => {
+      const current = profile.skills.split(",").map((item) => item.trim()).filter(Boolean);
+      const next = current.some((item) => item.toLowerCase() === skill.toLowerCase()) ? current.filter((item) => item.toLowerCase() !== skill.toLowerCase()) : [...current, skill];
+      return { ...profile, skills: next.join(", ") };
+    });
   }
 
   function updateSearchProfile(patch: Partial<SearchProfile>) {
-    setSearchProfile((current) => ({ ...current, ...patch }));
+    setSearchProfile((current) => patchSearchProfile(current, patch));
   }
 
   function updateSearchRole(role: string) {
@@ -3111,13 +2902,14 @@ export default function Home() {
         ...current,
         role,
         filterRole: role,
-        ...(roleChanged ? { skills: "", industry: "", seniority: "", exclude: "" } : {}),
+        ...(roleChanged ? { skills: "", skillsMode: "preference" as const, industry: "", seniority: "", exclude: "" } : {}),
       };
     });
   }
 
   function runJobSearch() {
-    const snapshot = Object.freeze(sanitizeSearchProfile(searchProfile));
+    const snapshot = Object.freeze(sanitizeSearchProfile({ ...searchProfile, lastSearchedAt: new Date().toISOString() }));
+    setSearchProfile(snapshot);
     setSubmittedSearchProfile(snapshot);
     setSearchOutcome("unreviewed");
     setShowSearchResults(true);
@@ -3130,22 +2922,12 @@ export default function Home() {
   }
 
   function runBroadenedSearch() {
-    const base = submittedSearchProfile || searchProfile;
-    const next = sanitizeSearchProfile({
-      ...base,
-      ...(base.datePosted !== "Any time"
-        ? { datePosted: nextSearchDateWindow(base.datePosted) }
-        : Number(base.radius) < 50
-          ? { radius: "50" }
-          : base.seniority
-            ? { seniority: "" }
-            : {}),
-    });
+    const next = { ...broadenSearchProfile(searchProfile), lastSearchedAt: new Date().toISOString() };
     setSearchProfile(next);
     setSubmittedSearchProfile(Object.freeze(next));
     setSearchOutcome("unreviewed");
     setShowSearchResults(true);
-    setNotice(language === "he" ? "החיפוש הורחב ונשלח מחדש. שם התפקיד נשאר ללא שינוי." : "The broader search is ready. The target role remains unchanged.");
+    setNotice(language === "he" ? "החיפוש המעודכן מוכן. שם התפקיד נשאר ללא שינוי." : "The updated search is ready. The target role remains unchanged.");
     window.setTimeout(() => document.getElementById("search-results")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
   }
 
@@ -3168,7 +2950,7 @@ export default function Home() {
   }
 
   function saveSearchAsApplication() {
-    const source = showSearchResults && submittedSearch ? submittedSearch : resolvedSearch;
+    const source = resolvedSearch;
     setSearchTaskDraft({ role: source.role, location: source.location, action: language === "he" ? "בדיקת משרות מתאימות ושמירת המשרה המובילה" : "Review matching roles and save the strongest one", due: "" });
     setShowSearchTaskModal(true);
   }
@@ -3301,7 +3083,12 @@ export default function Home() {
 
   function executeTodayPrimaryAction() {
     const action = nextBestActions[0];
-    if (!applications.length && !contacts.length) { openNewApplication(); return; }
+    if (!applications.length && !contacts.length) {
+      if (userProfile.usageIntent === "networking") openNewContact();
+      else if (userProfile.usageIntent && userProfile.usageIntent !== "skip") switchView("search");
+      else openNewApplication();
+      return;
+    }
     if (primaryActionApplication && action?.id.startsWith("app-plan-")) { openEditApplication(primaryActionApplication); return; }
     if (action) { executeNextBestAction(action); return; }
     navigateToSection(homepageAction.target);
@@ -3667,6 +3454,7 @@ export default function Home() {
         </nav>
 
         <header className={`calm-view dashboard-v2 ${activeView !== "home" ? "calm-view-hidden" : ""}`} id="dashboard">
+          {applications.length === 0 && userProfile.usageIntent !== "skip" && <section className="usage-intent-card"><UsageIntentPicker intent={userProfile.usageIntent} language={language} onChange={(usageIntent) => setUserProfile((current) => ({ ...current, usageIntent }))} /></section>}
           <div className="carvio-hero-top">
             <div className="dashboard-v2-greeting">
               <p>{language === "he" ? "בוקר טוב" : "Good morning"}{userProfile.name ? `, ${userProfile.name}` : ""}</p>
@@ -4163,7 +3951,7 @@ export default function Home() {
             <div>
               <p className="eyebrow flex items-center gap-2 text-sky-300"><span className="emoji-bounce">✨</span> {language === "he" ? "חיפוש משרות" : "Job search"}</p>
               <h2 className="section-title">{language === "he" ? "איזו משרה אתם מחפשים?" : "What role are you looking for?"}</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">{language === "he" ? "כתבו תפקיד ומיקום. CARVIO יפתח חיפוש LinkedIn מדויק ופשוט, בלי להרחיב את משמעות התפקיד." : "Enter a role and location. CARVIO opens a precise, simple LinkedIn search without broadening the role meaning."}</p>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">{language === "he" ? "כתבו תפקיד ומיקום. CARVIO יכין קישור עם ביטוי התפקיד והמסננים שבחרתם. בדקו את ההתאמה בתוצאות LinkedIn." : "Enter a role and location. CARVIO prepares a link with your role phrase and chosen filters. Review the matches on LinkedIn."}</p>
             </div>
             <div className="search-quality-card">
               <div><ShieldCheck className="h-5 w-5" /><span>{language === "he" ? "הגנת טריות" : "Freshness guard"}</span></div>
@@ -4192,14 +3980,14 @@ export default function Home() {
               <div className="mt-2 flex flex-wrap gap-2">
                 <span>📍 {resolvedSearch.location || (language === "he" ? "בחרו עיר ומדינה" : "Choose city and country")}</span>
                 <span>◎ {searchProfile.radius} km</span>
-                <span>🕒 {searchProfile.datePosted}</span>
+                <span>🕒 {localizedSearchFilter(searchProfile.datePosted, language)}</span>
               </div>
             </div>
           </div>
 
           <div className={`search-form-grid search-step-${searchStep} ${showAdvancedSearch ? "search-advanced-open" : "search-advanced-closed"} mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3`} id="search-form-fields">
             <Field label={language === "he" ? "תפקיד יעד" : "Target role"}><input className="form-control" list="carvio-role-options" onChange={(event) => updateSearchRole(event.target.value)} placeholder={language === "he" ? "למשל Supply Chain Manager" : "e.g. Supply Chain Manager"} value={searchProfile.role} /><datalist id="carvio-role-options">{roleSuggestions.map((role) => <option key={role} value={role} />)}</datalist></Field>
-            <Field label={language === "he" ? "מדינה" : "Country"}><select className="form-control" onChange={(event) => updateSearchProfile({ country: event.target.value, location: "" })} value={searchProfile.country}>{countryOptions.map((country) => <option key={country}>{country}</option>)}</select></Field>
+            <Field label={language === "he" ? "מדינה" : "Country"}><select className="form-control" onChange={(event) => updateSearchProfile({ country: event.target.value, location: "" })} value={searchProfile.country}>{searchProfile.country === "Other" && <option value="Other" disabled>{language === "he" ? "בחרו מדינה נתמכת — חיפוש גלובלי אינו זמין" : "Choose a supported country — global search is unavailable"}</option>}{countryOptions.filter((country) => country !== "Other").map((country) => <option key={country}>{country}</option>)}</select></Field>
             <Field label={language === "he" ? "עיר או אזור (אופציונלי)" : "City / area (optional)"}><input className="form-control" list="carvio-city-options" onChange={(event) => updateSearchProfile({ location: event.target.value })} placeholder={language === "he" ? "למשל אמסטרדם — ניתן להשאיר ריק" : "e.g. Amsterdam — leave blank for country-wide"} value={searchProfile.location} /><datalist id="carvio-city-options">{(citySuggestions[searchProfile.country] || []).map((city) => <option key={city} value={city} />)}</datalist></Field>
             <Field label={language === "he" ? "רדיוס חיפוש" : "Search radius"}><select className="form-control" onChange={(event) => updateSearchProfile({ radius: event.target.value })} value={searchProfile.radius}>{["5", "10", "25", "50", "100"].map((radius) => <option key={radius} value={radius}>{radius} km</option>)}</select></Field>
             <Field label={language === "he" ? "דרגה" : "Seniority"}><select className="form-control" onChange={(event) => updateSearchProfile({ seniority: event.target.value })} value={searchProfile.seniority}><option value="">{language === "he" ? "כל דרגה" : "Any level"}</option>{["Entry level", "Associate", "Mid-Senior level", "Director", "Executive"].map((value) => <option key={value} value={value}>{localizedSearchFilter(value, language)}</option>)}</select></Field>
@@ -4210,11 +3998,11 @@ export default function Home() {
           </div>
           <button aria-expanded={showAdvancedSearch} className="search-advanced-toggle" onClick={() => setShowAdvancedSearch((current) => !current)} type="button"><SlidersHorizontal className="h-4 w-4" />{showAdvancedSearch ? (language === "he" ? "הסתרת מסננים נוספים" : "Hide extra filters") : (language === "he" ? "מסננים נוספים" : "More filters")}<ChevronDown className={`h-4 w-4 transition ${showAdvancedSearch ? "rotate-180" : ""}`} /></button>
 
-          <fieldset className="mt-5"><legend className="text-sm font-medium text-slate-200">{language === "he" ? "מיומנויות — ניתן לבחור או להקליד" : "Skills — select or type your own"}</legend><p className="search-skills-helper">{language === "he" ? "ההצעות מתעדכנות לפי התפקיד הנוכחי. הן יישלחו רק לאחר בחירה מפורשת." : "Suggestions update for the current role. They are sent only when you explicitly select them."}</p><div className="mt-3 flex flex-wrap gap-2">{visibleSearchSkillSuggestions.map((skill) => { const selected = searchProfile.skills.split(",").map((item) => item.trim().toLowerCase()).includes(skill.toLowerCase()); return <button aria-pressed={selected} className={`skill-chip ${selected ? "skill-chip-selected" : ""}`} key={skill} onClick={() => toggleSearchSkill(skill)} type="button">{selected ? "✓ " : "+ "}{skill}</button>; })}</div><input aria-label={language === "he" ? "מיומנויות נוספות" : "Additional skills"} className="form-control mt-3" onChange={(event) => updateSearchProfile({ skills: event.target.value })} placeholder={language === "he" ? "מיומנויות נוספות, מופרדות בפסיקים" : "Additional skills, separated by commas"} value={searchProfile.skills} /></fieldset>
+          <fieldset className="mt-5"><legend className="text-sm font-medium text-slate-200">{language === "he" ? "מיומנויות — ניתן לבחור או להקליד" : "Skills — select or type your own"}</legend><p className="search-skills-helper">{visibleSearchSkillSuggestions.length ? (language === "he" ? "הצעות לפי משפחת התפקיד. כישורים נשמרים כהעדפה, אלא אם תבחרו לדרוש אותם בחיפוש." : "Suggestions for this role family. Skills stay preferences unless you choose to require them in the search.") : (language === "he" ? "אין עדיין הצעות מותאמות לתפקיד הזה. אפשר להקליד כישורים בעצמכם." : "No tailored suggestions for this role yet. Enter your own skills.")}</p><div className="mt-3 flex flex-wrap gap-2">{visibleSearchSkillSuggestions.map((skill) => { const selected = searchProfile.skills.split(",").map((item) => item.trim().toLowerCase()).includes(skill.toLowerCase()); return <button aria-pressed={selected} className={`skill-chip ${selected ? "skill-chip-selected" : ""}`} key={skill} onClick={() => toggleSearchSkill(skill)} type="button">{selected ? "✓ " : "+ "}{skill}</button>; })}</div><input aria-label={language === "he" ? "מיומנויות נוספות" : "Additional skills"} className="form-control mt-3" onChange={(event) => updateSearchProfile({ skills: event.target.value })} placeholder={language === "he" ? "מיומנויות נוספות, מופרדות בפסיקים" : "Additional skills, separated by commas"} value={searchProfile.skills} /><label className="search-skills-mode"><input type="checkbox" checked={searchProfile.skillsMode === "required"} onChange={(event) => updateSearchProfile({ skillsMode: event.target.checked ? "required" : "preference" })} />{language === "he" ? "לדרוש את כל הכישורים במילות החיפוש (עלול לצמצם תוצאות)" : "Require all skills in the query (may reduce results)"}</label></fieldset>
 
           <div className="freshness-shortcuts" aria-label={language === "he" ? "בחירת טריות מהירה" : "Quick freshness selection"}>
             <span>{language === "he" ? "כמה עדכני?" : "How fresh?"}</span>
-            {["Past 24 hours", "Past week", "Past month"].map((value) => <button aria-pressed={searchProfile.datePosted === value} className={searchProfile.datePosted === value ? "freshness-active" : ""} key={value} onClick={() => updateSearchProfile({ datePosted: value })} type="button">{value === "Past 24 hours" ? (language === "he" ? "24 שעות · מומלץ" : "24 hours · Recommended") : value === "Past week" ? (language === "he" ? "שבוע" : "Past week") : (language === "he" ? "חודש" : "Past month")}</button>)}
+            {["Past 24 hours", "Past week", "Past month"].map((value) => <button aria-pressed={searchProfile.datePosted === value} className={searchProfile.datePosted === value ? "freshness-active" : ""} key={value} onClick={() => updateSearchProfile({ datePosted: value })} type="button">{value === "Past 24 hours" ? (language === "he" ? "24 שעות" : "24 hours") : value === "Past week" ? (language === "he" ? "שבוע" : "Past week") : (language === "he" ? "חודש" : "Past month")}</button>)}
           </div>
 
           <section aria-label={language === "he" ? "בדיקת מסננים לפני החיפוש" : "Search filter preflight"} className={`search-preflight ${searchPreflightWarning ? "search-preflight-warning" : ""}`}>
@@ -4227,21 +4015,24 @@ export default function Home() {
               <div><dt>{language === "he" ? "סוג העסקה" : "Employment"}</dt><dd>{searchProfile.employmentType ? localizedSearchFilter(searchProfile.employmentType, language) : (language === "he" ? "כל סוג" : "Any type")}</dd></div>
               <div><dt>{language === "he" ? "דרגה" : "Seniority"}</dt><dd>{searchProfile.seniority ? localizedSearchFilter(searchProfile.seniority, language) : (language === "he" ? "כל דרגה" : "Any level")}</dd></div>
             </dl>
-            <p className="search-preflight-unit-note">{language === "he" ? "כל מקור מקבל רק את המסננים שהוא תומך בהם. שם התפקיד והמיקום נשארים נעולים בכל המסלולים." : "Each source receives only the filters it supports. Role and location stay locked across every route."}</p>
+            <p className="search-preflight-unit-note">{language === "he" ? "נשלח קישור עם המסננים המוצגים כאן; המקור עשוי להרחיב תוצאות. עבודה מרחוק אינה מבטיחה אפשרות לעבוד מכל מדינה." : "The link sends the filters shown here; the source may broaden results. Remote does not mean you can work from every country."}</p>
             {searchPreflightWarning && <p className="search-preflight-message"><CircleAlert className="h-4 w-4" />{searchPreflightWarning}</p>}
             {safeBroadeningLabel && <button className="search-broaden-button" onClick={broadenSearchSafely} type="button">{safeBroadeningLabel}<span>{language === "he" ? "התפקיד לא ישתנה" : "Role stays unchanged"}</span></button>}
           </section>
 
-          <div className="search-actions-grid mt-5 grid gap-4 lg:grid-cols-[1fr_auto_auto]"><Field label={language === "he" ? "מילות החרגה" : "Exclude keywords"}><input className="form-control" onChange={(event) => updateSearchProfile({ exclude: event.target.value })} placeholder={language === "he" ? "מכירות, התמחות, ג׳וניור…" : "sales, internship, junior…"} value={searchProfile.exclude} /></Field><button className="secondary-button self-end" disabled={!resolvedSearch.role || !resolvedSearch.country} onClick={saveSearchAsApplication} type="button"><Plus className="h-4 w-4" /> {language === "he" ? "יצירת משימת חיפוש" : "Create search task"}</button><button className="primary-button search-launch-button self-end px-7" disabled={!resolvedSearch.role || !resolvedSearch.country} onClick={runJobSearch} type="button"><Search className="h-4 w-4" /> {language === "he" ? "חיפוש" : "Search"}</button></div>
+{(!showSearchResults || searchDraftChanged) && <SearchFilterNotice source={draftSearchSource} language={language} />}
+          <div className="search-actions-grid mt-5 grid gap-4 lg:grid-cols-[1fr_auto_auto]"><Field label={language === "he" ? "מילות החרגה" : "Exclude keywords"}><input className="form-control" onChange={(event) => updateSearchProfile({ exclude: event.target.value })} placeholder={language === "he" ? "מכירות, התמחות, ג׳וניור…" : "sales, internship, junior…"} value={searchProfile.exclude} /></Field><button className="secondary-button self-end" disabled={!resolvedSearch.role || !resolvedSearch.country || resolvedSearch.country === "Other"} onClick={saveSearchAsApplication} type="button"><Plus className="h-4 w-4" /> {language === "he" ? "יצירת משימת חיפוש" : "Create search task"}</button><button className="primary-button search-launch-button self-end px-7" disabled={!resolvedSearch.role || !resolvedSearch.country} onClick={runJobSearch} type="button"><Search className="h-4 w-4" /> {language === "he" ? "חיפוש" : "Search"}</button></div>
           {!resolvedSearch.country && <p className="mt-2 text-xs text-amber-300">{language === "he" ? "יש לבחור מדינה. העיר אופציונלית." : "Choose a country. City is optional."}</p>}
 
-          {showSearchResults && submittedSearchProfile && submittedSearch && <div aria-label={language === "he" ? "חיפוש LinkedIn מוכן" : "LinkedIn search ready"} className="search-results-shell" id="search-results" tabIndex={-1}><div className="search-results-heading"><div><p className="font-semibold text-slate-200">{language === "he" ? `החיפוש המדויק מוכן` : `Your precise search is ready`}</p><p className="text-sm text-slate-500">“{submittedSearch.role}” · {submittedSearch.location || submittedSearch.country} · {localizedSearchFilter(submittedSearchProfile.datePosted, language)}</p>{searchDraftChanged && <p className="search-draft-pending">{language === "he" ? "הפרטים השתנו. לחצו שוב על חיפוש כדי לעדכן את LinkedIn." : "The details changed. Search again to update LinkedIn."}</p>}</div><span><ShieldCheck className="h-4 w-4" />{language === "he" ? "התפקיד נשאר מדויק" : "Exact role protected"}</span></div><div className="search-source-grid">{submittedSearchSources.slice(0, 1).map((source, index) => <article className="search-source-card search-source-featured group" data-search-source="linkedin" key={source.name}><div className="flex items-center justify-between"><span className="search-source-icon" aria-hidden="true">{source.emoji}</span><span className="search-source-recommended">✓ {language === "he" ? "מומלץ" : "Recommended"}</span></div><h3 className="search-source-title">{source.name}</h3><div className="search-source-signals"><span>🕒 {source.freshness}</span><span>📍 {source.accuracy}</span></div><p className="search-source-description">{source.description}</p><div className="search-query-preview"><span>{language === "he" ? "החיפוש המדויק" : "Exact search"}</span><code dir="ltr">{source.query}</code></div><div className="search-source-actions"><button onClick={() => { void copySearchQuery(source.query); }} type="button"><Copy className="h-3.5 w-3.5" />{language === "he" ? "העתקה" : "Copy"}</button><a aria-label={language === "he" ? "פתיחת תוצאות LinkedIn" : "Open LinkedIn results"} className="search-source-open" data-testid={`search-route-${index}`} href={source.url} rel="noopener noreferrer" target="_blank">{language === "he" ? "פתיחת תוצאות LinkedIn" : "Open LinkedIn results"}<ArrowUpRight className="h-3.5 w-3.5" /></a></div></article>)}</div>
+          <p className="search-range-note">{language === "he" ? "טווח פרסום נבחר: " : "Selected posting window: "}{localizedSearchFilter(searchProfile.datePosted, language)}. {language === "he" ? "בחיפוש ראשון מתחילים בשבוע. סריקה חוזרת יכולה להתמקד ב־24 שעות, רק לפי בחירתכם." : "A first search starts with a week. Repeat scans can use 24 hours, only when you choose."}{searchProfile.lastSearchedAt && searchProfile.datePosted !== "Past 24 hours" && <button className="text-button" type="button" onClick={() => updateSearchProfile({ datePosted: "Past 24 hours" })}>{language === "he" ? "סריקה חוזרת: מעבר ל־24 שעות" : "Repeat scan: switch to 24 hours"}</button>}</p>
+          {showSearchResults && searchDraftChanged && <div className="search-stale-notice" role="status"><p>{language === "he" ? "פרטי החיפוש השתנו. הקישור הקודם הוסר כדי שלא תפתחו חיפוש ישן." : "Search details changed. The previous link is hidden so you cannot open an outdated search."}</p><button type="button" className="primary-button" disabled={!resolvedSearch.role || !resolvedSearch.country || resolvedSearch.country === "Other"} onClick={runJobSearch}>{language === "he" ? "עדכון החיפוש" : "Update search"}</button></div>}
+          {showSearchResults && !searchDraftChanged && submittedSearchProfile && submittedSearch && <div aria-label={language === "he" ? "חיפוש LinkedIn מוכן" : "LinkedIn search ready"} className="search-results-shell" id="search-results" tabIndex={-1}><div className="search-results-heading"><div><p className="font-semibold text-slate-200">{language === "he" ? `הקישור לחיפוש מוכן` : `Your search link is ready`}</p><p className="text-sm text-slate-500">“{submittedSearch.role}” · {submittedSearch.location || submittedSearch.country} · {localizedSearchFilter(submittedSearchProfile.datePosted, language)}</p>{searchDraftChanged && <p className="search-draft-pending">{language === "he" ? "הפרטים השתנו. לחצו שוב על חיפוש כדי לעדכן את LinkedIn." : "The details changed. Search again to update LinkedIn."}</p>}</div><span><ShieldCheck className="h-4 w-4" />{language === "he" ? "שאילתה מוכנה לשליחה" : "Query ready to send"}</span></div><div className="search-source-grid">{submittedSearchSources.slice(0, 1).map((source, index) => <article className="search-source-card search-source-featured group" data-search-source="linkedin" key={source.name}><div className="flex items-center justify-between"><span className="search-source-icon" aria-hidden="true">{source.emoji}</span><span className="search-source-recommended">✓ {language === "he" ? "מומלץ" : "Recommended"}</span></div><h3 className="search-source-title">{source.name}</h3><div className="search-source-signals"><span>🕒 {source.freshness}</span><span>📍 {source.accuracy}</span></div><p className="search-source-description">{source.description}</p><SearchFilterNotice source={source} language={language} /><div className="search-query-preview"><span>{language === "he" ? "מילות החיפוש שנשלחות" : "Keywords being sent"}</span><code dir="ltr">{source.query}</code></div><div className="search-source-actions"><button onClick={() => { void copySearchQuery(source.query); }} type="button"><Copy className="h-3.5 w-3.5" />{language === "he" ? "העתקה" : "Copy"}</button><a aria-label={language === "he" ? "פתיחת תוצאות LinkedIn" : "Open LinkedIn results"} className="search-source-open" data-testid={`search-route-${index}`} href={source.url} rel="noopener noreferrer" target="_blank">{language === "he" ? "פתיחת תוצאות LinkedIn" : "Open LinkedIn results"}<ArrowUpRight className="h-3.5 w-3.5" /></a></div></article>)}</div>
           {showCompanySearchLeads && <section className="job-inbox"><div className="job-inbox-heading"><div><p className="eyebrow text-emerald-300">{language === "he" ? "תיבת המשרות" : "Job inbox"}</p><h3>{language === "he" ? "נקודות פתיחה מותאמות לפרופיל שלך" : "Profile-matched starting points"}</h3><p>{language === "he" ? "Carvio מרכז מסלולי חיפוש ממוקדים, מסיר כפילויות ומאפשר לשמור כל הזדמנות. יש לאמת שהמשרה פעילה באתר המקור." : "Carvio organizes focused search leads, removes duplicates, and lets you save each opportunity. Always verify availability at the source."}</p></div><span>{jobInbox.length} {language === "he" ? "הצעות" : "leads"}</span></div><div className="job-inbox-list">{jobInbox.map((item) => { const saved = applications.some((application) => application.company.toLowerCase() === item.company.toLowerCase() && application.role.toLowerCase() === item.role.toLowerCase()); return <article className="job-inbox-card" key={item.id}><div className="job-inbox-logo">{item.company.slice(0, 1)}</div><div className="job-inbox-main"><div><strong>{item.role}</strong><span>{item.company} · {item.location}</span></div><p><span>🎯 {item.match}% {language === "he" ? "התאמה" : "match"}</span><span>🕒 {item.posted}</span><span>🔗 {item.source}</span></p><small>{item.reason}</small></div><div className="job-inbox-actions">{saved ? <span className="job-inbox-saved"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "במועמדויות" : "In Applications"}</span> : <><button onClick={() => saveInboxJob(item)} type="button"><Plus className="h-4 w-4" />{language === "he" ? "שמירה" : "Save"}</button><button onClick={() => saveInboxJob(item, true)} type="button">{language === "he" ? "כבר הגשתי" : "Already applied"}</button></>}<a href={item.url} rel="noreferrer" target="_blank">{language === "he" ? "בדיקה במקור" : "Verify & apply"}<ArrowUpRight className="h-4 w-4" /></a><button aria-label={language === "he" ? "הסתרת ההצעה" : "Hide lead"} onClick={() => setHiddenJobIds((items) => [...items, item.id])} type="button"><X className="h-4 w-4" /></button></div></article>; })}</div></section>}
           <div className="search-honesty-note"><CircleAlert className="h-5 w-5" /><div><strong>{language === "he" ? "מדוע עדיין חשוב לבדוק את המשרה?" : "Why should you still verify the listing?"}</strong><p>{language === "he" ? "Carvio שולח את השאילתה והמסננים המוצגים למעלה, אך אינו שולט בדירוג החיצוני. אם LinkedIn מציג “No matching jobs found”, השורות הממומנות או “Jobs you may be interested in” שמתחת אינן תוצאות של חיפוש Carvio ואין להתייחס אליהן כהתאמות. גם Indeed ו־Google עשויים להוסיף המלצות או תוצאות קרובות." : "Carvio sends the query and filters shown above but does not control external ranking. If LinkedIn says “No matching jobs found,” sponsored rows or “Jobs you may be interested in” below it are not Carvio search matches. Indeed and Google may also add nearby or personalized suggestions."}</p></div></div></div>}
-          {showSearchResults && submittedSearchProfile && <section aria-live="polite" className={`search-outcome-panel search-outcome-${searchOutcome}`}>
+          {showSearchResults && !searchDraftChanged && submittedSearchProfile && <section aria-live="polite" className={`search-outcome-panel search-outcome-${searchOutcome}`}>
             <div><strong>{language === "he" ? "מה מצאתם במקור החיצוני?" : "What did you find in the external source?"}</strong><p>{language === "he" ? "Carvio לא מנחש אילו תוצאות הוצגו. חזרו לכאן כדי לשמור משרה אמיתית או להרחיב את החיפוש באופן מבוקר." : "Carvio does not guess which listings appeared. Return here to capture a real job or broaden the search in a controlled way."}</p></div>
-            {searchOutcome === "unreviewed" && <div className="search-outcome-actions"><button className="primary-button" onClick={() => setSearchOutcome("found")} type="button"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "מצאתי משרה מתאימה" : "I found a relevant job"}</button><button className="secondary-button" onClick={() => setSearchOutcome("none")} type="button"><Search className="h-4 w-4" />{language === "he" ? "לא נמצאו תוצאות מדויקות" : "No exact results"}</button></div>}
-            {searchOutcome === "found" && <div className="search-outcome-resolution"><CheckCircle2 className="h-5 w-5" /><div><strong>{language === "he" ? "מצוין — שמרו רק את המשרה שאימתתם." : "Great—capture only the listing you verified."}</strong><p>{language === "he" ? "הדביקו את הקישור למודעה. לפני השמירה תוכלו לבדוק ולערוך את הפרטים שחולצו." : "Paste the listing URL. You can review and edit extracted details before saving."}</p></div><button className="primary-button" onClick={() => setShowSmartCapture(true)} type="button"><WandSparkles className="h-4 w-4" />{language === "he" ? "לכידת משרה מקישור" : "Capture job from link"}</button></div>}
+            {searchOutcome === "unreviewed" && <div className="search-outcome-actions"><button className="primary-button" onClick={() => setShowSmartCapture(true)} type="button"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "שמירת משרה מקישור" : "Save a job from a link"}</button><button className="secondary-button" onClick={() => setSearchOutcome("none")} type="button"><Search className="h-4 w-4" />{language === "he" ? "לא נמצאו תוצאות מדויקות" : "No exact results"}</button></div>}
+            {searchOutcome === "found" && <div className="search-outcome-resolution"><CheckCircle2 className="h-5 w-5" /><div><strong>{language === "he" ? "המשרה נשמרה. אפשר לבדוק אותה במועמדויות." : "Your listing is saved. You can review it in Applications."}</strong><p>{language === "he" ? "הדביקו את הקישור למודעה. לפני השמירה תוכלו לבדוק ולערוך את הפרטים שחולצו." : "Paste the listing URL. You can review and edit extracted details before saving."}</p></div><button className="primary-button" onClick={() => setShowSmartCapture(true)} type="button"><WandSparkles className="h-4 w-4" />{language === "he" ? "לכידת משרה מקישור" : "Capture job from link"}</button></div>}
             {searchOutcome === "none" && <div className="search-outcome-resolution search-outcome-empty"><CircleAlert className="h-5 w-5" /><div><strong>{safeBroadeningLabel || (language === "he" ? "החיפוש כבר רחב" : "Search is already broad")}</strong><p>{language === "he" ? "נשנה בכל פעם מסנן אחד בלבד, נריץ מחדש ונשאיר את שם התפקיד ללא שינוי." : "We will change one filter at a time, rerun the search, and keep the target role unchanged."}</p></div>{safeBroadeningLabel ? <button className="search-broaden-button" onClick={runBroadenedSearch} type="button">{safeBroadeningLabel}<span>{language === "he" ? "והרצה מחדש" : "and rerun"}</span></button> : <button className="secondary-button" onClick={() => setSearchOutcome("unreviewed")} type="button">{language === "he" ? "חזרה למסלולי החיפוש" : "Back to search routes"}</button>}</div>}
           </section>}
           </div>)}
@@ -4370,6 +4161,7 @@ export default function Home() {
         </section>
 
         <section className={`calm-view panel ${activeView !== "more" || insightPanel !== "preferences" ? "calm-view-hidden" : ""}`} id="preferences">
+          <UsageIntentPicker intent={userProfile.usageIntent} language={language} onChange={(usageIntent) => setUserProfile((current) => ({ ...current, usageIntent }))} />
           <div className="section-heading"><div><p className="eyebrow text-cyan-300">{copy.preferences}</p><h2 className="section-title">{copy.preferencesTitle}</h2></div><span className="text-3xl" aria-hidden="true">⚙️</span></div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <button className="calm-setting-button" onClick={() => setShowAppearance(!showAppearance)} type="button"><Palette className="h-5 w-5 text-cyan-300" /><span><strong>{copy.appearance}</strong><small>{copy.appearanceHelp}</small></span></button>
@@ -4439,18 +4231,18 @@ export default function Home() {
               <Field label={language === "he" ? "קישור למשרה" : "Job URL"}><input autoFocus className="form-control" onChange={(event) => { setSmartCaptureUrl(event.target.value); setSmartCaptureError(""); }} onKeyDown={(event) => { if (event.key === "Enter") smartCaptureApplication(); }} placeholder="https://www.linkedin.com/jobs/view/…" type="url" value={smartCaptureUrl} /></Field>
               <details className="smart-capture-optional"><summary>{language === "he" ? "הוספת תיאור המשרה (אופציונלי)" : "Add the job description (optional)"}</summary><Field label={language === "he" ? "תיאור המשרה" : "Job description"}><textarea className="form-control smart-capture-description" onChange={(event) => setSmartCaptureText(event.target.value)} placeholder={language === "he" ? "אפשר להדביק את תוכן המודעה כדי לשמור צילום מצב ולזהות דרישות." : "Paste the listing to keep a snapshot and detect requirements."} value={smartCaptureText} /></Field></details>
               {smartCaptureText.trim() && <div className="smart-capture-detection"><CheckCircle2 className="h-4 w-4" /><span><strong>{extractJobRequirements(smartCaptureText).length}</strong>{language === "he" ? " דרישות מרכזיות זוהו מקומית." : " key requirements detected locally."}</span></div>}
-              {smartCaptureError && <p className="form-error">{smartCaptureError}</p>}
+              {smartCaptureError && <p id="capture-error" role="alert" className="form-error">{smartCaptureError}</p>}
               <p>{language === "he" ? "הקישור נשמר כמקור. CARVIO לא ימציא פרטים שלא נמצאו." : "The link stays as the source. CARVIO will not invent missing details."}</p>
               <button className="primary-button w-full" onClick={smartCaptureApplication} type="button"><ArrowRight className="h-4 w-4" />{language === "he" ? "בדיקת הפרטים" : "Review details"}</button>
             </> : smartCaptureStep === "review" ? <>
               <div className="smart-capture-review-heading"><CheckCircle2 className="h-5 w-5" /><div><strong>{language === "he" ? "הקישור נקלט" : "Link captured"}</strong><small>{applicationDraft.source} · {language === "he" ? "בדקו ותקנו לפי הצורך" : "Review and correct as needed"}</small></div></div>
               <div className="smart-capture-review-grid">
-                <Field label={language === "he" ? "תפקיד" : "Role"}><input autoFocus className="form-control" onChange={(event) => { setApplicationDraft((current) => ({ ...current, role: event.target.value })); setSmartCaptureError(""); }} placeholder={language === "he" ? "למשל Senior HR Business Partner" : "e.g. Senior HR Business Partner"} value={applicationDraft.role} /></Field>
-                <Field label={language === "he" ? "חברה" : "Company"}><input className="form-control" onChange={(event) => { setApplicationDraft((current) => ({ ...current, company: event.target.value })); setSmartCaptureError(""); }} placeholder={language === "he" ? "שם החברה" : "Company name"} value={applicationDraft.company} /></Field>
+                <Field label={language === "he" ? "תפקיד (חובה)" : "Role (required)"}><input autoFocus id="capture-role" aria-invalid={Boolean(smartCaptureError) && !applicationDraft.role.trim()} aria-describedby={smartCaptureError ? "capture-error" : undefined} className="form-control" onChange={(event) => { setApplicationDraft((current) => ({ ...current, role: event.target.value })); setSmartCaptureError(""); }} placeholder={language === "he" ? "למשל Senior HR Business Partner" : "e.g. Senior HR Business Partner"} value={applicationDraft.role} /></Field>
+                <Field label={language === "he" ? "חברה (חובה)" : "Company (required)"}><input id="capture-company" aria-invalid={Boolean(smartCaptureError) && !applicationDraft.company.trim()} aria-describedby={smartCaptureError ? "capture-error" : undefined} className="form-control" onChange={(event) => { setApplicationDraft((current) => ({ ...current, company: event.target.value })); setSmartCaptureError(""); }} placeholder={language === "he" ? "שם החברה" : "Company name"} value={applicationDraft.company} /></Field>
                 <Field label={language === "he" ? "מיקום (אופציונלי)" : "Location (optional)"}><input className="form-control" onChange={(event) => setApplicationDraft((current) => ({ ...current, location: event.target.value }))} placeholder={language === "he" ? "עיר או אזור" : "City or area"} value={applicationDraft.location} /></Field>
                 <Field label={language === "he" ? "שלב" : "Stage"}><select className="form-control" onChange={(event) => setApplicationDraft((current) => ({ ...current, status: event.target.value as ApplicationStatus }))} value={applicationDraft.status}>{["Considering", "Applied"].map((status) => <option key={status} value={status}>{statusLabel(status as ApplicationStatus)}</option>)}</select></Field>
               </div>
-              {smartCaptureError && <p className="form-error">{smartCaptureError}</p>}
+              {smartCaptureError && <p id="capture-error" role="alert" className="form-error">{smartCaptureError}</p>}
               <div className="smart-capture-review-actions"><button className="secondary-button" onClick={() => { setSmartCaptureStep("link"); setSmartCaptureError(""); }} type="button">{language === "he" ? "חזרה" : "Back"}</button><button className="secondary-button" onClick={openCapturedApplicationDetails} type="button">{language === "he" ? "פרטים נוספים" : "More details"}</button><button className="primary-button" onClick={saveSmartCapture} type="button"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "שמירת המשרה" : "Save job"}</button></div>
             </> : <div className="smart-capture-success"><div className="smart-capture-success-icon"><CheckCircle2 className="h-9 w-9" /></div><div><strong>{applicationDraft.role}</strong><span>{applicationDraft.company}</span></div><p>{language === "he" ? "הפרטים נשמרו. כשתרצו, סביבת המועמדות תציג פעולה מומלצת אחת." : "The details are saved. When you are ready, the application workspace will show one recommended action."}</p><button className="primary-button" onClick={openSavedCapture} type="button">{language === "he" ? "פתיחת המועמדות" : "Open application"}<ArrowRight className="h-4 w-4" /></button><button className="smart-capture-not-now" onClick={resetSmartCapture} type="button">{language === "he" ? "לא עכשיו" : "Not now"}</button></div>}
           </div>
@@ -4559,22 +4351,22 @@ export default function Home() {
 
       {showApplicationModal && (
         <Modal title={language === "he" ? (editingApplicationId ? "עריכת מועמדות" : "הוספת מועמדות") : (editingApplicationId ? "Edit application" : "Add application")} description={language === "he" ? "תעדו את ההזדמנות, מצב התהליך, לוחות הזמנים והצעד הבא." : "Capture the opportunity, its signal, timing, and your next move."} closeLabel={language === "he" ? "סגירת החלון" : "Close modal"} onClose={() => setShowApplicationModal(false)}>
-          <form className="application-form-compact space-y-4" onSubmit={saveApplication}>
-            {!editingApplicationId && <div className="workflow-help"><figure className="workflow-illustration"><Image alt={language === "he" ? "איור של הוספת מועמדות במהירות למסלול מסודר" : "Illustration of quickly adding an application to an organized path"} fill sizes="180px" src="/carvio-fast-capture-v1.jpg" /></figure><div><strong>{language === "he" ? "מתחילים רק במה שחשוב עכשיו" : "Start with only what matters now"}</strong><small>{language === "he" ? "חברה, תפקיד והפעולה הבאה. אפשר להשלים פרטים נוספים בהמשך." : "Company, role, stage, signal, and next action. Everything else stays in More details."}</small></div></div>}
+          <form className="application-form-compact space-y-4" onInvalid={() => setApplicationValidationAttempted(true)} onSubmit={saveApplication}>
+            {!editingApplicationId && <div className="workflow-help"><figure className="workflow-illustration"><Image alt={language === "he" ? "איור של הוספת מועמדות במהירות למסלול מסודר" : "Illustration of quickly adding an application to an organized path"} fill sizes="180px" src="/carvio-fast-capture-v1.jpg" /></figure><div><strong>{language === "he" ? "מתחילים רק במה שחשוב עכשיו" : "Start with only what matters now"}</strong><small>{language === "he" ? "חברה, תפקיד והפעולה הבאה. אפשר להשלים פרטים נוספים בהמשך." : "Company and role are required. Next action and other details can be added now or later."}</small></div></div>}
             <datalist id="application-source-options">{["LinkedIn", "Company careers page", "Referral", "Recruiter", "Indeed", "Google Jobs", "Networking", "Job board", "Other"].map((option) => <option key={option} value={option} />)}</datalist>
             <datalist id="application-action-options">{["Prepare for interview", "Send follow-up", "Complete assignment", "Research company", "Contact recruiter", "Contact hiring manager", "Ask for referral", "Wait for response", "Review offer"].map((option) => <option key={option} value={option} />)}</datalist>
             <datalist id="application-event-options">{["Recruiter screen", "Hiring manager interview", "Professional interview", "HR interview", "Panel interview", "Assignment", "Presentation", "Offer conversation", "Follow-up call"].map((option) => <option key={option} value={option} />)}</datalist>
             <datalist id="process-stage-options">{["Application submitted", "Initial screen", "Recruiter call", "Hiring manager interview", "Professional interview", "Assignment", "Panel interview", "References", "Offer", "Closed"].map((option) => <option key={option} value={option} />)}</datalist>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label={language === "he" ? "חברה" : "Company"}><input autoFocus className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, company: e.target.value })} required value={applicationDraft.company} /></Field>
-              <Field label={language === "he" ? "תפקיד" : "Role"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, role: e.target.value })} required value={applicationDraft.role} /></Field>
+              <Field label={language === "he" ? "חברה (חובה)" : "Company (required)"}><input autoFocus id="application-company" aria-invalid={applicationValidationAttempted && !applicationDraft.company.trim()} aria-describedby={applicationValidationAttempted && !applicationDraft.company.trim() ? "application-company-error" : undefined} className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, company: e.target.value })} required value={applicationDraft.company} />{applicationValidationAttempted && !applicationDraft.company.trim() && <span role="alert" id="application-company-error" className="text-sm text-rose-400">{language === "he" ? "יש להזין שם החברה." : "Enter the company name."}</span>}</Field>
+              <Field label={language === "he" ? "תפקיד (חובה)" : "Role (required)"}><input id="application-role" aria-invalid={applicationValidationAttempted && !applicationDraft.role.trim()} aria-describedby={applicationValidationAttempted && !applicationDraft.role.trim() ? "application-role-error" : undefined} className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, role: e.target.value })} required value={applicationDraft.role} />{applicationValidationAttempted && !applicationDraft.role.trim() && <span role="alert" id="application-role-error" className="text-sm text-rose-400">{language === "he" ? "יש להזין שם התפקיד." : "Enter the role title."}</span>}</Field>
             </div>
             <div className="application-stage-signal">
               <Field label={language === "he" ? "שלב הגיוס" : "Hiring stage"}><select className="form-control" onChange={(e) => { const status = e.target.value as ApplicationStatus; setApplicationDraft((current) => ({ ...current, status, ...(status === "Applied" && !current.appliedDate ? { appliedDate: new Date().toISOString().slice(0, 10) } : {}) })); }} value={applicationDraft.status}>{applicationStatuses.filter((status) => status !== "Follow-up due" || applicationDraft.status === status).map((status) => <option key={status} value={status}>{statusLabel(status)}</option>)}</select></Field>
               <p className="text-sm leading-6 text-slate-400 sm:col-span-2">{language === "he" ? "שלב הגיוס מתאר היכן אתם בתהליך. הפעולה הבאה היא מה שתרצו לעשות עכשיו." : "Hiring stage is where you are in the process. Next action is what you plan to do next."}</p>
               <details className="sm:col-span-2"><summary className="cursor-pointer text-sm font-semibold">{language === "he" ? "מצב נוכחי (אופציונלי)" : "Current situation (optional)"}</summary><div className="mt-3"><TrafficLightPicker label={language === "he" ? "למשל: ממתין לתשובה" : "For example: waiting for a reply"} language={language} onChange={(trafficLight) => setApplicationDraft((current) => ({ ...current, trafficLight }))} value={applicationDraft.trafficLight} /></div></details>
             </div>
-            <div className="grid gap-4 sm:grid-cols-[1fr_210px]"><Field label={language === "he" ? "הפעולה הבאה" : "Next action"}><input className="form-control" id="application-next-action" list="application-action-options" onChange={(e) => setApplicationDraft({ ...applicationDraft, nextStep: e.target.value })} placeholder={language === "he" ? "בחרו הצעה או כתבו פעולה" : "Choose a suggestion or type an action"} required value={applicationDraft.nextStep} /></Field><Field label={language === "he" ? "תאריך ושעת יעד" : "Due date and time"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, nextStepDue: e.target.value })} type="datetime-local" value={applicationDraft.nextStepDue} /></Field></div>
+            <div className="grid gap-4 sm:grid-cols-[1fr_210px]"><Field label={language === "he" ? "הפעולה הבאה (אופציונלי)" : "Next action (optional)"}><input className="form-control" id="application-next-action" list="application-action-options" onChange={(e) => setApplicationDraft({ ...applicationDraft, nextStep: e.target.value })} placeholder={language === "he" ? "בחרו הצעה או כתבו פעולה" : "Choose a suggestion or type an action"} value={applicationDraft.nextStep} /></Field><Field label={language === "he" ? "תאריך ושעת יעד" : "Due date and time"}><input className="form-control" onChange={(e) => setApplicationDraft({ ...applicationDraft, nextStepDue: e.target.value })} type="datetime-local" value={applicationDraft.nextStepDue} /></Field></div>
             <button aria-expanded={showApplicationDetails} className="progressive-toggle" onClick={() => setShowApplicationDetails((current) => !current)} type="button"><span><Sparkles className="h-4 w-4" /><strong>{language === "he" ? (showApplicationDetails ? "הסתרת פרטים נוספים" : "הוספת פרטים נוספים") : (showApplicationDetails ? "Hide optional details" : "Add more details")}</strong><small>{language === "he" ? "שכר, מקור, פגישה, הערות וקישור למשרה" : "Salary, source, event, notes and job link"}</small></span><ChevronDown className={`h-5 w-5 transition ${showApplicationDetails ? "rotate-180" : ""}`} /></button>
             {showApplicationDetails && <div className="progressive-content space-y-5">
             <div className="company-logo-picker company-logo-picker-compact">
