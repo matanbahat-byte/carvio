@@ -10379,3 +10379,6 @@ html[data-carvio-theme="light"] {
 .search-skills-mode { display: flex; align-items: start; gap: .5rem; margin-top: .75rem; line-height: 1.6; color: var(--cv-body); }
 .search-skills-mode input { margin-top: .3rem; flex-shrink: 0; }
 .search-mapping-summary summary:focus-visible, .search-skills-mode input:focus-visible { outline: 3px solid var(--cv-link); outline-offset: 4px; }
+.search-source-limit { margin-block: .65rem; padding-inline-start: .65rem; border-inline-start: 3px solid var(--cv-mustard); color: var(--cv-body); }
+.search-request-keywords { display: block; margin-block: .5rem; padding: .65rem; border-radius: .5rem; background: var(--cv-surface); color: var(--cv-text); white-space: pre-wrap; overflow-wrap: anywhere; unicode-bidi: plaintext; }
+.search-copy-keywords { margin-block: .5rem; min-height: 2.75rem; }

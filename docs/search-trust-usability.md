@@ -58,3 +58,12 @@ No database, auth, RLS, infrastructure, paid provider or migration changes. Exis
 Demo: http://127.0.0.1:3025/?workspace=1&demo=1
 First-use empty workspace: http://127.0.0.1:3025/?workspace=1 (separate from demo; do not use a personal production account for fixture testing).
 Screenshots: `/tmp/carvio-search-trust-final-desktop.jpg`, `/tmp/carvio-search-trust-mobile-he.jpg`, `/tmp/carvio-search-validation-he.jpg`, `/tmp/carvio-search-intent-empty.jpg`.
+
+## Follow-up: actionable source handoff
+
+- Source-side filter limitations are now visible without expanding request details.
+- Request details show the actual keyword string and an accessible Copy search keywords button, retaining the existing clipboard-blocked/manual-selection fallback.
+- Browser verified the displayed keywords equal the actual outgoing URL query. The Copy handler displayed success, but the automation session clipboard API returned an empty string; system clipboard byte-for-byte verification is **not claimed**.
+- Browser in mobile Hebrew verified week → explicit 24-hour scan → old link hidden → update. URL time changed from r604800 to r86400 while keywords and location stayed identical. The No exact results → expand to week path changed it back to r604800 without changing keywords/location.
+- Production build and all 17 regression tests passed after the UI changes. No production or data-model change.
+- Additional screenshots: `/tmp/carvio-search-copy-fallback.jpg`, `/tmp/carvio-search-source-warning-mobile.jpg`.
