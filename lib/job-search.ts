@@ -71,12 +71,19 @@ export function normalizedSearchProfile(profile: SearchProfile) {
 export function migrateSearchProfile(stored: Partial<SearchProfile>): SearchProfile {
   const merged = { ...emptySearchProfile, ...stored };
   const role = normalizeSearchText(merged.role);
-  const filtersBelongToRole = Boolean(merged.filterRole) && normalizeSearchText(merged.filterRole).toLocaleLowerCase() === role.toLocaleLowerCase();
   return sanitizeSearchProfile({
     ...merged,
-    filterRole: role,
-    ...(filtersBelongToRole ? {} : { skills: "", seniority: "", industry: "", exclude: "" }),
+    filterRole: merged.filterRole || role,
   });
+}
+
+export function changeSearchRole(profile: SearchProfile, role: string): SearchProfile {
+  return { ...profile, role, filterRole: profile.filterRole || profile.role || role };
+}
+
+export function searchPreferencesNeedReview(profile: SearchProfile) {
+  return Boolean(profile.skills || profile.seniority || profile.industry || profile.exclude)
+    && normalizeSearchText(profile.role).toLocaleLowerCase() !== normalizeSearchText(profile.filterRole).toLocaleLowerCase();
 }
 
 export function linkedInDistanceFromKilometers(radius: string) {

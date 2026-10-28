@@ -1,9 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { emptySearchProfile, sanitizeSearchProfile, migrateSearchProfile, jobSearchSources, searchProfileChanged, broadenSearchProfile, patchSearchProfile, skillSuggestionsForRole, captureJobLink } from '../lib/job-search.ts';
+import { changeSearchRole, searchPreferencesNeedReview, emptySearchProfile, sanitizeSearchProfile, migrateSearchProfile, jobSearchSources, searchProfileChanged, broadenSearchProfile, patchSearchProfile, skillSuggestionsForRole, captureJobLink } from '../lib/job-search.ts';
 
 const profile = (patch = {}) => ({ ...emptySearchProfile, role: 'Software Engineer', filterRole: 'Software Engineer', country: 'Israel', location: 'Beer Sheva', ...patch });
 const linkedIn = (p) => jobSearchSources(p, 'en')[0];
+
+test('role edits and reload preserve explicit preferences and prompt review', () => {
+  const original = profile({skills:'SQL',skillsMode:'required',seniority:'Director',industry:'Healthcare',exclude:'sales'});
+  const edited = changeSearchRole(original, 'Data Analyst');
+  for (const key of ['skills','skillsMode','seniority','industry','exclude','location']) assert.equal(edited[key], original[key]);
+  assert.equal(searchPreferencesNeedReview(edited), true);
+  assert.deepEqual(migrateSearchProfile(edited), edited);
+  assert.equal(migrateSearchProfile({...original,filterRole:''}).skills, 'SQL');
+  assert.equal(searchPreferencesNeedReview({...edited,filterRole:edited.role}), false);
+  assert.equal(searchPreferencesNeedReview(changeSearchRole(profile(), 'Teacher')), false);
+});
 
 test('first search starts with a week; stored explicit time choice is preserved', () => {
   assert.equal(emptySearchProfile.datePosted, 'Past week');

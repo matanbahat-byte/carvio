@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { emptySearchProfile, sanitizeSearchProfile, normalizedSearchProfile, migrateSearchProfile, nextSearchDateWindow, skillSuggestionsForRole, localizedSearchFilter, companyJobSearchRoute, jobSearchSources, searchProfileChanged, broadenSearchProfile, patchSearchProfile, captureJobLink, type SearchProfile, type SearchOutcome, type JobSearchSource } from "@/lib/job-search";
+import { changeSearchRole, searchPreferencesNeedReview, emptySearchProfile, sanitizeSearchProfile, normalizedSearchProfile, migrateSearchProfile, nextSearchDateWindow, skillSuggestionsForRole, localizedSearchFilter, companyJobSearchRoute, jobSearchSources, searchProfileChanged, broadenSearchProfile, patchSearchProfile, captureJobLink, type SearchProfile, type SearchOutcome, type JobSearchSource } from "@/lib/job-search";
 import { agendaEntries, scheduledTimestamp } from "@/lib/schedule";
 import { extractJobRequirements, splitRequirementText, uniqueRequirements, requirementCategory } from "@/lib/job-requirements";
 import { ChangeEvent, FormEvent, Fragment, ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
@@ -2897,19 +2897,11 @@ export default function Home() {
   }
 
   function updateSearchRole(role: string) {
-    setSearchProfile((current) => {
-      const roleChanged = current.role.trim().toLocaleLowerCase() !== role.trim().toLocaleLowerCase();
-      return {
-        ...current,
-        role,
-        filterRole: role,
-        ...(roleChanged ? { skills: "", skillsMode: "preference" as const, industry: "", seniority: "", exclude: "" } : {}),
-      };
-    });
+    setSearchProfile((current) => changeSearchRole(current, role));
   }
 
   function runJobSearch() {
-    const snapshot = Object.freeze(sanitizeSearchProfile({ ...searchProfile, lastSearchedAt: new Date().toISOString() }));
+    const snapshot = Object.freeze(sanitizeSearchProfile({ ...searchProfile, filterRole: searchProfile.role, lastSearchedAt: new Date().toISOString() }));
     setSearchProfile(snapshot);
     setSubmittedSearchProfile(snapshot);
     setSearchOutcome("unreviewed");
@@ -2923,7 +2915,7 @@ export default function Home() {
   }
 
   function runBroadenedSearch() {
-    const next = { ...broadenSearchProfile(searchProfile), lastSearchedAt: new Date().toISOString() };
+    const next = { ...broadenSearchProfile(searchProfile), filterRole: searchProfile.role, lastSearchedAt: new Date().toISOString() };
     setSearchProfile(next);
     setSubmittedSearchProfile(Object.freeze(next));
     setSearchOutcome("unreviewed");
@@ -3988,6 +3980,7 @@ export default function Home() {
 
           <div className={`search-form-grid search-step-${searchStep} ${showAdvancedSearch ? "search-advanced-open" : "search-advanced-closed"} mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3`} id="search-form-fields">
             <Field label={language === "he" ? "תפקיד יעד" : "Target role"}><input className="form-control" list="carvio-role-options" onChange={(event) => updateSearchRole(event.target.value)} placeholder={language === "he" ? "למשל Supply Chain Manager" : "e.g. Supply Chain Manager"} value={searchProfile.role} /><datalist id="carvio-role-options">{roleSuggestions.map((role) => <option key={role} value={role} />)}</datalist></Field>
+            {searchPreferencesNeedReview(searchProfile) && <p className="search-skills-helper" role="status">{language === "he" ? "התפקיד השתנה. ההעדפות הקודמות נשמרו — בדקו את הכישורים והמסננים לפני החיפוש." : "Role changed. Your previous preferences are preserved — review skills and filters before searching."}</p>}
             <Field label={language === "he" ? "מדינה" : "Country"}><select className="form-control" onChange={(event) => updateSearchProfile({ country: event.target.value, location: "" })} value={searchProfile.country}>{searchProfile.country === "Other" && <option value="Other" disabled>{language === "he" ? "בחרו מדינה נתמכת — חיפוש גלובלי אינו זמין" : "Choose a supported country — global search is unavailable"}</option>}{countryOptions.filter((country) => country !== "Other").map((country) => <option key={country}>{country}</option>)}</select></Field>
             <Field label={language === "he" ? "עיר או אזור (אופציונלי)" : "City / area (optional)"}><input className="form-control" list="carvio-city-options" onChange={(event) => updateSearchProfile({ location: event.target.value })} placeholder={language === "he" ? "למשל אמסטרדם — ניתן להשאיר ריק" : "e.g. Amsterdam — leave blank for country-wide"} value={searchProfile.location} /><datalist id="carvio-city-options">{(citySuggestions[searchProfile.country] || []).map((city) => <option key={city} value={city} />)}</datalist></Field>
             <Field label={language === "he" ? "רדיוס חיפוש" : "Search radius"}><select className="form-control" onChange={(event) => updateSearchProfile({ radius: event.target.value })} value={searchProfile.radius}>{["5", "10", "25", "50", "100"].map((radius) => <option key={radius} value={radius}>{radius} km</option>)}</select></Field>
@@ -4242,6 +4235,8 @@ export default function Home() {
                 <Field label={language === "he" ? "חברה (חובה)" : "Company (required)"}><input id="capture-company" aria-invalid={Boolean(smartCaptureError) && !applicationDraft.company.trim()} aria-describedby={smartCaptureError ? "capture-error" : undefined} className="form-control" onChange={(event) => { setApplicationDraft((current) => ({ ...current, company: event.target.value })); setSmartCaptureError(""); }} placeholder={language === "he" ? "שם החברה" : "Company name"} value={applicationDraft.company} /></Field>
                 <Field label={language === "he" ? "מיקום (אופציונלי)" : "Location (optional)"}><input className="form-control" onChange={(event) => setApplicationDraft((current) => ({ ...current, location: event.target.value }))} placeholder={language === "he" ? "עיר או אזור" : "City or area"} value={applicationDraft.location} /></Field>
                 <Field label={language === "he" ? "שלב" : "Stage"}><select className="form-control" onChange={(event) => setApplicationDraft((current) => ({ ...current, status: event.target.value as ApplicationStatus }))} value={applicationDraft.status}>{["Considering", "Applied"].map((status) => <option key={status} value={status}>{statusLabel(status as ApplicationStatus)}</option>)}</select></Field>
+                <Field label={language === "he" ? "הפעולה הבאה (אופציונלי)" : "Next action (optional)"}><input className="form-control" onChange={(event) => setApplicationDraft((current) => ({ ...current, nextStep: event.target.value }))} value={applicationDraft.nextStep} /></Field>
+                <Field label={language === "he" ? "תאריך ושעת יעד (אופציונלי)" : "Due date and time (optional)"}><input className="form-control" type="datetime-local" onInput={(event) => { const nextStepDue = event.currentTarget.value; setApplicationDraft((current) => ({ ...current, nextStepDue })); }} value={applicationDraft.nextStepDue} /></Field>
               </div>
               {smartCaptureError && <p id="capture-error" role="alert" className="form-error">{smartCaptureError}</p>}
               <div className="smart-capture-review-actions"><button className="secondary-button" onClick={() => { setSmartCaptureStep("link"); setSmartCaptureError(""); }} type="button">{language === "he" ? "חזרה" : "Back"}</button><button className="secondary-button" onClick={openCapturedApplicationDetails} type="button">{language === "he" ? "פרטים נוספים" : "More details"}</button><button className="primary-button" onClick={saveSmartCapture} type="button"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "שמירת המשרה" : "Save job"}</button></div>
