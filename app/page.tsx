@@ -1845,6 +1845,7 @@ export default function Home() {
       const activityAt = item.lastActivityAt || item.appliedDate;
       const staleDays = daysSince(activityAt);
       const dueDays = daysUntil(item.nextStepDue);
+      if (!isClosedApplicationStatus(item.status) && item.nextStep.trim() && !item.nextStepDue) actions.push({ id: `app-undated-${item.id}`, score: 70, label: item.nextStep, detail: language === "he" ? `${item.role} ב־${item.company} · פעולה ששמרתם, ללא תאריך יעד.` : `${item.role} at ${item.company} · Your saved action, with no due date.`, target: "applications", kind: language === "he" ? "הצעד שבחרתם" : "Your next move", applicationId: item.id, intent: "open" });
       const overdueDays = dueDays !== null && dueDays < 0 ? Math.abs(dueDays) : 0;
       const hasContact = Boolean(item.contactName || item.linkedContactIds?.length || contacts.some((contact) => contact.linkedApplicationId === item.id || contact.company.trim().toLowerCase() === item.company.trim().toLowerCase()));
       if (!isClosedApplicationStatus(item.status) && eventAt >= now && eventAt - now <= 72 * 60 * 60 * 1000) actions.push({ id: `app-event-${item.id}`, score: 140 - ((eventAt - now) / 3600000), label: language === "he" ? `הכנה ל${item.eventType || "ראיון"} עבור ${item.company}` : `Prepare for your ${item.eventType || "interview"} at ${item.company}`, detail: language === "he" ? `המועד הוא ${formatDate(item.eventDateTime, true)}. עברו על סיפורי STAR והשאלות שלכם.` : `It is scheduled for ${formatDate(item.eventDateTime, true)}. Review your STAR stories and questions.`, target: "applications", kind: language === "he" ? "פגישה קרובה" : "Meeting soon", applicationId: item.id, intent: "open" });
@@ -1896,7 +1897,7 @@ export default function Home() {
     };
     if (!action || (!applications.length && !contacts.length)) return {
       headline: language === "he" ? "הוספת ההזדמנות הראשונה" : "Add your first opportunity",
-      reason: language === "he" ? "הוסיפו הזדמנות כדי ש־CARVIO יוכל להמליץ על הצעד הבא." : "Add an opportunity so CARVIO can recommend a useful next move.",
+      reason: language === "he" ? "שמרו משרה שמעניינת אתכם במקום אחד, הגדירו צעד הבא ועקבו אחר ההתקדמות. מתחילים רק מחברה ותפקיד." : "Keep an interesting job in one place, choose your next action and track progress. Start with just a company and role.",
       cta: language === "he" ? "הוספת הזדמנות" : "Add opportunity",
       canComplete: false,
     };
@@ -1909,7 +1910,7 @@ export default function Home() {
         cta: language === "he" ? "פתיחת ההכנה" : "Open preparation",
         canComplete: false,
       };
-      if (action.id.startsWith("app-upcoming-")) return {
+      if (action.id.startsWith("app-upcoming-") || action.id.startsWith("app-undated-")) return {
         headline: application.nextStep || (language === "he" ? `הצעד הבא עבור ${roleAtCompany}` : `Next step for ${roleAtCompany}`),
         reason: application.nextStepDue ? (language === "he" ? `היעד נקבע ל־${formatDate(application.nextStepDue)}.` : `Due ${formatDate(application.nextStepDue)}.`) : action.detail,
         cta: language === "he" ? "פתיחת המועמדות" : "Open application",
@@ -3502,6 +3503,7 @@ export default function Home() {
             </div>
           </section>
 
+          {(applications.length > 0 || contacts.length > 0) && <>
           <section className="dashboard-v2-section dashboard-v2-attention" id="dashboard-attention" aria-labelledby="dashboard-attention-title">
             <div className="dashboard-v2-section-heading"><div><p className="dashboard-v2-label"><CircleAlert className="h-4 w-4" />{language === "he" ? "דורש תשומת לב" : "Needs attention"}</p><h2 id="dashboard-attention-title">{language === "he" ? "דברים שלא כדאי שייפלו בין הכיסאות" : "Keep these from falling through the cracks"}</h2></div>{attentionPresentations.length > 3 && <button onClick={viewAllAttention} type="button">{language === "he" ? `לכל ${attentionPresentations.length} הפריטים` : `View all ${attentionPresentations.length}`}<ArrowUpRight className="h-4 w-4" /></button>}</div>
             {attentionPresentations.length > 0 ? <div className="dashboard-v2-attention-list">{attentionPresentations.slice(0, 3).map((item) => {
@@ -3523,6 +3525,7 @@ export default function Home() {
             </div>
             <p className="dashboard-v2-weekly"><TrendingUp className="h-4 w-4" />{searchProgress.statement}</p>
           </section>
+          </>}
         </header>
 
         {activeView !== "home" && <section className={`calm-page-header ${activeView === "applications" ? "applications-v2-page-header" : ""}`}><div><p className="eyebrow text-cyan-300">Carvio</p><h1 className="text-2xl font-semibold">{activeView === "search" ? copy.search : activeView === "applications" ? copy.applications : activeView === "networking" ? copy.networking : activeView === "tools" ? copy.careerTools : insightPanel === "preferences" ? (language === "he" ? "הגדרות וגיבוי" : "Settings and backup") : copy.support}</h1><p className="mt-1 text-sm text-slate-400">{activeView === "search" ? (language === "he" ? "בחרו תפקיד ומיקום, הפעילו חיפוש ופתחו את התוצאות במקור." : "Choose a role and location, run the search, then open results at the source.") : activeView === "applications" ? (language === "he" ? "דעו מה פעיל, למה מחכים ומה דורש מכם פעולה." : "Know what’s active, what’s waiting, and what needs you next.") : activeView === "networking" ? copy.networkingIntro : activeView === "tools" ? copy.toolsIntro : insightPanel === "preferences" ? (language === "he" ? "שפה, תצוגה והמידע שלכם—במקום אחד." : "Language, appearance and your data, in one place.") : copy.supportIntro}</p></div><figure className={`screen-illustration screen-illustration-${activeView}`}><Image alt={screenIllustration.alt} fill sizes="(max-width: 767px) 104px, 216px" src={screenIllustration.src} /></figure>{activeView === "search" ? <button className="primary-button" onClick={() => document.getElementById("search-form-fields")?.scrollIntoView({ behavior: "smooth", block: "start" })} type="button"><Search className="h-4 w-4" />{language === "he" ? "התחלת חיפוש" : "Start searching"}</button> : activeView !== "applications" ? <button className="icon-button" onClick={() => setShowQuickAdd(true)} type="button" aria-label={language === "he" ? "הוספה מהירה" : "Quick add"}><Plus className="h-5 w-5" /></button> : null}</section>}
