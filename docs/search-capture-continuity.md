@@ -10,3 +10,9 @@ Local-only usability follow-up.
 Validation: 18 existing automated tests pass; ESLint and production build pass. Hebrew mobile demo: prepared search, captured an example.com fictional listing, edited its action, saved, dismissed confirmation, then opened the exact new application from Search. Workspace showed the expected role/company and action. Screenshot: `/tmp/carvio-handoff-workspace.jpg`.
 
 No personal workspace writes, external application submission, authentication changes or publication. Actual LinkedIn result precision remains controlled by LinkedIn, not verified by this UI handoff test.
+
+## Extended capture follow-up
+
+Reproduced an inconsistency: choosing More details and saving through the full form left Search in the unsaved state. Both quick and extended capture now share the same completion handler (saved record, success confirmation, next action and exact-record navigation). Editing an existing record does not trigger new-capture confirmation.
+
+Rebuilt and tested in English at 1280×900: capture → More details → Add application → Job saved → Not now → Open saved job. Correct fictional role/company and next action appeared in the workspace. Viewport reset afterwards. All 18 tests, ESLint and production build passed. Screenshot: `/tmp/carvio-expanded-save-success.jpg`.

@@ -2459,10 +2459,16 @@ export default function Home() {
     const savedApplication = normalizeApplication({ ...applicationDraft, id: makeId("app"), lastActivityAt: new Date().toISOString() });
     setApplications((items) => [savedApplication, ...items]);
     recordActionEvent("application_created", savedApplication.id, { company: savedApplication.company, status: savedApplication.status });
+    finishCapturedSave(savedApplication);
+  }
+
+  function finishCapturedSave(application: Application) {
+    setApplicationDraft(application);
     setSearchOutcome("found");
-    setLastCapturedApplicationId(savedApplication.id);
-    setSmartCaptureSavedId(savedApplication.id);
+    setLastCapturedApplicationId(application.id);
+    setSmartCaptureSavedId(application.id);
     setSmartCaptureStep("success");
+    setShowSmartCapture(true);
   }
 
   function openSavedCapture() {
@@ -2701,6 +2707,7 @@ export default function Home() {
       setNotice(language === "he" ? "המועמדות נוספה — צעד אחד ברור קדימה." : "Application added — one clear step forward.");
     }
     setShowApplicationModal(false);
+    if (!editingApplicationId && savedApplication.capturedAt) finishCapturedSave(savedApplication);
     if (savedApplication.status === "Rejected" && !recoveryEntries.some((entry) => entry.applicationId === savedApplication.id)) {
       window.setTimeout(() => setRecoveryApplication(savedApplication), 250);
     }
