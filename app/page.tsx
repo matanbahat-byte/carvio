@@ -2708,7 +2708,7 @@ export default function Home() {
     }
     setShowApplicationModal(false);
     if (!editingApplicationId && savedApplication.capturedAt) finishCapturedSave(savedApplication);
-    if (savedApplication.status === "Rejected" && !recoveryEntries.some((entry) => entry.applicationId === savedApplication.id)) {
+    if ((editingApplicationId || !savedApplication.capturedAt) && savedApplication.status === "Rejected" && !recoveryEntries.some((entry) => entry.applicationId === savedApplication.id)) {
       window.setTimeout(() => setRecoveryApplication(savedApplication), 250);
     }
   }
