@@ -1,4 +1,12 @@
 import test from 'node:test';
+import { officialSearchUrl } from '../lib/job-search.ts';
+test('broader and career-page routes preserve role and location without claiming verified listings',()=>{
+  const p={...emptySearchProfile,role:'Data Analyst',country:'Israel',location:'חיפה'};
+  const sources=jobSearchSources(p,'he');
+  assert.equal(new URL(sources[0].url).hostname,'www.linkedin.com');
+  assert.ok(new URL(sources[2].url).hostname.includes('google'));
+  const official=new URL(officialSearchUrl(p));assert.ok(official.searchParams.get('q').includes('חיפה'));assert.ok(official.searchParams.get('q').includes('-site:linkedin.com'));
+});
 import assert from 'node:assert/strict';
 import { changeSearchRole, searchPreferencesNeedReview, emptySearchProfile, sanitizeSearchProfile, migrateSearchProfile, jobSearchSources, searchProfileChanged, broadenSearchProfile, patchSearchProfile, skillSuggestionsForRole, captureJobLink } from '../lib/job-search.ts';
 

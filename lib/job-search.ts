@@ -166,6 +166,13 @@ export function captureJobLink(value: string) {
   return { jobUrl: url.toString(), source: linkedIn ? "LinkedIn" : indeed ? "Indeed" : "Other", company: "", role: "" };
 }
 
+export function officialSearchUrl(profile: SearchProfile) {
+  const clean = normalizedSearchProfile(profile);
+  const quote = (text: string) => `"${text.replace(/["“”]/g, "")}"`;
+  const query = [quote(clean.role), quote(clean.location), '(careers OR jobs)', '-site:linkedin.com', '-site:indeed.com'].join(' ');
+  return `https://www.google.com/search?${new URLSearchParams({ q: query }).toString()}`;
+}
+
 export function localizedSearchFilter(value: string, language: Language) {
   if (language === "en") return value;
   return ({
