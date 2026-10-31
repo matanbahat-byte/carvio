@@ -1,4 +1,15 @@
 export type UsageIntent = "active_search" | "better_role" | "market_exploration" | "networking_focus" | "unspecified";
+export type ProductEventName = "application_created" | "application_updated" | "application_action_completed" | "application_snoozed" | "contact_created" | "contact_updated" | "intent_selected" | "search_opened_by_source" | "message_draft_created" | "message_draft_edited" | "message_draft_copied" | "follow_up_planned" | "session_started" | "first_opportunity_added" | "first_contact_added" | "opportunity_saved" | "marked_applied" | "evidence_added" | "recommendation_completed" | "recommendation_dismissed" | "interview_recorded";
+export function localProductMetrics(events: { name: string; occurredAt: string; properties: Record<string, unknown> }[], now = Date.now()) {
+  const meaningful = new Set(["opportunity_saved", "contact_created", "marked_applied", "evidence_added", "message_draft_created", "recommendation_completed", "interview_recorded"]);
+  const starts = events.filter(event => event.name === "session_started");
+  const delays = starts.flatMap(start => { const first = events.filter(event => meaningful.has(event.name) && event.properties.sessionId === start.properties.sessionId && Date.parse(event.occurredAt) >= Date.parse(start.occurredAt)).sort((a,b) => Date.parse(a.occurredAt)-Date.parse(b.occurredAt))[0]; return first ? [(Date.parse(first.occurredAt)-Date.parse(start.occurredAt))/1000] : []; });
+  const first = events.filter(event => meaningful.has(event.name)).map(event => Date.parse(event.occurredAt)).sort((a,b)=>a-b);
+  const completed = events.filter(event => event.name === "recommendation_completed").length;
+  const dismissed = events.filter(event => event.name === "recommendation_dismissed").length;
+  const returned = first.some(time => time-first[0] >= 86400000 && time-first[0] <= 7*86400000);
+  return { sessions: starts.length, activatedSessions: delays.length, firstMeaningfulSeconds: delays[0] ?? null, returnedWithinSevenDays: returned ? true : first.length && now-first[0] >= 7*86400000 ? false : null, completed, dismissed, decisionRate: completed+dismissed ? completed/(completed+dismissed) : null };
+}
 export function isCompatibleRecord(value: unknown, defaults: Record<string, unknown>): boolean {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const record = value as Record<string, unknown>;
@@ -12,6 +23,18 @@ export function isCompatibleRecord(value: unknown, defaults: Record<string, unkn
 }
 export type AiEvidenceInput = { task: string; tool: string; judgment: string; outcome: string };
 export type EvidenceItem = { id: string; applicationId: string; text: string; requirementIds: string[] };
+export function readinessStates(record: { company: string; role: string; jobUrl: string; jobDescription: string; requirementEvidence: { evidence: string }[] }) {
+  const trackMissing = [!record.company.trim() && "company", !record.role.trim() && "role"].filter(Boolean) as string[];
+  const contextMissing = [...trackMissing, !record.jobUrl.trim() && "source", !record.jobDescription.trim() && "description"].filter(Boolean) as string[];
+  const requirementsMissing = record.requirementEvidence.length ? [] : ["requirements"];
+  const evidenceMissing = record.requirementEvidence.some(item => item.evidence.trim().length >= 12) ? [] : ["evidence"];
+  return [
+    { key: "track", label: "Enough to track", missing: trackMissing },
+    { key: "decide", label: "Enough to decide", missing: [...contextMissing, ...requirementsMissing] },
+    { key: "tailor", label: "Enough to tailor", missing: [...requirementsMissing, ...evidenceMissing] },
+    { key: "interview", label: "Ready for interview preparation", missing: [...contextMissing, ...requirementsMissing, ...evidenceMissing] },
+  ].map(item => ({ ...item, ready: item.missing.length === 0 }));
+}
 export function aiEvidenceBullet(input: AiEvidenceInput, requirementIds: string[], language: "he" | "en") {
   if (!requirementIds.length || [input.task, input.judgment, input.outcome].some(value => value.trim().length < 8) || input.tool.trim().length < 2) return "";
   return language === "he" ? `במשימה: ${input.task.trim()}, השתמשתי ב־${input.tool.trim()}; שיקול הדעת והאחריות שלי: ${input.judgment.trim()}; התוצאה שתועדה: ${input.outcome.trim()}.` : `For ${input.task.trim()}, used ${input.tool.trim()}; retained human responsibility for ${input.judgment.trim()}; observed outcome: ${input.outcome.trim()}.`;
@@ -22,6 +45,8 @@ export type MessageProfile = {
   intent: "Introduce myself" | "Ask for a referral" | "Follow up after applying" | "Request a conversation" | "Thank them";
   recipientName: string;
   recipientEmail: string;
+  recipientRole?: string;
+  relationship?: string;
   company: string;
   role: string;
   senderName: string;
@@ -102,6 +127,11 @@ export function goalAction(value: unknown) {
   return ({ active_search: "opportunity", better_role: "target", market_exploration: "scan", networking_focus: "connection", unspecified: "opportunity" } as const)[intent];
 }
 export type SourceType = "LinkedIn" | "Google" | "Company careers" | "Referral" | "Recruiter" | "Manual" | "Other";
+export function goalMetrics(records: { status: string; role: string; location: string; budgetRange: string; assessedAt?: string; appliedDate: string; requirements: string }[]) {
+  const skills = new Map<string, number>();
+  for (const row of records) for (const skill of new Set(row.requirements.match(/\b(?:SQL|Python|Excel|Figma|React|TypeScript|JavaScript|Tableau|Power BI)\b/gi)?.map(value => value.toLowerCase()) || [])) skills.set(skill, (skills.get(skill) || 0) + 1);
+  return { assessed: records.filter(row => row.assessedAt).length, submitted: records.filter(row => row.status !== "Considering" && (row.appliedDate || ["Applied", "Interview", "Offer", "Accepted", "Follow-up due"].includes(row.status))).length, roles: new Set(records.map(row => row.role.trim()).filter(Boolean)).size, locations: new Set(records.map(row => row.location.trim()).filter(Boolean)).size, companyRanges: records.filter(row => row.budgetRange.trim()).length, recurringSkills: [...skills].filter(([,count]) => count >= 2).sort((a,b) => b[1]-a[1] || a[0].localeCompare(b[0])).slice(0,3).map(([skill,count]) => ({skill,count})) };
+}
 export function normalizeSource(source: unknown): SourceType {
   if (typeof source !== "string") return "Other";
   const label = source.trim().toLowerCase();
@@ -149,6 +179,6 @@ export function linkContactIds(ids: string[] = [], contactId: string, linked: bo
   return linked ? [...new Set([...ids, contactId])] : ids.filter(id => id !== contactId);
 }
 export function privateEventProperties(properties: Record<string, unknown>) {
-  const allowed = new Set(["status", "days", "sourceType", "intent", "method", "count"]);
+  const allowed = new Set(["status", "days", "sourceType", "intent", "method", "count", "sessionId"]);
   return Object.fromEntries(Object.entries(properties).filter(([key, value]) => allowed.has(key) && ["string", "number", "boolean"].includes(typeof value))) as Record<string, string | number | boolean>;
 }

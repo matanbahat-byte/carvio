@@ -1,4 +1,25 @@
 import test from 'node:test';
+import { localProductMetrics } from '../lib/decision-support.ts';
+test('local activation and seven-day measurement show explicit denominators and incomplete windows',()=>{
+ const event=(name,occurredAt)=>({name,occurredAt,properties:{sessionId:'test-session'}});
+ const events=[event('session_started','2026-10-30T10:00:00Z'),event('opportunity_saved','2026-10-30T10:01:00Z')];
+ const metrics=localProductMetrics(events,Date.parse('2026-10-30T11:00:00Z'));
+ assert.equal(metrics.firstMeaningfulSeconds,60);assert.equal(metrics.activatedSessions,1);assert.equal(metrics.returnedWithinSevenDays,null);assert.equal(metrics.decisionRate,null);
+ assert.equal(localProductMetrics([...events,event('message_draft_created','2026-11-01T10:00:00Z')]).returnedWithinSevenDays,true);
+});
+import { goalMetrics } from '../lib/decision-support.ts';
+test('goal metrics count explicit assessments and company ranges, not salary expectations',()=>{
+ const row={status:'Considering',role:'QA',location:'Haifa',budgetRange:'',salary:'100000',appliedDate:'',requirements:'SQL experience required'};
+ const metrics=goalMetrics([row,{...row,role:'Analyst',assessedAt:'2026-10-30',requirements:'SQL reporting'}]);
+ assert.equal(metrics.submitted,0);assert.equal(metrics.companyRanges,0);assert.equal(metrics.assessed,1);assert.deepEqual(metrics.recurringSkills,[{skill:'sql',count:2}]);
+});
+import { readinessStates } from '../lib/decision-support.ts';
+test('readiness describes prerequisites without a synthetic fit percentage',()=>{
+ const partial={company:'QA',role:'QA role',jobUrl:'',jobDescription:'',requirementEvidence:[]};
+ assert.equal(readinessStates(partial)[0].ready,true); assert.equal(readinessStates(partial)[1].ready,false);
+ const complete={...partial,jobUrl:'https://example.com',jobDescription:'A saved role description',requirementEvidence:[{evidence:'A concrete saved example'}]};
+ assert.equal(readinessStates(complete).every(item=>item.ready),true);assert.equal(readinessStates(complete).some(item=>'score' in item),false);
+});
 import { isCompatibleRecord } from '../lib/decision-support.ts';
 test('partial legacy records are accepted, malformed values rejected before restore writes',()=>{
  const defaults={company:'',role:'',status:'Considering',details:{text:''},items:[]};

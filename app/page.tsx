@@ -1,7 +1,11 @@
 "use client";
+import { UsageIntentPicker } from "@/components/usage-intent-picker";
+import { AiEvidenceForm } from "@/components/ai-evidence-form";
+import { rankNextActions, recommendationKey, type NextBestAction } from "@/lib/recommendations";
+import { localProductMetrics, goalMetrics, readinessStates, isCompatibleRecord, messageSubject, generateOutreachMessage, normalizeUsageIntent, goalAction, migrateSource, sourceOutcomes, hasPersonalAnchor, linkContactIds, privateEventProperties, safeSourceUrl, type ProductEventName, type MessageProfile, type UsageIntent, type SourceType } from "@/lib/decision-support";
 
 import Image from "next/image";
-import { changeSearchRole, searchPreferencesNeedReview, emptySearchProfile, sanitizeSearchProfile, normalizedSearchProfile, migrateSearchProfile, nextSearchDateWindow, skillSuggestionsForRole, localizedSearchFilter, companyJobSearchRoute, jobSearchSources, searchProfileChanged, broadenSearchProfile, patchSearchProfile, captureJobLink, type SearchProfile, type SearchOutcome, type JobSearchSource } from "@/lib/job-search";
+import { officialSearchUrl, changeSearchRole, searchPreferencesNeedReview, emptySearchProfile, sanitizeSearchProfile, normalizedSearchProfile, migrateSearchProfile, nextSearchDateWindow, skillSuggestionsForRole, localizedSearchFilter, companyJobSearchRoute, jobSearchSources, searchProfileChanged, broadenSearchProfile, patchSearchProfile, captureJobLink, type SearchProfile, type SearchOutcome, type JobSearchSource } from "@/lib/job-search";
 import { agendaEntries, scheduledTimestamp } from "@/lib/schedule";
 import { extractJobRequirements, splitRequirementText, uniqueRequirements, requirementCategory } from "@/lib/job-requirements";
 import { ChangeEvent, FormEvent, Fragment, ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
@@ -115,7 +119,7 @@ type CareerTool = "studio" | "social" | "cv" | "interview" | "offer";
 type ApplicationViewMode = "table" | "kanban" | "calendar";
 type ProcessStage = { id: string; name: string; date: string; dateTime?: string; trafficLight: TrafficLight; note?: string; nextTask?: string };
 type RequirementCategory = "Experience" | "Skills" | "Tools" | "Education" | "Other";
-type RequirementEvidence = { requirement: string; evidence: string; category?: RequirementCategory };
+type RequirementEvidence = { id?: string; requirement: string; evidence: string; category?: RequirementCategory };
 type ReadinessStatus = "complete" | "improve" | "missing";
 type ReadinessTarget = "job-url" | "job-description" | "requirements" | "evidence" | "contact" | "next-action";
 type ReadinessItem = { target: ReadinessTarget; status: ReadinessStatus; label: string; detail: string; action: string; group: "role" | "application" };
@@ -178,6 +182,8 @@ type Application = {
   status: ApplicationStatus;
   trafficLight: TrafficLight;
   source: string;
+  sourceType?: SourceType;
+  sourceUrl?: string;
   location: string;
   country: string;
   workModel: (typeof workModels)[number];
@@ -188,6 +194,7 @@ type Application = {
   jobDescription: string;
   requirements: string;
   requirementEvidence: RequirementEvidence[];
+  evidenceItems?: { id: string; applicationId: string; text: string; requirementIds: string[] }[];
   interviewPreparation: InterviewPreparation;
   offerDetails: OfferDetails;
   capturedAt: string;
@@ -200,6 +207,8 @@ type Application = {
   eventDateTime: string;
   processStages: ProcessStage[];
   linkedContactIds?: string[];
+  linkedResumeId?: string;
+  assessedAt?: string;
   lastActivityAt?: string;
   notes: string;
 };
@@ -241,20 +250,10 @@ type ResumeFile = {
 };
 
 
-type MessageProfile = {
-  recipientType: "Recruiter" | "Hiring manager" | "Referral" | "Networking contact";
-  tone: "Warm & professional" | "Direct & confident" | "Friendly & concise" | "Senior & strategic";
-  intent: "Introduce myself" | "Ask for a referral" | "Follow up after applying" | "Request a conversation" | "Thank them";
-  recipientName: string;
-  recipientEmail: string;
-  company: string;
-  role: string;
-  senderName: string;
-  value: string;
-  context: string;
-};
 
 type MessageContext = {
+  applicationId?: string;
+  contactId?: string;
   applicationLabel: string;
   contactLabel: string;
   loadedFields: string[];
@@ -276,7 +275,9 @@ type RecoveryEntry = {
 };
 
 type UserProfile = {
-  usageIntent?: "active" | "improving" | "market" | "networking" | "skip";
+  usageIntent?: UsageIntent;
+  nonNegotiables?: string;
+  dismissedRecommendations?: { key: string; reason: string }[];
   name: string;
   avatarDataUrl: string;
   targetRole: string;
@@ -290,7 +291,7 @@ type UserProfile = {
 type DailyMood = "" | "ready" | "low" | "difficult";
 type ActionEvent = {
   id: string;
-  name: "application_created" | "application_updated" | "application_action_completed" | "application_snoozed" | "contact_created" | "contact_updated";
+  name: ProductEventName;
   targetId: string;
   occurredAt: string;
   properties: Record<string, string | number | boolean>;
@@ -359,7 +360,6 @@ const uiCopy = {
 type ApplicationDraft = Omit<Application, "id">;
 type ContactDraft = Omit<Contact, "id">;
 type QuickUpdateDraft = Pick<Application, "status" | "trafficLight" | "nextStep" | "nextStepDue" | "eventType" | "eventDateTime">;
-type NextBestAction = { id: string; score: number; label: string; detail: string; target: string; kind: string; applicationId?: string; contactId?: string; intent?: "open" | "message" | "calendar" | "recover" };
 
 
 const roleSuggestions = ["Supply Chain Manager", "Operations Manager", "Procurement Manager", "Logistics Manager", "HR Business Partner", "Senior HR Business Partner", "People Partner", "HR Manager", "People Operations Manager", "Talent Acquisition Partner", "Organizational Development Manager", "Employee Experience Manager"];
@@ -786,6 +786,7 @@ function normalizeApplication(value: Partial<Application>): Application {
   return {
     ...emptyApplication,
     ...value,
+    ...migrateSource(value),
     id: value.id || makeId("app"),
     status: applicationStatuses.includes(value.status as ApplicationStatus) ? value.status as ApplicationStatus : "Considering",
     trafficLight: trafficLights.includes(value.trafficLight as TrafficLight) ? value.trafficLight as TrafficLight : "none",
@@ -872,9 +873,11 @@ function workspaceActionReason(application: Application, language: "en" | "he") 
 
 
 function syncRequirementEvidence(requirements: string, current: RequirementEvidence[]) {
+  const existingIds = new Map(current.map(item => [item.requirement.trim().toLowerCase(), item.id]));
   const existing = new Map(current.map((item) => [item.requirement.trim().toLowerCase(), item.evidence]));
   const existingCategories = new Map(current.map((item) => [item.requirement.trim().toLowerCase(), item.category]));
   return uniqueRequirements(splitRequirementText(requirements)).map((requirement) => ({
+    id: existingIds.get(requirement.toLowerCase()) || makeId("requirement"),
     requirement,
     evidence: existing.get(requirement.toLowerCase()) || "",
     category: existingCategories.get(requirement.toLowerCase()) || requirementCategory(requirement),
@@ -1132,81 +1135,6 @@ function companyLogoFromWebsite(value: string) {
 }
 
 
-function messageSubject(profile: MessageProfile, language: Language) {
-  const role = profile.role.trim() || (language === "he" ? "ההזדמנות" : "the opportunity");
-  const company = profile.company.trim();
-  const companySuffix = company ? (language === "he" ? ` ב־${company}` : ` at ${company}`) : "";
-  const labels: Record<MessageProfile["intent"], { en: string; he: string }> = {
-    "Introduce myself": { en: `Introduction — ${role}${companySuffix}`, he: `היכרות מקצועית — ${role}${companySuffix}` },
-    "Ask for a referral": { en: `Referral request — ${role}${companySuffix}`, he: `בקשת הפניה — ${role}${companySuffix}` },
-    "Follow up after applying": { en: `Following up — ${role}${companySuffix}`, he: `פעולת המשך — ${role}${companySuffix}` },
-    "Request a conversation": { en: `Conversation about ${role}${companySuffix}`, he: `שיחה על ${role}${companySuffix}` },
-    "Thank them": { en: `Thank you — ${role}${companySuffix}`, he: `תודה — ${role}${companySuffix}` },
-  };
-  return labels[profile.intent][language];
-}
-
-function generateOutreachMessage(profile: MessageProfile, language: Language) {
-  const recipientName = profile.recipientName.trim();
-  const role = profile.role.trim();
-  const company = profile.company.trim();
-  const sender = profile.senderName.trim();
-  const value = profile.value.trim();
-  const context = profile.context.trim();
-  const asSentence = (text: string) => text && !/[.!?…]$/.test(text) ? `${text}.` : text;
-  if (language === "he") {
-    const greeting = recipientName ? `שלום ${recipientName},` : "שלום,";
-    const opportunity = role && company ? `לתפקיד ${role} ב־${company}` : role ? `לתפקיד ${role}` : company ? `להזדמנויות ב־${company}` : "להזדמנויות מקצועיות רלוונטיות";
-    const closeLabel = profile.tone === "Senior & strategic" ? "בברכה ובהערכה," : profile.tone === "Warm & professional" ? "תודה רבה," : "בברכה,";
-    const close = sender ? `${closeLabel}\n${sender}` : closeLabel;
-    const openingByIntent: Record<MessageProfile["intent"], string> = {
-      "Introduce myself": `אני פונה אליך כדי להציג את עצמי ולהביע עניין ${opportunity}.`,
-      "Ask for a referral": `אני בוחן/ת אפשרות להגיש מועמדות ${opportunity}, ואשמח להתייעץ איתך.`,
-      "Follow up after applying": role && company ? `רציתי לבצע פעולת המשך עניינית בנוגע למועמדות שלי לתפקיד ${role} ב־${company}.` : role ? `רציתי לבצע פעולת המשך עניינית בנוגע למועמדות שלי לתפקיד ${role}.` : company ? `רציתי לבצע פעולת המשך עניינית בנוגע למועמדות שהגשתי ל־${company}.` : "רציתי לבצע פעולת המשך עניינית בנוגע למועמדות שהגשתי לאחרונה.",
-      "Request a conversation": role || company ? `אשמח לקיים שיחה קצרה על ${opportunity.replace(/^ל/, "")}.` : "אשמח לקיים שיחה מקצועית קצרה וללמוד מנקודת המבט שלך.",
-      "Thank them": role && company ? `רציתי להודות לך על הזמן והתמיכה סביב ההזדמנות לתפקיד ${role} ב־${company}.` : role ? `רציתי להודות לך על הזמן והתמיכה סביב ההזדמנות לתפקיד ${role}.` : company ? `רציתי להודות לך על הזמן והתמיכה סביב ההזדמנויות ב־${company}.` : "רציתי להודות לך על הזמן, העזרה והתמיכה.",
-    };
-    const askByRecipient: Record<MessageProfile["recipientType"], string> = {
-      Recruiter: role ? "אם התפקיד עדיין פתוח, אשמח להכוונה לגבי השלב הבא בתהליך." : "אם קיימת הזדמנות רלוונטית, אשמח להכוונה לגבי הצעד הבא.",
-      "Hiring manager": "אם זה מועיל, אשמח לשתף בדוגמה קצרה לאופן שבו הייתי ניגש/ת לסדרי העדיפויות של הצוות בתפקיד.",
-      Referral: profile.intent === "Ask for a referral" ? "אם לאחר עיון ברקע שלי תרגישו בנוח להפנות אותי, אעריך זאת מאוד; גם נקודת מבט כנה בלבד תסייע לי." : "אשמח לכל נקודת מבט שנוח לך לשתף על הצוות ועל התפקיד.",
-      "Networking contact": "האם יתאים לך לקיים שיחה קצרה של 15 דקות בימים הקרובים? אשמח להתאים את עצמי לזמן שנוח לך.",
-    };
-    const toneBridge: Record<MessageProfile["tone"], string> = {
-      "Warm & professional": `הרקע שלי כולל ${value}, וההזדמנות משכה את תשומת לבי במיוחד.`,
-      "Direct & confident": `אני יכול/ה לתרום ${value}, שנראים תואמים היטב לדרישות התפקיד.`,
-      "Friendly & concise": `אני מביא/ה ${value}, ונראה שיש התאמה טובה לתפקיד.`,
-      "Senior & strategic": `היקף התפקיד מתחבר לניסיון שלי ב־${value}, במיוחד בחיבור בין סדרי עדיפויות עסקיים לביצוע.`,
-    };
-    const paragraphs = [openingByIntent[profile.intent], asSentence(context), value ? toneBridge[profile.tone] : "", profile.intent === "Thank them" ? "" : askByRecipient[profile.recipientType]].filter(Boolean);
-    return `${greeting}\n\n${paragraphs.join("\n\n")}\n\n${close}`;
-  }
-  const greeting = recipientName ? `${profile.tone === "Friendly & concise" ? "Hi" : "Hello"} ${recipientName},` : "Hello,";
-  const opportunity = role && company ? `the ${role} opportunity at ${company}` : role ? `the ${role} opportunity` : company ? `opportunities at ${company}` : "relevant professional opportunities";
-  const closeLabel = profile.tone === "Direct & confident" ? "Best," : profile.tone === "Senior & strategic" ? "Kind regards," : "Warmly,";
-  const close = sender ? `${closeLabel}\n${sender}` : closeLabel;
-  const openingByIntent: Record<MessageProfile["intent"], string> = {
-    "Introduce myself": `I’m reaching out to introduce myself and express my interest in ${opportunity}.`,
-    "Ask for a referral": `I’m considering ${opportunity} and hoped to ask for your perspective.`,
-    "Follow up after applying": role ? `I wanted to follow up thoughtfully on my recent application for ${opportunity}.` : company ? `I wanted to follow up thoughtfully on my recent application to ${company}.` : "I wanted to follow up thoughtfully on an application I recently submitted.",
-    "Request a conversation": role || company ? `I’d value a brief conversation about ${opportunity}.` : "I’d value a brief professional conversation and the chance to learn from your perspective.",
-    "Thank them": role || company ? `Thank you for your time and support regarding ${opportunity}.` : "Thank you for your time, help, and support.",
-  };
-  const askByRecipient: Record<MessageProfile["recipientType"], string> = {
-    Recruiter: role ? "If the role is still active, I’d appreciate any guidance on the next step in the process." : "If there is a relevant active opportunity, I’d appreciate any guidance on the next step.",
-    "Hiring manager": "If useful, I’d be glad to share a concise example of how I would approach the team’s priorities in this role.",
-    Referral: profile.intent === "Ask for a referral" ? "If, after reviewing my background, you feel comfortable referring me, I would be very grateful—though your honest perspective alone would already help." : "I’d appreciate any perspective you’re comfortable sharing about the team and the role.",
-    "Networking contact": "Would you be open to a short 15-minute conversation in the coming days? I’ll gladly work around your schedule.",
-  };
-  const toneBridge: Record<MessageProfile["tone"], string> = {
-    "Warm & professional": `My background includes ${value}, and the opportunity genuinely caught my attention.`,
-    "Direct & confident": `I can contribute ${value}, which appears closely aligned with what this role requires.`,
-    "Friendly & concise": `I bring ${value}, and the role looks like a strong match.`,
-    "Senior & strategic": `The role’s scope resonates with my experience in ${value}, particularly where business priorities and execution need to connect.`,
-  };
-  const paragraphs = [openingByIntent[profile.intent], asSentence(context), value ? toneBridge[profile.tone] : "", profile.intent === "Thank them" ? "" : askByRecipient[profile.recipientType]].filter(Boolean);
-  return `${greeting}\n\n${paragraphs.join("\n\n")}\n\n${close}`;
-}
 
 function generateSocialPost(profile: PostProfile, language: Language) {
   const topic = profile.topic.trim() || (language === "he" ? "תובנה מקצועית שלמדתי לאחרונה" : "a professional lesson I learned recently");
@@ -1337,16 +1265,6 @@ function Modal({
   );
 }
 
-function UsageIntentPicker({ intent, language, onChange }: { intent: UserProfile["usageIntent"]; language: Language; onChange: (value: UserProfile["usageIntent"]) => void }) {
-  return <Field label={language === "he" ? "מה מתאים לכם כרגע? (אופציונלי)" : "What brings you here? (optional)"}><select className="form-control" value={intent || ""} onChange={(event) => onChange(event.target.value as UserProfile["usageIntent"])}>
-    <option value="">{language === "he" ? "בחרו או המשיכו בלי לבחור" : "Choose, or continue without choosing"}</option>
-    <option value="active">{language === "he" ? "מחפש/ת עבודה עכשיו" : "Looking for work now"}</option>
-    <option value="improving">{language === "he" ? "עובד/ת ובוחן/ת שיפור" : "Working and exploring a better role"}</option>
-    <option value="market">{language === "he" ? "בודק/ת את השוק" : "Exploring the market"}</option>
-    <option value="networking">{language === "he" ? "מתמקד/ת בקשרים מקצועיים" : "Focusing on professional connections"}</option>
-    <option value="skip">{language === "he" ? "לדלג כרגע" : "Skip for now"}</option>
-  </select><small>{language === "he" ? "אפשר לשנות בהגדרות. הבחירה לא משנה משרות או מסננים." : "Change this in Settings anytime. It never changes jobs or search filters."}</small></Field>;
-}
 
 function SearchFilterNotice({ source, language, onCopy }: { source: JobSearchSource; language: Language; onCopy?: () => void }) {
   return <aside className="search-mapping-summary" aria-label={language === "he" ? "מסננים בקישור LinkedIn" : "Filters in the LinkedIn link"}>
@@ -1458,6 +1376,8 @@ export default function Home() {
   const [applicationScope, setApplicationScope] = useState<"active" | "closed">("active");
   const [showApplicationHistory, setShowApplicationHistory] = useState(false);
   const [showSmartCapture, setShowSmartCapture] = useState(false);
+  const [showGoalTarget, setShowGoalTarget] = useState(false);
+  const [cvEvidenceApplicationId, setCvEvidenceApplicationId] = useState("");
   const [smartCaptureStep, setSmartCaptureStep] = useState<"link" | "review" | "success">("link");
   const [smartCaptureSavedId, setSmartCaptureSavedId] = useState<string | null>(null);
   const [smartCaptureUrl, setSmartCaptureUrl] = useState("");
@@ -1470,6 +1390,7 @@ export default function Home() {
   const [activeCalendarMenu, setActiveCalendarMenu] = useState<string | null>(null);
   const [showTodayOverflow, setShowTodayOverflow] = useState(false);
   const [actionEvents, setActionEvents] = useState<ActionEvent[]>([]);
+  const productSessionRef = useRef("");
   const messageDraftRef = useRef<HTMLTextAreaElement | null>(null);
   const todayOverflowRef = useRef<HTMLDivElement | null>(null);
 
@@ -1508,7 +1429,12 @@ export default function Home() {
       setResumes(readStored<ResumeFile[]>(RESUMES_KEY, []));
       setSearchProfile(migrateSearchProfile(readStored<Partial<SearchProfile>>(SEARCH_PROFILE_KEY, emptySearchProfile)));
       setRecoveryEntries(readStored<RecoveryEntry[]>(RECOVERY_KEY, []));
-      setActionEvents(readStored<ActionEvent[]>(ACTION_EVENTS_KEY, []));
+      const sessionKey = `carvio.product-session.${isDemo ? "demo" : "workspace"}`;
+      const sessionId = window.sessionStorage.getItem(sessionKey) || makeId("session");
+      window.sessionStorage.setItem(sessionKey, sessionId);
+      productSessionRef.current = sessionId;
+      const priorEvents = readStored<ActionEvent[]>(ACTION_EVENTS_KEY, []);
+      setActionEvents(priorEvents.some(event => event.name === "session_started" && event.properties.sessionId === sessionId) ? priorEvents : [...priorEvents.slice(-499), { id: makeId("event"), name: "session_started", targetId: "workspace", occurredAt: new Date().toISOString(), properties: { sessionId } }]);
       setSearchTasks(readStored<SearchTask[]>(SEARCH_TASKS_KEY, []));
       const savedTheme = readStored<ColorTheme>(THEME_KEY, "light");
       const hasExplicitTheme = readStored<boolean>(THEME_EXPLICIT_KEY, false);
@@ -1517,7 +1443,7 @@ export default function Home() {
       if (!hasExplicitTheme || !validTheme) workspaceStorage().setItem(THEME_KEY, JSON.stringify("light"));
       setLanguage(readStored<Language>(LANGUAGE_KEY, "en"));
       const savedProfile = { ...emptyUserProfile, ...readStored<Partial<UserProfile>>(PROFILE_KEY, emptyUserProfile) };
-      setUserProfile(savedProfile);
+      setUserProfile({ ...savedProfile, usageIntent: normalizeUsageIntent(savedProfile.usageIntent) });
       const checkIn = readStored<{ date: string; mood: DailyMood }>(CHECKIN_KEY, { date: "", mood: "" });
       setDailyMood(checkIn.date === new Date().toISOString().slice(0, 10) ? checkIn.mood : "");
       workspaceStorage().removeItem(LANDING_KEY);
@@ -1661,8 +1587,8 @@ export default function Home() {
     [applications, interviewPrepApplicationId],
   );
   const messageApplication = useMemo(
-    () => applications.find((item) => item.company.toLowerCase() === messageProfile.company.trim().toLowerCase() && item.role.toLowerCase() === messageProfile.role.trim().toLowerCase()) || null,
-    [applications, messageProfile.company, messageProfile.role],
+    () => applications.find((item) => item.id === messageContext?.applicationId) || null,
+    [applications, messageContext?.applicationId],
   );
   const workspaceReadiness = workspaceApplication ? jobReadinessChecklist(workspaceApplication, language) : null;
   const workspaceOfferReadiness = workspaceApplication?.status === "Offer" ? offerReadiness(workspaceApplication, language) : null;
@@ -1828,56 +1754,7 @@ export default function Home() {
     return { eyebrow: language === "he" ? "מתחילים את היום" : "Start your day", title: language === "he" ? "להוסיף את ההזדמנות הבאה" : "Add your next opportunity", detail: language === "he" ? "תהליך ברור מתחיל ממועמדות אחת." : "A clear pipeline starts with one application.", target: "applications" };
   }, [applications, contacts, dailyMood, language]);
 
-  const nextBestActions = useMemo(() => {
-    const actions: NextBestAction[] = [];
-    const now = Date.now();
-    const day = 86400000;
-    const daysSince = (value: string) => {
-      const timestamp = value ? Date.parse(value) : Number.NaN;
-      return Number.isFinite(timestamp) ? Math.max(0, Math.floor((now - timestamp) / day)) : 0;
-    };
-    const daysUntil = (value: string) => {
-      const timestamp = value ? Date.parse(value) : Number.NaN;
-      return Number.isFinite(timestamp) ? Math.ceil((timestamp - now) / day) : null;
-    };
-    applications.forEach((item) => {
-      const eventAt = item.eventDateTime ? new Date(item.eventDateTime).getTime() : 0;
-      const activityAt = item.lastActivityAt || item.appliedDate;
-      const staleDays = daysSince(activityAt);
-      const dueDays = daysUntil(item.nextStepDue);
-      if (!isClosedApplicationStatus(item.status) && item.nextStep.trim() && !item.nextStepDue) actions.push({ id: `app-undated-${item.id}`, score: 70, label: item.nextStep, detail: language === "he" ? `${item.role} ב־${item.company} · פעולה ששמרתם, ללא תאריך יעד.` : `${item.role} at ${item.company} · Your saved action, with no due date.`, target: "applications", kind: language === "he" ? "הצעד שבחרתם" : "Your next move", applicationId: item.id, intent: "open" });
-      const overdueDays = dueDays !== null && dueDays < 0 ? Math.abs(dueDays) : 0;
-      const hasContact = Boolean(item.contactName || item.linkedContactIds?.length || contacts.some((contact) => contact.linkedApplicationId === item.id || contact.company.trim().toLowerCase() === item.company.trim().toLowerCase()));
-      if (!isClosedApplicationStatus(item.status) && eventAt >= now && eventAt - now <= 72 * 60 * 60 * 1000) actions.push({ id: `app-event-${item.id}`, score: 140 - ((eventAt - now) / 3600000), label: language === "he" ? `הכנה ל${item.eventType || "ראיון"} עבור ${item.company}` : `Prepare for your ${item.eventType || "interview"} at ${item.company}`, detail: language === "he" ? `המועד הוא ${formatDate(item.eventDateTime, true)}. עברו על סיפורי STAR והשאלות שלכם.` : `It is scheduled for ${formatDate(item.eventDateTime, true)}. Review your STAR stories and questions.`, target: "applications", kind: language === "he" ? "פגישה קרובה" : "Meeting soon", applicationId: item.id, intent: "open" });
-      if (!isClosedApplicationStatus(item.status) && dueDays !== null && dueDays >= 0 && dueDays <= 7) actions.push({ id: `app-upcoming-${item.id}`, score: item.status === "Offer" ? 132 - dueDays : 104 - dueDays, label: item.nextStep || (language === "he" ? `הצעד הבא עבור ${item.company}` : `Next step for ${item.company}`), detail: language === "he" ? `${item.role} · היעד הוא ${formatDate(item.nextStepDue)}` : `${item.role} · due ${formatDate(item.nextStepDue)}`, target: "applications", kind: language === "he" ? "יעד קרוב" : "Due soon", applicationId: item.id, intent: "open" });
-      if (!isClosedApplicationStatus(item.status) && overdueDays > 0 && overdueDays <= 21) actions.push({ id: `app-due-${item.id}`, score: 125 - Math.min(18, overdueDays / 2), label: item.nextStep || (language === "he" ? `פעולת המשך עבור ${item.company}` : `Follow up with ${item.company}`), detail: language === "he" ? `${item.role} · היעד חלף לפני ${overdueDays} ימים` : `${item.role} · due ${overdueDays} days ago`, target: "applications", kind: language === "he" ? "נדרש עכשיו" : "Needs action", applicationId: item.id, intent: "message" });
-      if (!isClosedApplicationStatus(item.status) && (overdueDays > 21 || staleDays >= 30)) actions.push({ id: `app-review-${item.id}`, score: 82 + (item.priority === "High" ? 8 : 0), label: language === "he" ? `בדיקה או ארכוב של ${item.company}` : `Review or archive ${item.company}`, detail: language === "he" ? `לא תועדה פעילות כבר ${staleDays || overdueDays} ימים. בדקו אם התהליך עדיין פעיל.` : `No activity has been recorded for ${staleDays || overdueDays} days. Check whether this process is still active.`, target: "applications", kind: language === "he" ? "בדיקת סטטוס" : "Status check", applicationId: item.id, intent: "open" });
-      if (!isClosedApplicationStatus(item.status) && item.trafficLight === "yellow" && staleDays >= 10 && staleDays < 30 && overdueDays <= 21) actions.push({ id: `app-wait-${item.id}`, score: 98 + Math.min(10, staleDays / 2), label: language === "he" ? `בדיקת התהליך הממתין ב־${item.company}` : `Check the waiting process at ${item.company}`, detail: language === "he" ? `לא תועדה תנועה משמעותית כבר ${staleDays} ימים.` : `No meaningful movement has been recorded for ${staleDays} days.`, target: "applications", kind: language === "he" ? "תהליך ממתין" : "Stale waiting", applicationId: item.id, intent: "message" });
-      if (item.priority === "High" && !hasContact && !["Accepted", "Rejected", "Withdrawn"].includes(item.status)) actions.push({ id: `app-contact-${item.id}`, score: 88, label: language === "he" ? `מציאת קשר רלוונטי ב־${item.company}` : `Add a relevant contact at ${item.company}`, detail: language === "he" ? "זו מועמדות בעדיפות גבוהה ללא מגייס, מנהל מגייס או רפרל מקושר." : "This high-priority application has no linked recruiter, hiring manager, or referral.", target: "networking", kind: language === "he" ? "חסר קשר" : "Contact gap", applicationId: item.id, intent: "open" });
-      if (!["Accepted", "Rejected", "Withdrawn"].includes(item.status) && !item.nextStep.trim()) actions.push({ id: `app-plan-${item.id}`, score: 78, label: language === "he" ? `הגדרת הצעד הבא עבור ${item.company}` : `Define the next move for ${item.company}`, detail: language === "he" ? `למועמדות לתפקיד ${item.role} עדיין אין פעולה ברורה.` : `The ${item.role} application does not yet have a clear next action.`, target: "applications", kind: language === "he" ? "נדרש תכנון" : "Needs a plan", applicationId: item.id, intent: "open" });
-      if (item.status === "Rejected" && !recoveryEntries.some((entry) => entry.applicationId === item.id)) actions.push({ id: `reset-${item.id}`, score: dailyMood === "difficult" ? 115 : 42, label: language === "he" ? `איפוס עדין לאחר התהליך ב־${item.company}` : `Take a gentle reset after ${item.company}`, detail: language === "he" ? "השהו, שמרו רק את מה שמועיל ובחרו צעד קטן שבשליטתכם." : "Pause, keep only what helps, and choose one manageable step within your control.", target: "carvio-reset", kind: language === "he" ? "התאוששות" : "Recover", applicationId: item.id, intent: "recover" });
-    });
-    contacts.forEach((item) => {
-      const overdueDays = item.nextActionDue && isPast(item.nextActionDue) ? daysSince(item.nextActionDue) : 0;
-      if (overdueDays > 0 && overdueDays <= 21) actions.push({ id: `contact-due-${item.id}`, score: 108 - Math.min(12, overdueDays / 2), label: item.nextAction || (language === "he" ? `חזרה אל ${item.name}` : `Reconnect with ${item.name}`), detail: language === "he" ? `${item.name}${item.company ? ` · ${item.company}` : ""} · היעד חלף לפני ${overdueDays} ימים` : `${item.name}${item.company ? ` · ${item.company}` : ""} · due ${overdueDays} days ago`, target: "networking", kind: language === "he" ? "פעולת נטוורקינג" : "Networking follow-up", contactId: item.id, intent: "open" });
-    });
-    const lastMeaningfulActivity = [...applications.map((item) => item.lastActivityAt || item.appliedDate), ...contacts.map((item) => item.lastContactDate)].filter(Boolean).map(Date.parse).sort((a, b) => b - a)[0] || 0;
-    const inactiveDays = lastMeaningfulActivity ? Math.floor((now - lastMeaningfulActivity) / 86400000) : 0;
-    if (inactiveDays >= 4) actions.push({ id: "restart-momentum", score: 62 + Math.min(14, inactiveDays), label: language === "he" ? "בחירת פעולה קטנה לחידוש התנופה" : "Choose one small action to restart momentum", detail: language === "he" ? `לא תועדה פעילות משמעותית כבר ${inactiveDays} ימים. אין צורך להשלים הכול היום.` : `No meaningful activity has been recorded for ${inactiveDays} days. You do not need to catch up all at once.`, target: "applications", kind: language === "he" ? "חידוש תנופה" : "Restart", intent: "open" });
-    if (actions.length === 0) actions.push({ id: "healthy", score: 10, label: language === "he" ? "התהליך בשליטה" : "Your pipeline is under control", detail: language === "he" ? "הוסיפו הזדמנות או קבעו שיחת נטוורקינג כדי לשמור על תנופה רגועה." : "Add an opportunity or schedule a networking conversation to maintain calm momentum.", target: "applications", kind: language === "he" ? "תנופה" : "Momentum", intent: "open" });
-    const seenEntities = new Set<string>();
-    let staleReviewIncluded = false;
-    return actions.sort((a, b) => b.score - a.score).filter((action) => {
-      const entityKey = action.applicationId ? `application-${action.applicationId}` : action.contactId ? `contact-${action.contactId}` : action.id;
-      if (seenEntities.has(entityKey)) return false;
-      if (action.id.startsWith("app-review-")) {
-        if (staleReviewIncluded) return false;
-        staleReviewIncluded = true;
-      }
-      seenEntities.add(entityKey);
-      return true;
-    }).slice(0, 3);
-  }, [applications, contacts, dailyMood, language, recoveryEntries]);
+  const nextBestActions = useMemo(() => rankNextActions({ applications, contacts, recoveryEntries, dailyMood, language, now: Date.now(), usageIntent: userProfile.usageIntent, dismissed: userProfile.dismissedRecommendations?.map(item => item.key), formatDate }), [applications, contacts, recoveryEntries, dailyMood, language, userProfile.usageIntent, userProfile.dismissedRecommendations]);
 
   const primaryActionApplication = nextBestActions[0]?.applicationId
     ? applications.find((item) => item.id === nextBestActions[0].applicationId) || null
@@ -1889,10 +1766,10 @@ export default function Home() {
   const todayActionPresentation = useMemo(() => {
     const action = nextBestActions[0];
     const joinContext = (...parts: string[]) => parts.filter((part) => part.trim()).join(language === "he" ? " ב־" : " at ");
-    if (!applications.length && !contacts.length && userProfile.usageIntent && userProfile.usageIntent !== "skip") return {
-      headline: userProfile.usageIntent === "networking" ? (language === "he" ? "התחילו מקשר מקצועי אחד" : "Start with one professional connection") : userProfile.usageIntent === "market" ? (language === "he" ? "בדקו את השוק בקצב שלכם" : "Explore the market at your own pace") : userProfile.usageIntent === "improving" ? (language === "he" ? "גלו את ההזדמנות הבאה שלכם" : "Explore your next career move") : (language === "he" ? "מצאו משרה שכדאי להתקדם איתה" : "Find a role worth moving forward with"),
-      reason: userProfile.usageIntent === "networking" ? (language === "he" ? "אפשר להתחיל מאיש קשר, בלי להוסיף משרה." : "Start with a contact, without adding a job.") : (language === "he" ? "התחילו בתפקיד ומיקום. שמרו משרה רק לאחר שבדקתם אותה במקור." : "Start with a role and location. Save a job after reviewing it at the source."),
-      cta: userProfile.usageIntent === "networking" ? (language === "he" ? "הוספת איש קשר" : "Add a contact") : (language === "he" ? "התחלת חיפוש" : "Start searching"),
+    if (((!applications.length && !contacts.length) || action?.id === "healthy") && userProfile.usageIntent && userProfile.usageIntent !== "unspecified") return {
+      headline: userProfile.usageIntent === "networking_focus" ? (language === "he" ? "התחילו מקשר מקצועי אחד" : "Start with one professional connection") : userProfile.usageIntent === "market_exploration" ? (language === "he" ? "בדקו את השוק בקצב שלכם" : "Explore the market at your own pace") : userProfile.usageIntent === "better_role" ? (language === "he" ? "גלו את ההזדמנות הבאה שלכם" : "Explore your next career move") : (language === "he" ? "מצאו משרה שכדאי להתקדם איתה" : "Find a role worth moving forward with"),
+      reason: userProfile.usageIntent === "networking_focus" ? (language === "he" ? "אפשר להתחיל מאיש קשר, בלי להוסיף משרה." : "Start with a contact, without adding a job.") : (language === "he" ? "התחילו בתפקיד ומיקום. שמרו משרה רק לאחר שבדקתם אותה במקור." : "Start with a role and location. Save a job after reviewing it at the source."),
+      cta: userProfile.usageIntent === "networking_focus" ? (language === "he" ? "הוספת קשר מועיל" : "Add one useful connection") : userProfile.usageIntent === "better_role" ? (language === "he" ? "הגדרת תפקיד יעד ומה חשוב לי" : "Define target role and priorities") : userProfile.usageIntent === "active_search" ? (language === "he" ? "הוספה או בחינת הזדמנות" : "Add or assess an opportunity") : (language === "he" ? "סריקת שוק ללא התחייבות" : "Run a low-commitment market scan"),
       canComplete: false,
     };
     if (!action || (!applications.length && !contacts.length)) return {
@@ -1951,7 +1828,7 @@ export default function Home() {
     if (primaryActionContact) {
       const contactContext = [primaryActionContact.name, primaryActionContact.company].filter(Boolean).join(language === "he" ? " · " : " at ");
       return {
-        headline: language === "he" ? `חזרה אל ${contactContext}` : `Follow up with ${contactContext}`,
+        headline: action.id.startsWith("contact-plan-") ? action.label : (language === "he" ? `חזרה אל ${contactContext}` : `Follow up with ${contactContext}`),
         reason: primaryActionContact.nextActionDue ? (language === "he" ? `פעולת הנטוורקינג הייתה מיועדת ל־${formatDate(primaryActionContact.nextActionDue)}.` : `The networking follow-up was due ${formatDate(primaryActionContact.nextActionDue)}.`) : action.detail,
         cta: language === "he" ? "פתיחת השיחה" : "Open conversation",
         canComplete: false,
@@ -2402,7 +2279,7 @@ export default function Home() {
     const parts = uniqueRequirements(splitRequirementText(item.requirement), 12);
     if (parts.length < 2) return;
     replaceDraftRequirements(applicationDraft.requirementEvidence.flatMap((entry, itemIndex) => itemIndex === index
-      ? parts.map((requirement, partIndex) => ({ requirement, evidence: partIndex === 0 ? entry.evidence : "", category: requirementCategory(requirement) }))
+      ? parts.map((requirement, partIndex) => ({ id: partIndex === 0 ? entry.id : makeId("requirement"), requirement, evidence: partIndex === 0 ? entry.evidence : "", category: requirementCategory(requirement) }))
       : [entry]));
   }
 
@@ -2412,11 +2289,15 @@ export default function Home() {
     const previous = items[index - 1];
     const current = items[index];
     items.splice(index - 1, 2, {
+      id: previous.id,
       requirement: `${previous.requirement}; ${current.requirement}`,
       evidence: [previous.evidence, current.evidence].filter(Boolean).join(" · "),
       category: previous.category || current.category || "Other",
     });
     replaceDraftRequirements(items);
+    if (previous.id && current.id) {
+      setApplicationDraft((draft) => ({ ...draft, evidenceItems: draft.evidenceItems?.map((item) => ({ ...item, requirementIds: [...new Set(item.requirementIds.map((id) => id === current.id ? previous.id! : id))] })) }));
+    }
   }
 
   function smartCaptureApplication() {
@@ -2508,11 +2389,25 @@ export default function Home() {
   }
 
   function recordActionEvent(name: ActionEvent["name"], targetId: string, properties: ActionEvent["properties"] = {}) {
-    setActionEvents((events) => [...events.slice(-499), { id: makeId("event"), name, targetId, occurredAt: new Date().toISOString(), properties }]);
+    const names: ProductEventName[] = [name];
+    if (name === "application_created") { names.push("opportunity_saved"); if (!applications.length) names.push("first_opportunity_added"); }
+    if (name === "contact_created" && !contacts.length) names.push("first_contact_added");
+    if (name === "application_action_completed") names.push("recommendation_completed");
+    if (name === "application_updated") { const prior = applications.find(item => item.id === targetId); if (properties.status === "Applied" && prior?.status !== "Applied") names.push("marked_applied"); if (properties.status === "Interview" && prior?.status !== "Interview") names.push("interview_recorded"); }
+    const occurredAt = new Date().toISOString();
+    setActionEvents((events) => name === "message_draft_edited" && events.at(-1)?.name === name && events.at(-1)?.targetId === targetId ? events : [...events.slice(-500 + names.length), ...names.map(eventName => ({ id: makeId("event"), name: eventName, targetId, occurredAt, properties: privateEventProperties({ ...properties, sessionId: productSessionRef.current }) }))]);
+  }
+
+  function selectUsageGoal(value: UserProfile["usageIntent"]) {
+    const usageIntent = normalizeUsageIntent(value);
+    setUserProfile((current) => ({ ...current, usageIntent }));
+    recordActionEvent("intent_selected", "workspace", { intent: usageIntent });
+    setNotice(language === "he" ? "CARVIO יתעדף הזדמנויות ופעולות שמתאימות למטרה הזו." : "CARVIO will prioritize opportunities and actions that fit this goal.");
   }
 
   function applyQuickUpdate(patch: Partial<QuickUpdateDraft>) {
     if (!quickUpdateId) return;
+    if (patch.status) recordActionEvent("application_updated", quickUpdateId, { status: patch.status });
     setQuickUpdateDraft((current) => current ? { ...current, ...patch } : current);
     setApplications((items) => items.map((item) => item.id === quickUpdateId ? { ...item, ...patch, ...(patch.status === "Applied" && !item.appliedDate ? { appliedDate: new Date().toISOString().slice(0, 10) } : {}), lastActivityAt: new Date().toISOString() } : item));
   }
@@ -2564,6 +2459,8 @@ export default function Home() {
 
   function openCvSupport(application: Application) {
     setWorkspaceApplicationId(null);
+    setCvEvidenceApplicationId(application.id);
+    if (application.linkedResumeId) { const linkedResume = resumes.find(item => item.id === application.linkedResumeId); if (linkedResume) selectResume(linkedResume); }
     const evidenceContext = applicationEvidenceContext(application, language);
     setRewriteDraft(language === "he"
       ? `התאמת קורות חיים · ${application.role} ב־${application.company}\n\nמטרת העריכה\nהתאימו את הניסוח לדרישות המשרה תוך שימוש רק בראיות אמיתיות. אין להמציא ניסיון, מספרים או הישגים.\n\nדרישות וראיות זמינות\n${evidenceContext}\n\nתקציר מקצועי מותאם\n[כתבו 3–4 שורות המדגישות את הראיות הרלוונטיות ביותר]\n\nניסיון והישגים שכדאי להבליט\n• [הפכו כל ראיה לבולט תמציתי עם פעולה ותוצאה]\n\nבדיקה סופית\n• כל טענה נתמכת בניסיון אמיתי.\n• מילות מפתח משולבות בטבעיות.\n• פערים אינם מוצגים כניסיון קיים.`
@@ -2740,6 +2637,7 @@ export default function Home() {
       } : {}),
     };
     setApplications((items) => items.map((item) => item.id === application.id ? updated : item));
+    recordActionEvent("application_updated", application.id, { status });
     if (status === "Accepted") setOfferClosureUndo(application);
     setNotice(status === "Interview" ? `${application.company} moved to Interview — take a moment to celebrate 🎉` : status === "Offer" ? `An offer from ${application.company} — what a milestone! ✨` : status === "Accepted" ? (language === "he" ? `ההצעה מ־${application.company} התקבלה — מזל טוב! אפשר לבטל את השינוי כעת.` : `Offer from ${application.company} accepted—congratulations! You can undo now.`) : `${application.company} moved to ${status}.`);
     if (status === "Rejected" && application.status !== "Rejected" && !recoveryEntries.some((entry) => entry.applicationId === application.id)) {
@@ -2786,7 +2684,8 @@ export default function Home() {
       recordActionEvent("contact_created", savedContact.id, { company: savedContact.company, relationship: savedContact.relationship });
       setNotice(language === "he" ? "השיחה נשמרה ב־Networking." : "Connection saved in Networking.");
     }
-    if (savedContact.linkedApplicationId) setApplications((items) => items.map((item) => item.id === savedContact.linkedApplicationId ? { ...item, linkedContactIds: Array.from(new Set([...(item.linkedContactIds || []), savedContact.id])), lastActivityAt: new Date().toISOString() } : item));
+    const previousLink = contacts.find((item) => item.id === savedContact.id)?.linkedApplicationId;
+    setApplications((items) => items.map((item) => item.id === savedContact.linkedApplicationId || item.id === previousLink ? { ...item, linkedContactIds: linkContactIds(item.linkedContactIds, savedContact.id, item.id === savedContact.linkedApplicationId) } : item));
     setShowContactModal(false);
   }
 
@@ -2980,9 +2879,11 @@ export default function Home() {
     setMessageProfile({
       ...emptyMessageProfile,
       recipientType: application.contactName || linkedContact ? "Recruiter" : "Hiring manager",
-      intent: "Follow up after applying",
+      intent: isSubmittedApplicationStatus(application.status) ? "Follow up after applying" : "Introduce myself",
       recipientName,
       recipientEmail,
+      recipientRole: linkedContact?.role || "",
+      relationship: linkedContact?.relationship || "",
       company: application.company,
       role: application.role,
       senderName: userProfile.name,
@@ -2990,6 +2891,8 @@ export default function Home() {
     });
     setMessageContext({
       applicationLabel: `${application.role} · ${application.company}`,
+      applicationId: application.id,
+      contactId: linkedContact?.id,
       contactLabel: linkedContact?.name || application.contactName || "",
       loadedFields: [recipientName && "recipient", recipientEmail && "email", application.company && "company", application.role && "role", userProfile.name && "sender", evidence && "evidence"].filter(Boolean) as string[],
     });
@@ -3001,8 +2904,7 @@ export default function Home() {
   }
 
   function openOutreachForContact(contact: Contact) {
-    const linkedApplication = applications.find((application) => application.id === contact.linkedApplicationId)
-      || applications.find((application) => contact.company && application.company.trim().toLowerCase() === contact.company.trim().toLowerCase() && isActiveApplicationStatus(application.status));
+    const linkedApplication = applications.find((application) => application.id === contact.linkedApplicationId);
     const relationship = contact.relationship.toLowerCase();
     const recipientType: MessageProfile["recipientType"] = /recruit/.test(relationship)
       ? "Recruiter"
@@ -3025,6 +2927,8 @@ export default function Home() {
       intent,
       recipientName: contact.name,
       recipientEmail: contact.email,
+      recipientRole: contact.role,
+      relationship: contact.relationship,
       company,
       role,
       senderName: userProfile.name,
@@ -3032,6 +2936,8 @@ export default function Home() {
     });
     setMessageContext({
       applicationLabel: linkedApplication ? `${linkedApplication.role} · ${linkedApplication.company}` : "",
+      applicationId: linkedApplication?.id,
+      contactId: contact.id,
       contactLabel: `${contact.name}${contact.company ? ` · ${contact.company}` : ""}`,
       loadedFields: [contact.name && "recipient", contact.email && "email", company && "company", role && "role", userProfile.name && "sender", evidence && "evidence"].filter(Boolean) as string[],
     });
@@ -3040,6 +2946,16 @@ export default function Home() {
     setShowEmailHandoff(false);
     setExpandedTools((current) => ({ ...current, studio: true, social: false, cv: false, interview: false, offer: false }));
     navigateToSection("message-studio");
+  }
+
+  function linkExistingContact(applicationId: string, contactId: string, linked: boolean) {
+    setApplications((items) => items.map(item => item.id === applicationId ? { ...item, linkedContactIds: linkContactIds(item.linkedContactIds, contactId, linked) } : item));
+    if (!linked) setContacts(items => items.map(item => item.id === contactId && item.linkedApplicationId === applicationId ? { ...item, linkedApplicationId: undefined } : item));
+  }
+
+  function saveAiEvidence(applicationId: string, text: string, requirementIds: string[]) {
+    recordActionEvent("evidence_added", applicationId, { count: requirementIds.length });
+    setApplications(items => items.map(item => item.id === applicationId ? { ...item, evidenceItems: [...(item.evidenceItems || []), { id: makeId("evidence"), applicationId, text, requirementIds }], requirementEvidence: item.requirementEvidence.map(requirement => requirement.id && requirementIds.includes(requirement.id) ? { ...requirement, evidence: [requirement.evidence, text].filter(Boolean).join("\n") } : requirement) } : item));
   }
 
   function openThankYouForApplication(application: Application) {
@@ -3056,6 +2972,8 @@ export default function Home() {
       tone: "Warm & professional",
       recipientName: application.contactName || linkedContact?.name || "",
       recipientEmail: linkedContact?.email || "",
+      recipientRole: linkedContact?.role || "",
+      relationship: linkedContact?.relationship || "",
       company: application.company,
       role: application.role,
       senderName: userProfile.name,
@@ -3063,6 +2981,8 @@ export default function Home() {
     });
     setMessageContext({
       applicationLabel: `${application.role} · ${application.company}`,
+      applicationId: application.id,
+      contactId: linkedContact?.id,
       contactLabel: linkedContact?.name || application.contactName || "",
       loadedFields: [application.company && "company", application.role && "role", (linkedContact?.name || application.contactName) && "recipient", linkedContact?.email && "email", application.interviewPreparation.thankYouHighlight.trim() && "interview highlight"].filter(Boolean) as string[],
     });
@@ -3086,15 +3006,39 @@ export default function Home() {
 
   function executeTodayPrimaryAction() {
     const action = nextBestActions[0];
-    if (!applications.length && !contacts.length) {
-      if (userProfile.usageIntent === "networking") openNewContact();
-      else if (userProfile.usageIntent && userProfile.usageIntent !== "skip") switchView("search");
+    if ((!applications.length && !contacts.length) || action?.id === "healthy") {
+      const target = goalAction(userProfile.usageIntent);
+      if (target === "connection") openNewContact();
+      else if (target === "target") setShowGoalTarget(true);
+      else if (target === "scan") switchView("search");
       else openNewApplication();
       return;
     }
     if (primaryActionApplication && action?.id.startsWith("app-plan-")) { openEditApplication(primaryActionApplication); return; }
     if (action) { executeNextBestAction(action); return; }
     navigateToSection(homepageAction.target);
+  }
+
+  function dismissTodayRecommendation() {
+    const action = nextBestActions[0];
+    if (!action || action.id === "healthy") return;
+    const reason = window.prompt(language === "he" ? "מה לא מתאים בהמלצה? (אופציונלי)" : "Why is this not useful? (optional)", "");
+    if (reason === null) return;
+    recordActionEvent("recommendation_dismissed", action.applicationId || action.contactId || "workspace");
+    setUserProfile((current) => ({ ...current, dismissedRecommendations: [...(current.dismissedRecommendations || []).slice(-99), { key: recommendationKey(action), reason: reason.slice(0, 200) }] }));
+    setShowTodayOverflow(false);
+  }
+
+  function completeContactAction(contact: Contact) {
+    setContacts(items => items.map(item => item.id === contact.id ? { ...item, nextAction: "", nextActionDue: "" } : item));
+    recordActionEvent("recommendation_completed", contact.id);
+  }
+
+  function snoozeContactAction(contact: Contact, days: number) {
+    const due = new Date();
+    due.setDate(due.getDate() + days);
+    setContacts(items => items.map(item => item.id === contact.id ? { ...item, nextActionDue: due.toISOString().slice(0, 10) } : item));
+    setShowTodayOverflow(false);
   }
 
   function executeAttentionAction(action: NextBestAction) {
@@ -3125,7 +3069,13 @@ export default function Home() {
   }
 
   function createOutreachDraft() {
+    if (!hasPersonalAnchor(messageProfile)) {
+      setNotice(language === "he" ? "הוסיפו סיבה ספציפית לשיחה או ערך רלוונטי ומבוסס, או חקרו תחילה את האדם והחברה." : "Add one specific reason for this conversation or concrete relevant value, or research the person/company first.");
+      document.getElementById("message-personal-anchor")?.focus();
+      return;
+    }
     setGeneratedMessage(generateOutreachMessage(messageProfile, language));
+    recordActionEvent("message_draft_created", messageContext?.applicationId || messageContext?.contactId || "draft", { method: "local_template" });
     setMessageSubjectDraft(messageSubject(messageProfile, language));
     setShowEmailHandoff(false);
     setNotice(language === "he" ? "טיוטת הפנייה נוצרה ואפשר לערוך כל מילה." : "Your outreach draft is ready, and every word remains editable.");
@@ -3139,6 +3089,7 @@ export default function Home() {
     const text = includeSubject ? `${language === "he" ? "נושא" : "Subject"}: ${messageSubjectDraft.trim()}\n\n${generatedMessage}` : generatedMessage;
     try {
       await navigator.clipboard.writeText(text);
+      recordActionEvent("message_draft_copied", messageContext?.applicationId || messageContext?.contactId || "draft");
       setNotice(includeSubject ? (language === "he" ? "הנושא וגוף ההודעה הועתקו. אפשר להדביק אותם בכל שירות דוא״ל." : "Subject and message copied. Paste them into any email service.") : (language === "he" ? "גוף ההודעה הועתק בדיוק כפי שנערך." : "The edited message was copied exactly."));
       return true;
     } catch {
@@ -3196,6 +3147,7 @@ export default function Home() {
     }
     const due = new Date();
     due.setDate(due.getDate() + 7);
+    recordActionEvent("follow_up_planned", match.id, { days: 7 });
     setApplications((items) => items.map((item) => item.id === match.id ? { ...item, nextStep: `Follow up on outreach to ${messageProfile.recipientName || messageProfile.recipientType.toLowerCase()}`, nextStepDue: due.toISOString().slice(0, 10) } : item));
     setNotice(language === "he" ? "פעולת המשך נוספה למועמדות לעוד שבעה ימים." : "Follow-up added to the matching application for seven days from now.");
   }
@@ -3281,13 +3233,19 @@ export default function Home() {
     try {
       const backup = JSON.parse(await file.text()) as { applications?: Partial<Application>[]; contacts?: (Partial<Contact> & { companyRole?: string })[]; resumes?: ResumeFile[]; searchProfile?: Partial<SearchProfile>; recoveryEntries?: RecoveryEntry[]; userProfile?: Partial<UserProfile> };
       if (!Array.isArray(backup.applications) || !Array.isArray(backup.contacts)) throw new Error("Invalid backup");
+      if (!backup.applications.every(item => isCompatibleRecord(item, emptyApplication) && (!item.requirementEvidence || item.requirementEvidence.every(row => row && typeof row.requirement === "string" && typeof row.evidence === "string")) && (!item.processStages || item.processStages.every(stage => isCompatibleRecord(stage, { name: "", date: "", note: "", nextTask: "" })))) || !backup.contacts.every(item => isCompatibleRecord(item, emptyContact))) throw new Error("Invalid record");
+      if (backup.searchProfile && !isCompatibleRecord(backup.searchProfile, emptySearchProfile)) throw new Error("Invalid search profile");
+      if (backup.userProfile && !isCompatibleRecord(backup.userProfile, emptyUserProfile)) throw new Error("Invalid user profile");
+      const restoredApplications = backup.applications.map(normalizeApplication);
+      const restoredContacts = backup.contacts.map(normalizeContact);
+      const restoredSearch = backup.searchProfile ? migrateSearchProfile(backup.searchProfile) : null;
       if (!window.confirm(language === "he" ? "שחזור הקובץ יחליף את המשרות ואנשי הקשר בסביבה הנוכחית. מומלץ להוריד גיבוי לפני ההחלפה. להמשיך?" : "Restoring replaces applications and contacts in this workspace. Download a backup first if needed. Continue?")) return;
-      setApplications(backup.applications.map(normalizeApplication));
-      setContacts(backup.contacts.map(normalizeContact));
+      setApplications(restoredApplications);
+      setContacts(restoredContacts);
       if (Array.isArray(backup.resumes)) setResumes(backup.resumes.slice(0, 6));
-      if (backup.searchProfile) setSearchProfile(migrateSearchProfile(backup.searchProfile));
+      if (restoredSearch) setSearchProfile(restoredSearch);
       if (Array.isArray(backup.recoveryEntries)) setRecoveryEntries(backup.recoveryEntries);
-      if (backup.userProfile) setUserProfile({ ...emptyUserProfile, ...backup.userProfile });
+      if (backup.userProfile) setUserProfile({ ...emptyUserProfile, ...backup.userProfile, usageIntent: normalizeUsageIntent(backup.userProfile.usageIntent) });
       if (Array.isArray((backup as { searchTasks?: SearchTask[] }).searchTasks)) setSearchTasks((backup as { searchTasks: SearchTask[] }).searchTasks);
       setNotice(language === "he" ? "הגיבוי שוחזר בהצלחה בסביבה הנוכחית." : "Backup restored in this workspace.");
     } catch {
@@ -3371,7 +3329,7 @@ export default function Home() {
     if (Array.isArray(payload.resumes)) setResumes(payload.resumes as ResumeFile[]);
     if (payload.searchProfile) setSearchProfile(migrateSearchProfile(payload.searchProfile as Partial<SearchProfile>));
     if (Array.isArray(payload.recoveryEntries)) setRecoveryEntries(payload.recoveryEntries as RecoveryEntry[]);
-    if (payload.userProfile) setUserProfile({ ...emptyUserProfile, ...(payload.userProfile as Partial<UserProfile>) });
+    if (payload.userProfile) setUserProfile({ ...emptyUserProfile, ...(payload.userProfile as Partial<UserProfile>), usageIntent: normalizeUsageIntent((payload.userProfile as Partial<UserProfile>).usageIntent) });
     if (Array.isArray(payload.actionEvents)) setActionEvents(payload.actionEvents as ActionEvent[]);
     if (Array.isArray(payload.searchTasks)) setSearchTasks(payload.searchTasks as SearchTask[]);
     if (["", "ready", "low", "difficult"].includes(payload.dailyMood)) setDailyMood(payload.dailyMood as DailyMood);
@@ -3380,6 +3338,8 @@ export default function Home() {
     setNotice(language === "he" ? "סביבת העבודה נטענה מהענן בהצלחה." : "Your workspace was restored from the cloud.");
   }
 
+  const goalStats = useMemo(() => goalMetrics(applications), [applications]);
+  const productMetrics = useMemo(() => localProductMetrics(actionEvents), [actionEvents]);
   const copy = uiCopy[language];
   const selectedResumeReadState = resumes.find((item) => item.id === selectedResumeId)?.readState;
   const statusLabel = (status: ApplicationStatus) => language === "he" ? ({
@@ -3457,7 +3417,7 @@ export default function Home() {
         </nav>
 
         <header className={`calm-view dashboard-v2 ${activeView !== "home" ? "calm-view-hidden" : ""}`} id="dashboard">
-          {applications.length === 0 && userProfile.usageIntent !== "skip" && <section className="usage-intent-card"><UsageIntentPicker intent={userProfile.usageIntent} language={language} onChange={(usageIntent) => setUserProfile((current) => ({ ...current, usageIntent }))} /></section>}
+          {applications.length === 0 && contacts.length === 0 && <section className="usage-intent-card"><UsageIntentPicker intent={userProfile.usageIntent} language={language} onChange={selectUsageGoal} /></section>}
           <div className="carvio-hero-top">
             <div className="dashboard-v2-greeting">
               <p>{language === "he" ? "בוקר טוב" : "Good morning"}{userProfile.name ? `, ${userProfile.name}` : ""}</p>
@@ -3474,6 +3434,7 @@ export default function Home() {
             </div>
           </div>
           <section className="dashboard-v2-today" aria-labelledby="dashboard-v2-today-title">
+            <button className="text-button" type="button" onClick={() => navigateToSection("preferences")}>{language === "he" ? "שינוי המטרה" : "Change goal"}</button>
             <div className="dashboard-v2-today-layout">
               <div className="dashboard-v2-today-content">
                 <p className="dashboard-v2-label"><Zap className="h-4 w-4" />{language === "he" ? "היום" : "Today"}</p>
@@ -3484,10 +3445,14 @@ export default function Home() {
                 </div>
                 <div className="dashboard-v2-today-actions">
                   <button className="dashboard-v2-primary" onClick={executeTodayPrimaryAction} type="button">{todayActionPresentation.cta}<ArrowUpRight className="h-4 w-4" /></button>
+                  {!applications.length && !contacts.length && userProfile.usageIntent === "active_search" && <button type="button" onClick={() => switchView("search")}>{language === "he" ? "חיפוש משרות ממוקד" : "Run a focused job search"}</button>}
                   {primaryActionApplication && todayActionPresentation.canComplete && <button onClick={() => completeApplicationAction(primaryActionApplication)} type="button"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "בוצע" : "Done"}</button>}
+                  {primaryActionContact?.nextAction.trim() && <button onClick={() => completeContactAction(primaryActionContact)} type="button"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "בוצע" : "Done"}</button>}
                   {(primaryActionApplication || primaryActionContact) && <div className="dashboard-v2-overflow" ref={todayOverflowRef}>
                     <button aria-expanded={showTodayOverflow} aria-haspopup="menu" aria-label={language === "he" ? "פעולות נוספות להמלצה" : "More recommendation actions"} className="dashboard-v2-more" onClick={() => setShowTodayOverflow((current) => !current)} type="button">•••</button>
                     {showTodayOverflow && <div className="dashboard-v2-overflow-menu" role="menu">
+                      <button role="menuitem" type="button" onClick={dismissTodayRecommendation}>{language === "he" ? "ההמלצה לא מתאימה לי" : "Dismiss recommendation"}</button>
+                      {primaryActionContact && <button role="menuitem" type="button" onClick={() => snoozeContactAction(primaryActionContact, 2)}>{language === "he" ? "דחייה ביומיים" : "Snooze 2 days"}</button>}
                       {primaryActionApplication && nextBestActions[0]?.intent !== "recover" && <button onClick={() => { snoozeApplication(primaryActionApplication, 2); setShowTodayOverflow(false); }} role="menuitem" type="button"><Clock3 className="h-4 w-4" />{language === "he" ? "דחייה ביומיים" : "Snooze 2 days"}</button>}
                       {primaryActionApplication && nextBestActions[0]?.intent !== "recover" && <button onClick={() => { snoozeApplication(primaryActionApplication, 7); setShowTodayOverflow(false); }} role="menuitem" type="button"><Clock3 className="h-4 w-4" />{language === "he" ? "דחייה בשבוע" : "Snooze 1 week"}</button>}
                       {primaryActionApplication && <button onClick={() => { setWorkspaceApplicationId(primaryActionApplication.id); setShowTodayOverflow(false); }} role="menuitem" type="button"><BriefcaseBusiness className="h-4 w-4" />{language === "he" ? "פתיחת סביבת המועמדות" : "Open workspace"}</button>}
@@ -3518,12 +3483,12 @@ export default function Home() {
 
           <section className={`dashboard-v2-section dashboard-v2-progress ${searchProgress.isEmpty ? "dashboard-v2-progress-empty" : ""}`} aria-labelledby="dashboard-progress-title">
             <div className="dashboard-v2-section-heading"><div><p className="dashboard-v2-label"><TrendingUp className="h-4 w-4" />{language === "he" ? "התקדמות בחיפוש" : "Search progress"}</p><h2 id="dashboard-progress-title">{searchProgress.isEmpty ? (language === "he" ? "ההתקדמות מתחילה כאן" : "Progress starts here") : (language === "he" ? "החיפוש שלך בתנועה" : "Your search is moving")}</h2></div><button onClick={() => switchView("more")} type="button">{language === "he" ? "לצפייה בתובנות" : "View insights"}<ArrowUpRight className="h-4 w-4" /></button></div>
-            <div className="dashboard-v2-progress-flow" aria-label={language === "he" ? "מסלול ההתקדמות בחיפוש" : "Job search progress flow"}>
+            <div className="dashboard-v2-progress-flow" style={userProfile.usageIntent && userProfile.usageIntent !== "unspecified" ? { display: "none" } : undefined} aria-label={language === "he" ? "מסלול ההתקדמות בחיפוש" : "Job search progress flow"}>
               <span><strong>{searchProgress.activeOpportunities}</strong><small>{language === "he" ? "הזדמנויות פעילות" : "active opportunities"}</small></span><ArrowRight className="h-4 w-4" />
               <span><strong>{searchProgress.conversations}</strong><small>{language === "he" ? "שיחות שתועדו" : "conversations"}</small></span><ArrowRight className="h-4 w-4" />
               <span><strong>{searchProgress.interviews}</strong><small>{language === "he" ? "הגיעו לראיון" : "reached interview"}</small></span>
             </div>
-            <p className="dashboard-v2-weekly"><TrendingUp className="h-4 w-4" />{searchProgress.statement}</p>
+            <p className="dashboard-v2-weekly"><TrendingUp className="h-4 w-4" />{userProfile.usageIntent === "better_role" ? `${language === "he" ? "תפקיד יעד" : "Target role"}: ${userProfile.targetRole || "—"} · ${userProfile.nonNegotiables || (language === "he" ? "הגדירו מה חשוב לכם" : "Define your priorities")}` : userProfile.usageIntent === "networking_focus" ? `${contacts.length} ${language === "he" ? "אנשי קשר" : "contacts"} · ${searchProgress.conversations} ${language === "he" ? "שיחות שתועדו" : "recorded conversations"}` : userProfile.usageIntent === "market_exploration" ? `${goalStats.roles} ${language === "he" ? "תפקידים" : "roles"} · ${goalStats.locations} ${language === "he" ? "מיקומים" : "locations"} · ${goalStats.companyRanges} ${language === "he" ? "טווחי שכר חברה שתועדו, ללא אימות" : "recorded company ranges, unverified"}${goalStats.recurringSkills.length ? ` · ${goalStats.recurringSkills.map(item => `${item.skill} (${item.count})`).join(", ")}` : ""}` : userProfile.usageIntent === "active_search" ? `${goalStats.assessed} ${language === "he" ? "נבחנו" : "assessed"} · ${goalStats.submitted} ${language === "he" ? "הוגשו" : "submitted"} · ${searchProgress.conversations} ${language === "he" ? "שיחות" : "conversations"} · ${searchProgress.interviews} ${language === "he" ? "ראיונות" : "interviews"}` : searchProgress.statement}</p>
           </section>
           </>}
         </header>
@@ -3824,19 +3789,22 @@ export default function Home() {
           {expandedTools.studio && (
           <div className="message-studio-workspace relative mt-6 grid gap-6">
             {messageContext && <div className="message-context-control"><span>{language === "he" ? "הפרטים הגיעו ממועמדות או מאיש קשר ונשארים בשליטתכם." : "These details came from an application or contact and remain under your control."}</span><button className="secondary-button" onClick={clearMessageContext} type="button">{language === "he" ? "התחלת הודעה ריקה" : "Start a blank message"}</button></div>}
+            <Field label={language === "he" ? "קישור הטיוטה למשרה (בחירה מפורשת)" : "Link draft to an application (explicit choice)"}><select className="form-control" value={messageContext?.applicationId || ""} onChange={(event) => { const selected = applications.find(item => item.id === event.target.value); setMessageContext(current => ({ applicationLabel: selected ? `${selected.role} · ${selected.company}` : "", contactLabel: current?.contactLabel || "", contactId: current?.contactId, applicationId: selected?.id, loadedFields: current?.loadedFields || [] })); if (selected) updateMessageProfile({ company: selected.company, role: selected.role }); }}><option value="">{language === "he" ? "ללא קישור" : "No linked application"}</option>{applications.filter(item => !messageProfile.company || item.company.trim().toLowerCase() === messageProfile.company.trim().toLowerCase()).map(item => <option key={item.id} value={item.id}>{item.role} · {item.company}</option>)}</select></Field>
             <div className="space-y-5">
               <fieldset><legend className="text-sm font-semibold text-slate-200">{language === "he" ? "1. למי פונים?" : "1. Who are you contacting?"}</legend><div aria-label={language === "he" ? "סוג הנמען" : "Recipient type"} className="message-choice-grid mt-3 grid grid-cols-2 gap-2" role="radiogroup">{([{"label":"Recruiter","emoji":"🧲"},{"label":"Hiring manager","emoji":"🎯"},{"label":"Referral","emoji":"🤝"},{"label":"Networking contact","emoji":"☕"}] as { label: MessageProfile["recipientType"]; emoji: string }[]).map((item) => <button aria-checked={messageProfile.recipientType === item.label} className={`choice-card ${messageProfile.recipientType === item.label ? "choice-card-active" : ""}`} key={item.label} onClick={() => updateMessageProfile({ recipientType: item.label })} role="radio" type="button"><span className="text-2xl" aria-hidden="true">{item.emoji}</span><span>{language === "he" ? ({ Recruiter: "מגייס או מגייסת", "Hiring manager": "מנהל או מנהלת מגייסת", Referral: "בקשת הפניה", "Networking contact": "איש קשר מקצועי" } as Record<MessageProfile["recipientType"], string>)[item.label] : item.label}</span></button>)}</div></fieldset>
               <fieldset><legend className="text-sm font-semibold text-slate-200">{language === "he" ? "2. מה מטרת הפנייה?" : "2. What do you want?"}</legend><div aria-label={language === "he" ? "מטרת הפנייה" : "Message goal"} className="message-pill-group mt-3 flex flex-wrap gap-2" role="radiogroup">{(["Introduce myself", "Ask for a referral", "Follow up after applying", "Request a conversation", "Thank them"] as MessageProfile["intent"][]).map((intent) => <button aria-checked={messageProfile.intent === intent} className={`message-pill ${messageProfile.intent === intent ? "message-pill-active" : ""}`} key={intent} onClick={() => updateMessageProfile({ intent })} role="radio" type="button">{language === "he" ? ({ "Introduce myself": "להציג את עצמי", "Ask for a referral": "לבקש הפניה", "Follow up after applying": "פעולת המשך לאחר הגשה", "Request a conversation": "לבקש שיחה", "Thank them": "להודות" } as Record<MessageProfile["intent"], string>)[intent] : intent}</button>)}</div></fieldset>
               <fieldset><legend className="text-sm font-semibold text-slate-200">{language === "he" ? "3. בחירת הטון" : "3. Choose your tone"}</legend><div aria-label={language === "he" ? "טון ההודעה" : "Message tone"} className="message-pill-group mt-3 flex flex-wrap gap-2" role="radiogroup">{(["Warm & professional", "Direct & confident", "Friendly & concise", "Senior & strategic"] as MessageProfile["tone"][]).map((tone) => <button aria-checked={messageProfile.tone === tone} className={`message-pill ${messageProfile.tone === tone ? "message-pill-active" : ""}`} key={tone} onClick={() => updateMessageProfile({ tone })} role="radio" type="button">{language === "he" ? ({ "Warm & professional": "חם ומקצועי", "Direct & confident": "ישיר ובטוח", "Friendly & concise": "ידידותי ותמציתי", "Senior & strategic": "בכיר ואסטרטגי" } as Record<MessageProfile["tone"], string>)[tone] : tone}</button>)}</div></fieldset>
               <div className="grid gap-4 sm:grid-cols-2"><Field label={language === "he" ? "שם הנמען" : "Recipient name"}><input className="form-control" onChange={(event) => updateMessageProfile({ recipientName: event.target.value })} placeholder="Dana" value={messageProfile.recipientName} /></Field><Field label={language === "he" ? "כתובת המייל של הנמען" : "Recipient email"}><input className="form-control" dir="ltr" onChange={(event) => updateMessageProfile({ recipientEmail: event.target.value })} placeholder="dana@company.com" type="email" value={messageProfile.recipientEmail} /></Field><Field label={language === "he" ? "חברה" : "Company"}><input className="form-control" onChange={(event) => updateMessageProfile({ company: event.target.value })} placeholder={language === "he" ? "שם החברה" : "Company name"} value={messageProfile.company} /></Field><Field label={language === "he" ? "תפקיד היעד" : "Target role"}><input className="form-control" onChange={(event) => updateMessageProfile({ role: event.target.value })} placeholder={language === "he" ? "שם התפקיד" : "Role title"} value={messageProfile.role} /></Field><Field label={language === "he" ? "השם שלך" : "Your name"}><input className="form-control" onChange={(event) => updateMessageProfile({ senderName: event.target.value })} placeholder={language === "he" ? "השם שלך" : "Your name"} value={messageProfile.senderName} /></Field><Field label={language === "he" ? "הערך המקצועי הרלוונטי ביותר" : "Your strongest relevant value"}><input className="form-control" onChange={(event) => updateMessageProfile({ value: event.target.value })} placeholder={language === "he" ? "לדוגמה: הובלת משאבי אנוש גלובלית" : "e.g. global HR leadership"} value={messageProfile.value} /></Field></div>
-              <Field label={language === "he" ? "הקשר אישי (אופציונלי)" : "Personal context (optional)"}><textarea className="form-control min-h-20 resize-y" onChange={(event) => updateMessageProfile({ context: event.target.value })} placeholder={language === "he" ? "קשר משותף, שיחה קודמת או סיבה ממוקדת לפנייה…" : "A shared connection, recent conversation, or specific reason for reaching out…"} value={messageProfile.context} /></Field>
+              <div className="grid gap-4 sm:grid-cols-2"><Field label={language === "he" ? "תפקיד איש הקשר — מ־Networking" : "Contact role — from Networking"}><input className="form-control" value={messageProfile.recipientRole || ""} onChange={event => updateMessageProfile({ recipientRole: event.target.value })} /></Field><Field label={language === "he" ? "הקשר עם האדם — מ־Networking" : "Relationship — from Networking"}><input className="form-control" value={messageProfile.relationship || ""} onChange={event => updateMessageProfile({ relationship: event.target.value })} /></Field></div>
+              <Field label={language === "he" ? "סיבה אישית לשיחה או שאלה ספציפית" : "Personal reason or specific question"}><textarea id="message-personal-anchor" className="form-control min-h-20 resize-y" onChange={(event) => updateMessageProfile({ context: event.target.value })} placeholder={language === "he" ? "קשר משותף, שיחה קודמת או סיבה ממוקדת לפנייה…" : "A shared connection, recent conversation, or specific reason for reaching out…"} value={messageProfile.context} /></Field>
               <button className="primary-button message-generate-button w-full sm:w-auto" onClick={createOutreachDraft} type="button"><WandSparkles className="h-4 w-4" /> {language === "he" ? "יצירת הפנייה" : "Create my message"}</button>
             </div>
             <div className="message-preview message-draft-panel">
               <div className="message-draft-heading"><div className="flex items-center gap-3"><div className="rounded-xl bg-pink-400/10 p-2.5 text-pink-300"><MessagesSquare className="h-5 w-5" /></div><div><h3 className="font-semibold">{language === "he" ? "טיוטת הפנייה שלך" : "Your outreach draft"}</h3><p className="text-xs text-slate-500">{language === "he" ? "הנושא וגוף ההודעה ניתנים לעריכה מלאה" : "Subject and message are fully editable"}</p></div></div>{generatedMessage && <span aria-live="polite" className="message-draft-count">{generatedMessage.trim() ? generatedMessage.trim().split(/\s+/).length : 0} {language === "he" ? "מילים" : "words"} · {generatedMessage.length} {language === "he" ? "תווים" : "characters"}</span>}</div>
               {generatedMessage ? <>
+                <aside className="message-application-context" aria-label={language === "he" ? "איך CARVIO עזר" : "How CARVIO helped"}><div><strong>{language === "he" ? "איך CARVIO עזר" : "How CARVIO helped"}</strong><p>{language === "he" ? "שימשו: פרטי הנמען, החברה, התפקיד והעוגן האישי שהזנתם. המידע שנטען מצוין מעל הטופס." : "Used: your recipient, company, role and personal anchor. Loaded sources are identified above the form."}</p><p>{language === "he" ? "לא אומת: ניסיון, פרטי משרה וטענות שבטקסט — יש לבדוק לפני העתקה." : "Not verified: experience, vacancy details and claims in the text — check before copying."}</p><p>{language === "he" ? "שיטת יצירה: תבנית מקומית. CARVIO לא שלח את ההודעה." : "Generation method: local template. CARVIO did not send this message."}</p></div></aside>
                 <label className="message-subject-field"><span>{language === "he" ? "נושא" : "Subject"}</span><input className="form-control" dir={language === "he" ? "rtl" : "ltr"} onChange={(event) => setMessageSubjectDraft(event.target.value)} value={messageSubjectDraft} /></label>
-                <textarea aria-label={language === "he" ? "טיוטת פנייה ניתנת לעריכה" : "Editable outreach message"} className="form-control message-draft-editor" dir={language === "he" ? "rtl" : "ltr"} onChange={(event) => setGeneratedMessage(event.target.value)} ref={messageDraftRef} value={generatedMessage} />
+                <textarea aria-label={language === "he" ? "טיוטת פנייה ניתנת לעריכה" : "Editable outreach message"} className="form-control message-draft-editor" dir={language === "he" ? "rtl" : "ltr"} onChange={(event) => { setGeneratedMessage(event.target.value); recordActionEvent("message_draft_edited", messageContext?.applicationId || messageContext?.contactId || "draft"); }} ref={messageDraftRef} value={generatedMessage} />
                 <div className="message-draft-actions">
                   <button className="secondary-button" onClick={() => { void copyMessageText(false); }} type="button"><Copy className="h-4 w-4" /> {language === "he" ? "העתקת ההודעה" : "Copy message"}</button>
                   <div className="email-handoff-control">
@@ -3904,6 +3872,7 @@ export default function Home() {
         </section>
 
         <section className={`calm-view panel overflow-hidden ${activeView !== "tools" || !expandedTools.cv ? "calm-view-hidden" : ""}`} id="cv-lab">
+          <details className="panel"><summary>{language === "he" ? "מיפוי ראיות למשרה" : "Map evidence to an application"}</summary><Field label={language === "he" ? "בחירת משרה לראיה" : "Choose an application for evidence"}><select className="form-control" value={cvEvidenceApplicationId} onChange={event => setCvEvidenceApplicationId(event.target.value)}><option value="">{language === "he" ? "בחירה" : "Choose"}</option>{applications.map(item => <option key={item.id} value={item.id}>{item.role} · {item.company}</option>)}</select></Field>{applications.filter(item => item.id === cvEvidenceApplicationId).map(item => <AiEvidenceForm key={item.id} language={language} requirements={item.requirementEvidence} onSave={(text, ids) => saveAiEvidence(item.id, text, ids)} />)}</details>
           <div className="section-heading tool-card-heading">
             <div className="tool-card-copy"><p className="eyebrow flex items-center gap-2 text-emerald-300"><FileText className="h-4 w-4" /> {copy.cv}</p><h2 className="section-title">{language === "he" ? "הפכו כל גרסה של קורות החיים לסיפור מקצועי חזק יותר" : "Turn every CV version into a stronger story"}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">{language === "he" ? "שמרו עד שש גרסאות, קבלו בדיקת מבנה פרטית ובנו שכתוב אמין בלי להמציא ניסיון." : "Keep up to six versions, receive a private structure review, and build a grounded rewrite without inventing experience."}</p></div>
             <figure className="tool-card-illustration tool-card-illustration-cv"><Image alt={language === "he" ? "איור של השוואת מספר גרסאות קורות חיים ושיפורן בהדרגה" : "Illustration of comparing several CV versions and improving them step by step"} fill sizes="(max-width: 767px) 92px, 176px" src="/carvio-cv-review-versions-v2.webp" /><span aria-hidden="true"><FileCheck2 className="h-4 w-4" /></span></figure>
@@ -4032,11 +4001,11 @@ export default function Home() {
 
           <p className="search-range-note">{language === "he" ? "טווח פרסום נבחר: " : "Selected posting window: "}{localizedSearchFilter(searchProfile.datePosted, language)}. {language === "he" ? "בחיפוש ראשון מתחילים בשבוע. סריקה חוזרת יכולה להתמקד ב־24 שעות, רק לפי בחירתכם." : "A first search starts with a week. Repeat scans can use 24 hours, only when you choose."}{searchProfile.lastSearchedAt && searchProfile.datePosted !== "Past 24 hours" && <button className="text-button" type="button" onClick={() => updateSearchProfile({ datePosted: "Past 24 hours" })}>{language === "he" ? "סריקה חוזרת: מעבר ל־24 שעות" : "Repeat scan: switch to 24 hours"}</button>}</p>
           {showSearchResults && searchDraftChanged && <div className="search-stale-notice" role="status"><p>{language === "he" ? "פרטי החיפוש השתנו. הקישור הקודם הוסר כדי שלא תפתחו חיפוש ישן." : "Search details changed. The previous link is hidden so you cannot open an outdated search."}</p><button type="button" className="primary-button" disabled={!resolvedSearch.role || !resolvedSearch.country || resolvedSearch.country === "Other"} onClick={runJobSearch}>{language === "he" ? "עדכון החיפוש" : "Update search"}</button></div>}
-          {showSearchResults && !searchDraftChanged && submittedSearchProfile && submittedSearch && <div aria-label={language === "he" ? "חיפוש LinkedIn מוכן" : "LinkedIn search ready"} className="search-results-shell" id="search-results" tabIndex={-1}><div className="search-results-heading"><div><p className="font-semibold text-slate-200">{language === "he" ? `הקישור לחיפוש מוכן` : `Your search link is ready`}</p><p className="text-sm text-slate-500">“{submittedSearch.role}” · {submittedSearch.location || submittedSearch.country} · {localizedSearchFilter(submittedSearchProfile.datePosted, language)}</p>{searchDraftChanged && <p className="search-draft-pending">{language === "he" ? "הפרטים השתנו. לחצו שוב על חיפוש כדי לעדכן את LinkedIn." : "The details changed. Search again to update LinkedIn."}</p>}</div><span><ShieldCheck className="h-4 w-4" />{language === "he" ? "שאילתה מוכנה לשליחה" : "Query ready to send"}</span></div><div className="search-source-grid">{submittedSearchSources.slice(0, 1).map((source, index) => <article className="search-source-card search-source-featured group" data-search-source="linkedin" key={source.name}><div className="flex items-center justify-between"><span className="search-source-icon" aria-hidden="true">{source.emoji}</span><span className="search-source-recommended">✓ {language === "he" ? "מומלץ" : "Recommended"}</span></div><h3 className="search-source-title">{source.name}</h3><div className="search-source-signals"><span>🕒 {source.freshness}</span><span>📍 {source.accuracy}</span></div><p className="search-source-description">{source.description}</p><SearchFilterNotice source={source} language={language} onCopy={() => { void copySearchQuery(source.query); }} /><div className="search-query-preview"><span>{language === "he" ? "מילות החיפוש שנשלחות" : "Keywords being sent"}</span><code dir="ltr">{source.query}</code></div><div className="search-source-actions"><button onClick={() => { void copySearchQuery(source.query); }} type="button"><Copy className="h-3.5 w-3.5" />{language === "he" ? "העתקה" : "Copy"}</button><a aria-label={language === "he" ? "פתיחת תוצאות LinkedIn" : "Open LinkedIn results"} className="search-source-open" data-testid={`search-route-${index}`} href={source.url} rel="noopener noreferrer" target="_blank">{language === "he" ? "פתיחת תוצאות LinkedIn" : "Open LinkedIn results"}<ArrowUpRight className="h-3.5 w-3.5" /></a></div></article>)}</div>
+          {showSearchResults && !searchDraftChanged && submittedSearchProfile && submittedSearch && <div aria-label={language === "he" ? "קישורי החיפוש מוכנים" : "Search links ready"} className="search-results-shell" id="search-results" tabIndex={-1}><div className="search-results-heading"><div><p className="font-semibold text-slate-200">{language === "he" ? `הקישור לחיפוש מוכן` : `Your search link is ready`}</p><p className="text-sm text-slate-500">“{submittedSearch.role}” · {submittedSearch.location || submittedSearch.country} · {localizedSearchFilter(submittedSearchProfile.datePosted, language)}</p>{searchDraftChanged && <p className="search-draft-pending">{language === "he" ? "הפרטים השתנו. לחצו שוב על חיפוש כדי לעדכן את LinkedIn." : "The details changed. Search again to update LinkedIn."}</p>}</div><span><ShieldCheck className="h-4 w-4" />{language === "he" ? "שאילתה מוכנה לשליחה" : "Query ready to send"}</span></div><div className="search-source-grid">{submittedSearchSources.filter((_, index) => index === 0 || index === 2).map((source, index) => <article className="search-source-card search-source-featured group" data-search-source={index === 0 ? "linkedin" : "broader"} key={source.name}><div className="flex items-center justify-between"><span className="search-source-icon" aria-hidden="true">{source.emoji}</span><span className="search-source-recommended">✓ {language === "he" ? "מומלץ" : "Recommended"}</span></div><h3 className="search-source-title">{index === 0 ? "LinkedIn" : (language === "he" ? "מקורות רשמיים ורחבים יותר" : "Official and broader sources")}</h3><div className="search-source-signals"><span>🕒 {source.freshness}</span><span>📍 {source.accuracy}</span></div><p className="search-source-description">{source.description}</p>{index === 0 ? <SearchFilterNotice source={source} language={language} onCopy={() => { void copySearchQuery(source.query); }} /> : <p>{language === "he" ? "חיפוש Google למציאת מודעות ואתרי קריירה. אין אימות שהמקורות רשמיים או שהמשרות פעילות." : "Google web search for listings and career pages. Official ownership and active vacancies are not verified."}</p>}<div className="search-query-preview"><span>{language === "he" ? "מילות החיפוש שנשלחות" : "Keywords being sent"}</span><code dir="ltr">{source.query}</code></div><div className="search-source-actions"><button onClick={() => { void copySearchQuery(source.query); }} type="button"><Copy className="h-3.5 w-3.5" />{language === "he" ? "העתקה" : "Copy"}</button><a aria-label={index === 0 ? (language === "he" ? "חיפוש LinkedIn" : "Search LinkedIn") : (language === "he" ? "חיפוש רחב ב־Google" : "Search broader sources")} className="search-source-open" data-testid={`search-route-${index}`} onClick={() => recordActionEvent("search_opened_by_source", "search", { sourceType: index === 0 ? "LinkedIn" : "Google" })} href={source.url} rel="noopener noreferrer" target="_blank">{index === 0 ? (language === "he" ? "חיפוש LinkedIn" : "Search LinkedIn") : (language === "he" ? "חיפוש רחב ב־Google" : "Search broader sources")}<ArrowUpRight className="h-3.5 w-3.5" /></a></div>{index === 1 && <details><summary>{language === "he" ? "מקורות נוספים" : "More sources"}</summary><a href={officialSearchUrl(submittedSearchProfile)} target="_blank" rel="noopener noreferrer">{language === "he" ? "איתור אתרי קריירה" : "Find company career pages"}</a><p>{language === "he" ? "אפשר גם לשמור קישור ידנית ולבחור מקור: הפניה, מגייס או אחר." : "You can also save a link manually and select Referral, Recruiter or Other."}</p></details>}</article>)}</div>
           {showCompanySearchLeads && <section className="job-inbox"><div className="job-inbox-heading"><div><p className="eyebrow text-emerald-300">{language === "he" ? "תיבת המשרות" : "Job inbox"}</p><h3>{language === "he" ? "נקודות פתיחה מותאמות לפרופיל שלך" : "Profile-matched starting points"}</h3><p>{language === "he" ? "Carvio מרכז מסלולי חיפוש ממוקדים, מסיר כפילויות ומאפשר לשמור כל הזדמנות. יש לאמת שהמשרה פעילה באתר המקור." : "Carvio organizes focused search leads, removes duplicates, and lets you save each opportunity. Always verify availability at the source."}</p></div><span>{jobInbox.length} {language === "he" ? "הצעות" : "leads"}</span></div><div className="job-inbox-list">{jobInbox.map((item) => { const saved = applications.some((application) => application.company.toLowerCase() === item.company.toLowerCase() && application.role.toLowerCase() === item.role.toLowerCase()); return <article className="job-inbox-card" key={item.id}><div className="job-inbox-logo">{item.company.slice(0, 1)}</div><div className="job-inbox-main"><div><strong>{item.role}</strong><span>{item.company} · {item.location}</span></div><p><span>🎯 {item.match}% {language === "he" ? "התאמה" : "match"}</span><span>🕒 {item.posted}</span><span>🔗 {item.source}</span></p><small>{item.reason}</small></div><div className="job-inbox-actions">{saved ? <span className="job-inbox-saved"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "במועמדויות" : "In Applications"}</span> : <><button onClick={() => saveInboxJob(item)} type="button"><Plus className="h-4 w-4" />{language === "he" ? "שמירה" : "Save"}</button><button onClick={() => saveInboxJob(item, true)} type="button">{language === "he" ? "כבר הגשתי" : "Already applied"}</button></>}<a href={item.url} rel="noreferrer" target="_blank">{language === "he" ? "בדיקה במקור" : "Verify & apply"}<ArrowUpRight className="h-4 w-4" /></a><button aria-label={language === "he" ? "הסתרת ההצעה" : "Hide lead"} onClick={() => setHiddenJobIds((items) => [...items, item.id])} type="button"><X className="h-4 w-4" /></button></div></article>; })}</div></section>}
           <div className="search-honesty-note"><CircleAlert className="h-5 w-5" /><div><strong>{language === "he" ? "מדוע עדיין חשוב לבדוק את המשרה?" : "Why should you still verify the listing?"}</strong><p>{language === "he" ? "Carvio שולח את השאילתה והמסננים המוצגים למעלה, אך אינו שולט בדירוג החיצוני. אם LinkedIn מציג “No matching jobs found”, השורות הממומנות או “Jobs you may be interested in” שמתחת אינן תוצאות של חיפוש Carvio ואין להתייחס אליהן כהתאמות. גם Indeed ו־Google עשויים להוסיף המלצות או תוצאות קרובות." : "Carvio sends the query and filters shown above but does not control external ranking. If LinkedIn says “No matching jobs found,” sponsored rows or “Jobs you may be interested in” below it are not Carvio search matches. Indeed and Google may also add nearby or personalized suggestions."}</p></div></div></div>}
           {showSearchResults && !searchDraftChanged && submittedSearchProfile && <section aria-live="polite" className={`search-outcome-panel search-outcome-${searchOutcome}`}>
-            {searchOutcome !== "found" && <div><strong>{language === "he" ? "מה מצאתם במקור החיצוני?" : "What did you find in the external source?"}</strong><p>{language === "he" ? "מצאתם משרה ב־LinkedIn? העתיקו את הקישור למודעה, חזרו לכאן ובחרו שמירת משרה מקישור." : "Found a role on LinkedIn? Copy the listing URL, return here and choose Save a job from a link."}</p></div>}
+            {searchOutcome !== "found" && <div><strong>{language === "he" ? "מה מצאתם במקור החיצוני?" : "What did you find in the external source?"}</strong><p>{language === "he" ? "מצאתם משרה במקור החיצוני? העתיקו את הקישור למודעה, חזרו לכאן ובחרו שמירת משרה מקישור." : "Found a role at the external source? Copy the listing URL, return here and choose Save a job from a link."}</p></div>}
             {searchOutcome === "unreviewed" && <div className="search-outcome-actions"><button className="primary-button" onClick={() => setShowSmartCapture(true)} type="button"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "שמירת משרה מקישור" : "Save a job from a link"}</button><button className="secondary-button" onClick={() => setSearchOutcome("none")} type="button"><Search className="h-4 w-4" />{language === "he" ? "לא נמצאו תוצאות מדויקות" : "No exact results"}</button></div>}
             {searchOutcome === "found" && <div className="search-outcome-resolution"><CheckCircle2 className="h-5 w-5" /><div><strong>{language === "he" ? "המשרה נשמרה במועמדויות." : "Your job is saved in Applications."}</strong><p>{language === "he" ? "פתחו אותה כדי לבדוק את הפרטים ולקדם את הפעולה הבאה." : "Open it to review the details and move your next action forward."}</p></div><button className="primary-button" onClick={() => { setActiveView("applications"); if (applications.some((item) => item.id === lastCapturedApplicationId)) setWorkspaceApplicationId(lastCapturedApplicationId); }} type="button">{language === "he" ? "פתיחת המשרה שנשמרה" : "Open saved job"}<ArrowRight className="h-4 w-4" /></button></div>}
             {searchOutcome === "none" && <div className="search-outcome-resolution search-outcome-empty"><CircleAlert className="h-5 w-5" /><div><strong>{safeBroadeningLabel || (language === "he" ? "החיפוש כבר רחב" : "Search is already broad")}</strong><p>{language === "he" ? "נשנה בכל פעם מסנן אחד בלבד, נריץ מחדש ונשאיר את שם התפקיד ללא שינוי." : "We will change one filter at a time, rerun the search, and keep the target role unchanged."}</p></div>{safeBroadeningLabel ? <button className="search-broaden-button" onClick={runBroadenedSearch} type="button">{safeBroadeningLabel}<span>{language === "he" ? "והרצה מחדש" : "and rerun"}</span></button> : <button className="secondary-button" onClick={() => setSearchOutcome("unreviewed")} type="button">{language === "he" ? "חזרה למסלולי החיפוש" : "Back to search routes"}</button>}</div>}
@@ -4045,6 +4014,8 @@ export default function Home() {
         </section>
 
         <section className={`calm-view panel ${activeView !== "more" || insightPanel !== "analytics" ? "calm-view-hidden" : ""}`} id="analytics">
+          <details className="panel"><summary>{language === "he" ? "מדידת שימוש מקומית ושקופה" : "Transparent local usage measurement"}</summary><p>{language === "he" ? "נמדדות רק פעולות שתועדו מאז הפעלת המדידה במכשיר. אין תוכן קורות חיים או הודעות באירועים. זו אינה תמונת פעילות מלאה של החשבון." : "Only events recorded since instrumentation on this device are measured. Events contain no CV or message content. This is not a complete account activity history."}</p><p>{productMetrics.activatedSessions}/{productMetrics.sessions} {language === "he" ? "ביקורים מתועדים כללו פעולה משמעותית" : "recorded sessions included a meaningful action"}</p><p>{language === "he" ? "זמן לפעולה הראשונה בביקור המתועד הראשון:" : "Time to first meaningful action in the first recorded session:"} {productMetrics.firstMeaningfulSeconds === null ? "—" : `${Math.round(productMetrics.firstMeaningfulSeconds)}s`}</p><p>{language === "he" ? "פעולה משמעותית נוספת בין יום לשבעה ימים:" : "Another meaningful action between 1 and 7 days:"} {productMetrics.returnedWithinSevenDays === null ? (language === "he" ? "טרם הושלם חלון המדידה" : "observation window incomplete") : productMetrics.returnedWithinSevenDays ? (language === "he" ? "תועדה" : "recorded") : (language === "he" ? "לא תועדה" : "not recorded")}</p><p>{language === "he" ? "השלמות מתוך החלטות המלצה שתועדו (הושלם או הוסתר):" : "Completions among recorded recommendation decisions (completed or dismissed):"} {productMetrics.completed}/{productMetrics.completed + productMetrics.dismissed}{productMetrics.decisionRate === null ? "" : ` · ${Math.round(productMetrics.decisionRate * 100)}%`}</p></details>
+          {applications.length > 0 && <details className="panel"><summary>{language === "he" ? "תוצאות לפי מקור בחיפוש שתיעדתם" : "Source outcomes in your tracked search"}</summary><p>{language === "he" ? "נדרשות לפחות 5 הגשות למקור להצגת שיעור ראיונות. הנתונים מתארים רק את מה שתיעדתם, לא את איכות המקור באופן כללי." : "Interview rates require at least 5 submitted applications per source. These describe your recorded search, not source quality in general."}</p>{sourceOutcomes(applications).map(row => <div key={row.source}><strong>{row.source}</strong><p>{row.opportunities} {language === "he" ? "הזדמנויות" : "opportunities"} · {row.submitted} {language === "he" ? "הוגשו" : "submitted"} · {row.interviews} {language === "he" ? "הגיעו לראיון" : "reached interview"}{row.rate !== null ? ` · ${Math.round(row.rate * 100)}% (${row.interviews}/${row.submitted})` : (language === "he" ? " · המדגם קטן מדי לחישוב שיעור" : " · sample too small for a rate")}</p></div>)}</details>}
           <div className="insights-command">
             <div className="insights-command-copy">
               <p className="eyebrow flex items-center gap-2 text-violet-300"><TrendingUp className="h-4 w-4" /> {language === "he" ? "תמונת מצב" : "Search snapshot"}</p>
@@ -4167,7 +4138,7 @@ export default function Home() {
         </section>
 
         <section className={`calm-view panel ${activeView !== "more" || insightPanel !== "preferences" ? "calm-view-hidden" : ""}`} id="preferences">
-          <UsageIntentPicker intent={userProfile.usageIntent} language={language} onChange={(usageIntent) => setUserProfile((current) => ({ ...current, usageIntent }))} />
+          <UsageIntentPicker intent={userProfile.usageIntent} language={language} onChange={selectUsageGoal} />
           <div className="section-heading"><div><p className="eyebrow text-cyan-300">{copy.preferences}</p><h2 className="section-title">{copy.preferencesTitle}</h2></div><span className="text-3xl" aria-hidden="true">⚙️</span></div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <button className="calm-setting-button" onClick={() => setShowAppearance(!showAppearance)} type="button"><Palette className="h-5 w-5 text-cyan-300" /><span><strong>{copy.appearance}</strong><small>{copy.appearanceHelp}</small></span></button>
@@ -4228,6 +4199,12 @@ export default function Home() {
         </Modal>
       )}
 
+      {showGoalTarget && <Modal title={language === "he" ? "ההזדמנות הבאה שלי" : "My next opportunity"} onClose={() => setShowGoalTarget(false)} closeLabel={language === "he" ? "סגירה" : "Close"}>
+        <Field label={language === "he" ? "תפקיד יעד" : "Target role"}><input className="form-control" value={userProfile.targetRole} onChange={(event) => setUserProfile((current) => ({ ...current, targetRole: event.target.value }))} /></Field>
+        <Field label={language === "he" ? "מה חשוב לי ולא ארצה להתפשר עליו?" : "What are my non-negotiables?"}><textarea className="form-control" value={userProfile.nonNegotiables || ""} onChange={(event) => setUserProfile((current) => ({ ...current, nonNegotiables: event.target.value }))} /></Field>
+        <p>{language === "he" ? "היעדים נשמרים בפרופיל. בחירתם אינה משנה מסנני חיפוש או משרות קיימות." : "Saved to your profile; this does not change search filters or existing jobs."}</p>
+        <button type="button" className="primary-button" onClick={() => setShowGoalTarget(false)}>{language === "he" ? "סיום ושמירה" : "Done and saved"}</button>
+      </Modal>}
       {showSmartCapture && (
         <Modal title={smartCaptureStep === "success" ? (language === "he" ? "המשרה נשמרה" : "Job saved") : (language === "he" ? "שמירת משרה ב־CARVIO" : "Save a job to CARVIO")} description={smartCaptureStep === "link" ? (language === "he" ? "הדביקו קישור למשרה. בשלב הבא תבדקו את הפרטים לפני השמירה." : "Paste a job link. You will review the details before saving.") : smartCaptureStep === "review" ? (language === "he" ? "בדקו רק את הפרטים החשובים. אפשר להשלים את השאר בהמשך." : "Review only the essentials. You can complete everything else later.") : (language === "he" ? "ההזדמנות נוספה ל־CARVIO." : "The opportunity is now in CARVIO.")} closeLabel={language === "he" ? "סגירת החלון" : "Close modal"} onClose={resetSmartCapture}>
           <div className="smart-capture">
@@ -4243,6 +4220,7 @@ export default function Home() {
             </> : smartCaptureStep === "review" ? <>
               <div className="smart-capture-review-heading"><CheckCircle2 className="h-5 w-5" /><div><strong>{language === "he" ? "הקישור נקלט" : "Link captured"}</strong><small>{applicationDraft.source} · {language === "he" ? "בדקו ותקנו לפי הצורך" : "Review and correct as needed"}</small></div></div>
               <div className="smart-capture-review-grid">
+                <Field label={language === "he" ? "מקור (ניתן לתיקון)" : "Source (editable)"}><input list="capture-source-options" className="form-control" value={applicationDraft.source} onChange={(event) => setApplicationDraft((current) => ({ ...current, source: event.target.value }))} /><datalist id="capture-source-options">{["LinkedIn", "Google", "Company careers", "Manual", "Referral", "Recruiter", "Other"].map(source => <option key={source} value={source} />)}</datalist></Field>
                 <Field label={language === "he" ? "תפקיד (חובה)" : "Role (required)"}><input autoFocus id="capture-role" aria-invalid={Boolean(smartCaptureError) && !applicationDraft.role.trim()} aria-describedby={smartCaptureError ? "capture-error" : undefined} className="form-control" onChange={(event) => { setApplicationDraft((current) => ({ ...current, role: event.target.value })); setSmartCaptureError(""); }} placeholder={language === "he" ? "למשל Senior HR Business Partner" : "e.g. Senior HR Business Partner"} value={applicationDraft.role} /></Field>
                 <Field label={language === "he" ? "חברה (חובה)" : "Company (required)"}><input id="capture-company" aria-invalid={Boolean(smartCaptureError) && !applicationDraft.company.trim()} aria-describedby={smartCaptureError ? "capture-error" : undefined} className="form-control" onChange={(event) => { setApplicationDraft((current) => ({ ...current, company: event.target.value })); setSmartCaptureError(""); }} placeholder={language === "he" ? "שם החברה" : "Company name"} value={applicationDraft.company} /></Field>
                 <Field label={language === "he" ? "מיקום (אופציונלי)" : "Location (optional)"}><input className="form-control" onChange={(event) => setApplicationDraft((current) => ({ ...current, location: event.target.value }))} placeholder={language === "he" ? "עיר או אזור" : "City or area"} value={applicationDraft.location} /></Field>
@@ -4301,13 +4279,18 @@ export default function Home() {
             <header><span aria-hidden="true" className={`application-company-logo ${workspaceApplication.logoUrl ? "application-company-logo-image" : ""}`} style={workspaceApplication.logoUrl ? { backgroundImage: `url("${workspaceApplication.logoUrl}")` } : undefined}>{workspaceApplication.logoUrl ? "" : workspaceApplication.company.slice(0, 1)}</span><div><span className={statusStyles[workspaceApplication.status]}>{statusLabel(workspaceApplication.status)}</span><h3>{workspaceApplication.role}</h3><p>{workspaceApplication.company}{workspaceApplication.location ? ` · ${workspaceApplication.location}` : ""}</p></div><i className={trafficLightMeta[workspaceApplication.trafficLight].dot} /></header>
             <section className="workspace-next-action"><div><span>⚡ {language === "he" ? "הפעולה המומלצת עכשיו" : "Recommended now"}</span><strong>{workspaceApplication.nextStep || (language === "he" ? "הגדירו את הצעד הבא" : "Define the next move")}</strong><small>{workspaceApplication.nextStepDue ? formatDate(workspaceApplication.nextStepDue) : (language === "he" ? "ללא תאריך יעד" : "No due date")}</small><p className="workspace-action-reason"><CircleHelp className="h-4 w-4" /><span><b>{language === "he" ? "למה עכשיו?" : "Why this?"}</b>{workspaceActionReason(workspaceApplication, language)}</span></p></div><div className="workspace-primary-action"><button className="workspace-action-primary" onClick={() => workspaceApplication.nextStep ? completeApplicationAction(workspaceApplication) : openEditApplication(workspaceApplication)} type="button">{workspaceApplication.nextStep ? <CheckCircle2 className="h-4 w-4" /> : <Plus className="h-4 w-4" />}{workspaceApplication.nextStep ? (language === "he" ? "סימון כבוצע" : "Mark done") : (language === "he" ? "הגדרת פעולה" : "Set action")}</button></div></section>
             <section className="workspace-snapshot" aria-label={language === "he" ? "תמונת מצב" : "Opportunity snapshot"}><div><span>{language === "he" ? "שלב" : "Stage"}</span><strong>{statusLabel(workspaceApplication.status)}</strong></div><div><span>{language === "he" ? "עדיפות" : "Priority"}</span><strong>{workspaceApplication.priority || (language === "he" ? "לא הוגדרה" : "Not set")}</strong></div><div><span>{language === "he" ? "מקור" : "Source"}</span><strong>{workspaceApplication.source || (language === "he" ? "לא צוין" : "Not provided")}</strong></div><div><span>{language === "he" ? "מודל עבודה" : "Work model"}</span><strong>{workspaceApplication.workModel || (language === "he" ? "לא צוין" : "Not provided")}</strong></div></section>
+            {safeSourceUrl(workspaceApplication.sourceUrl || workspaceApplication.jobUrl) && <a className="text-button" href={safeSourceUrl(workspaceApplication.sourceUrl || workspaceApplication.jobUrl)} target="_blank" rel="noopener noreferrer">{language === "he" ? "אימות במקור" : "Verify at source"}<ExternalLink className="h-4 w-4" /></a>}
             <details className="workspace-more-context">
               <summary><span><strong>{language === "he" ? "פרטים וכלים נוספים" : "More details and tools"}</strong><small>{language === "he" ? "מוכנות, ציר זמן, אנשי קשר, הכנה והערות" : "Readiness, timeline, contacts, preparation, and notes"}</small></span><ChevronDown className="h-5 w-5" /></summary>
+              <button className="text-button" type="button" onClick={() => setApplications(items => items.map(item => item.id === workspaceApplication.id ? { ...item, assessedAt: new Date().toISOString() } : item))}>{workspaceApplication.assessedAt ? (language === "he" ? "ההזדמנות סומנה כנבחנה" : "Opportunity marked assessed") : (language === "he" ? "סימון ההזדמנות כנבחנה" : "Mark opportunity assessed")}</button>
+              <section aria-label={language === "he" ? "מוכנות לפי משימה" : "Readiness by task"}><h4>{language === "he" ? "מה אפשר לעשות עם המידע שנשמר?" : "What can you do with the saved information?"}</h4><p>{language === "he" ? "אלה תנאים למעקב, בחינה והכנה — לא ציון התאמה או המלצה לקבל החלטה מסוימת." : "These are prerequisites for tracking, assessment and preparation — not a fit score or a recommendation to make a particular decision."}</p>{readinessStates(workspaceApplication).map(state => <div key={state.key}><strong>{language === "he" ? ({track:"מספיק למעקב",decide:"מספיק לבחינת החלטה",tailor:"מספיק להתאמה למשרה",interview:"מוכן להתחלת הכנה לראיון"} as Record<string,string>)[state.key] : state.label}</strong><p>{state.ready ? (language === "he" ? "המידע הבסיסי קיים; עדיין יש לבדוק את נכונותו." : "The basic information is available; verify its accuracy.") : (language === "he" ? "כדי להתקדם, השלימו: " : "To proceed, add: ") + state.missing.map(field => language === "he" ? ({company:"חברה",role:"תפקיד",source:"מקור",description:"תיאור משרה",requirements:"דרישות",evidence:"ראיה קונקרטית"} as Record<string,string>)[field] : field).join(", ")}</p></div>)}</section>
+              <AiEvidenceForm key={workspaceApplication.id} language={language} requirements={workspaceApplication.requirementEvidence} onSave={(text, ids) => saveAiEvidence(workspaceApplication.id, text, ids)} />
+              <section><h4>{language === "he" ? "קישורים מפורשים למשרה" : "Explicit application links"}</h4><Field label={language === "he" ? "קישור איש קשר קיים" : "Link an existing contact"}><select className="form-control" value="" onChange={(event) => { if (event.target.value) linkExistingContact(workspaceApplication.id, event.target.value, true); }}><option value="">{language === "he" ? "בחירת איש קשר — ללא יצירה כפולה" : "Choose a contact — no duplicate record"}</option>{contacts.filter(contact => !workspaceApplication.linkedContactIds?.includes(contact.id)).map(contact => <option key={contact.id} value={contact.id}>{contact.name} · {contact.company}</option>)}</select></Field>{contacts.filter(contact => workspaceApplication.linkedContactIds?.includes(contact.id) || contact.linkedApplicationId === workspaceApplication.id).map(contact => <button className="text-button" type="button" key={contact.id} onClick={() => linkExistingContact(workspaceApplication.id, contact.id, false)}>{language === "he" ? "ניתוק הקישור בלבד:" : "Unlink only:"} {contact.name}</button>)}<Field label={language === "he" ? "גרסת קורות חיים למשרה" : "CV version for this application"}><select className="form-control" value={workspaceApplication.linkedResumeId || ""} onChange={(event) => setApplications(items => items.map(item => item.id === workspaceApplication.id ? { ...item, linkedResumeId: event.target.value || undefined } : item))}><option value="">{language === "he" ? "ללא קישור" : "No linked CV"}</option>{resumes.map(resume => <option key={resume.id} value={resume.id}>{resume.name}</option>)}</select></Field></section>
               <div className="workspace-quick-tools"><button onClick={() => snoozeApplication(workspaceApplication)} type="button"><Clock3 className="h-4 w-4" />{language === "he" ? "דחיית הפעולה" : "Snooze action"}</button><button onClick={() => openOutreachForApplication(workspaceApplication)} type="button"><MessagesSquare className="h-4 w-4" />{language === "he" ? "כתיבת הודעה" : "Write message"}</button></div>
               <div className="workspace-grid">
-              {workspaceOfferReadiness && <section className="workspace-offer-readiness"><div className="workspace-section-heading"><div><h4><Scale className="h-4 w-4" />{language === "he" ? "מוכנות להחלטה" : "Offer readiness"}</h4><small>{language === "he" ? "הציון משקף שלמות ותזמון בלבד — לא את איכות ההצעה." : "Readiness reflects completeness and timing—not offer quality."}</small></div><strong className="workspace-evidence-score">{workspaceOfferReadiness.score}%</strong></div><div className="offer-readiness-state"><strong>{workspaceOfferReadiness.state}</strong>{workspaceApplication.offerDetails.responseDeadline && <span>{language === "he" ? "מועד החלטה" : "Decision deadline"}: {formatDate(workspaceApplication.offerDetails.responseDeadline)}</span>}</div>{workspaceOfferReadiness.missingLabels.length > 0 && <p className="workspace-snapshot-missing"><CircleAlert className="h-4 w-4" />{language === "he" ? `חסר: ${workspaceOfferReadiness.missingLabels.slice(0, 3).join(", ")}` : `Missing: ${workspaceOfferReadiness.missingLabels.slice(0, 3).join(", ")}`}</p>}<button className="text-button workspace-offer-action" onClick={() => { setWorkspaceApplicationId(null); openEditApplication(workspaceApplication); }} type="button"><Pencil className="h-4 w-4" />{workspaceOfferReadiness.score ? (language === "he" ? "עריכת תנאי ההצעה" : "Edit offer terms") : (language === "he" ? "הוספת תנאי הצעה" : "Add offer terms")}</button></section>}
+              {workspaceOfferReadiness && <section className="workspace-offer-readiness"><div className="workspace-section-heading"><div><h4><Scale className="h-4 w-4" />{language === "he" ? "מוכנות להחלטה" : "Offer readiness"}</h4><small>{language === "he" ? "בדיקה של התנאים שנשמרו ושל מועד ההחלטה — לא דירוג של איכות ההצעה." : "Readiness reflects completeness and timing—not offer quality."}</small></div><strong className="workspace-evidence-score">{workspaceOfferReadiness.missingLabels.length ? (language === "he" ? "חסרים תנאים" : "Terms missing") : (language === "he" ? "התנאים הבסיסיים תועדו" : "Basic terms recorded")}</strong></div><div className="offer-readiness-state"><strong>{workspaceOfferReadiness.state}</strong>{workspaceApplication.offerDetails.responseDeadline && <span>{language === "he" ? "מועד החלטה" : "Decision deadline"}: {formatDate(workspaceApplication.offerDetails.responseDeadline)}</span>}</div>{workspaceOfferReadiness.missingLabels.length > 0 && <p className="workspace-snapshot-missing"><CircleAlert className="h-4 w-4" />{language === "he" ? `חסר: ${workspaceOfferReadiness.missingLabels.slice(0, 3).join(", ")}` : `Missing: ${workspaceOfferReadiness.missingLabels.slice(0, 3).join(", ")}`}</p>}<button className="text-button workspace-offer-action" onClick={() => { setWorkspaceApplicationId(null); openEditApplication(workspaceApplication); }} type="button"><Pencil className="h-4 w-4" />{workspaceOfferReadiness.score ? (language === "he" ? "עריכת תנאי ההצעה" : "Edit offer terms") : (language === "he" ? "הוספת תנאי הצעה" : "Add offer terms")}</button></section>}
               {workspaceNegotiation && <section className="workspace-negotiation"><div className="workspace-section-heading"><div><h4><MessagesSquare className="h-4 w-4" />{language === "he" ? "משא ומתן והחלטה" : "Negotiation & decision"}</h4><small>{language === "he" ? "תיעוד עובדתי של מה שביקשתם ומה שסוכם — ללא המלצה אוטומטית." : "A factual record of what you requested and what was agreed—without an automated recommendation."}</small></div><span className={`decision-pill decision-${workspaceApplication.offerDetails.decisionOutcome.toLowerCase().replaceAll(" ", "-")}`}>{offerDecisionLabel(workspaceApplication.offerDetails.decisionOutcome, language)}</span></div><div className="negotiation-summary"><div><strong>{workspaceNegotiation.tracked}</strong><span>{language === "he" ? "נושאים במעקב" : "topics tracked"}</span></div><div><strong>{workspaceNegotiation.active}</strong><span>{language === "he" ? "בדיון" : "in discussion"}</span></div><div><strong>{workspaceNegotiation.resolved}</strong><span>{language === "he" ? "הוכרעו" : "resolved"}</span></div></div>{workspaceNegotiation.tracked > 0 ? <div className="negotiation-topic-list">{workspaceApplication.offerDetails.negotiationTopics.filter((item) => item.status !== "Not discussed" || item.target.trim() || item.outcome.trim()).map((item) => <article key={item.id}><div><strong>{negotiationTopicLabel(item.topic, language)}</strong><span className={`negotiation-status status-${item.status.toLowerCase().replaceAll(" ", "-")}`}>{negotiationStatusLabel(item.status, language)}</span></div><p>{item.original && <span>{language === "he" ? "מקורי" : "Original"}: {item.original}</span>}{item.target && <span>{language === "he" ? "יעד" : "Target"}: {item.target}</span>}{item.outcome && <span>{language === "he" ? "תוצאה" : "Outcome"}: {item.outcome}</span>}</p></article>)}</div> : <p className="workspace-empty">{language === "he" ? "עדיין לא תועדו נושאים למשא ומתן." : "No negotiation topics are tracked yet."}</p>}{workspaceApplication.offerDetails.decisionReason && <p className="decision-reason"><strong>{language === "he" ? "נימוק ההחלטה" : "Decision rationale"}</strong>{workspaceApplication.offerDetails.decisionReason}</p>}{workspaceApplication.offerDetails.decisionLearning && <p className="decision-reason decision-learning"><strong>{language === "he" ? "מה למדתי מהתהליך" : "What I learned"}</strong>{workspaceApplication.offerDetails.decisionLearning}</p>}<button className="text-button workspace-offer-action" onClick={() => { setWorkspaceApplicationId(null); openEditApplication(workspaceApplication); }} type="button"><Pencil className="h-4 w-4" />{language === "he" ? "עדכון המשא ומתן וההחלטה" : "Update negotiation and decision"}</button></section>}
-              {(workspaceApplication.status === "Interview" || Object.values(workspaceApplication.interviewPreparation).some((value) => value.trim())) && <section className="workspace-interview-prep"><div className="workspace-section-heading"><div><h4><Target className="h-4 w-4" />{language === "he" ? "מרכז הכנה לראיון" : "Interview preparation workspace"}</h4><small>{workspaceApplication.eventDateTime ? `${workspaceApplication.eventType || (language === "he" ? "ראיון" : "Interview")} · ${formatDate(workspaceApplication.eventDateTime, true)}` : (language === "he" ? "מחקר, סיפורי STAR ושאלות — במקום אחד." : "Research, STAR stories, and questions—in one place.")}</small></div><strong className="workspace-evidence-score">{Math.round(([workspaceApplication.interviewPreparation.companyResearch, workspaceApplication.interviewPreparation.starStories, workspaceApplication.interviewPreparation.interviewerQuestions, workspaceApplication.interviewPreparation.gapsToExplain].filter((value) => value.trim()).length / 4) * 100)}%</strong></div><div className="interview-prep-checklist">{[[language === "he" ? "מחקר חברה ותפקיד" : "Company & role research", workspaceApplication.interviewPreparation.companyResearch], [language === "he" ? "סיפורי STAR" : "STAR stories", workspaceApplication.interviewPreparation.starStories], [language === "he" ? "שאלות למראיינים" : "Questions for interviewers", workspaceApplication.interviewPreparation.interviewerQuestions], [language === "he" ? "פערים להסבר" : "Gaps to explain", workspaceApplication.interviewPreparation.gapsToExplain]].map(([label, value]) => <span className={value.trim() ? "is-ready" : ""} key={label}>{value.trim() ? <CheckCircle2 className="h-4 w-4" /> : <CircleAlert className="h-4 w-4" />}{label}</span>)}</div><button className="text-button interview-prep-action" onClick={() => openInterviewPreparation(workspaceApplication)} type="button"><Pencil className="h-4 w-4" />{Object.values(workspaceApplication.interviewPreparation).some((value) => value.trim()) ? (language === "he" ? "המשך הכנה" : "Continue preparation") : (language === "he" ? "פתיחת מרכז ההכנה" : "Open preparation workspace")}</button></section>}
+              {(workspaceApplication.status === "Interview" || Object.values(workspaceApplication.interviewPreparation).some((value) => value.trim())) && <section className="workspace-interview-prep"><div className="workspace-section-heading"><div><h4><Target className="h-4 w-4" />{language === "he" ? "מרכז הכנה לראיון" : "Interview preparation workspace"}</h4><small>{workspaceApplication.eventDateTime ? `${workspaceApplication.eventType || (language === "he" ? "ראיון" : "Interview")} · ${formatDate(workspaceApplication.eventDateTime, true)}` : (language === "he" ? "מחקר, סיפורי STAR ושאלות — במקום אחד." : "Research, STAR stories, and questions—in one place.")}</small></div><strong className="workspace-evidence-score">{language === "he" ? "רשימת הכנה" : "Preparation checklist"}</strong></div><div className="interview-prep-checklist">{[[language === "he" ? "מחקר חברה ותפקיד" : "Company & role research", workspaceApplication.interviewPreparation.companyResearch], [language === "he" ? "סיפורי STAR" : "STAR stories", workspaceApplication.interviewPreparation.starStories], [language === "he" ? "שאלות למראיינים" : "Questions for interviewers", workspaceApplication.interviewPreparation.interviewerQuestions], [language === "he" ? "פערים להסבר" : "Gaps to explain", workspaceApplication.interviewPreparation.gapsToExplain]].map(([label, value]) => <span className={value.trim() ? "is-ready" : ""} key={label}>{value.trim() ? <CheckCircle2 className="h-4 w-4" /> : <CircleAlert className="h-4 w-4" />}{label}</span>)}</div><button className="text-button interview-prep-action" onClick={() => openInterviewPreparation(workspaceApplication)} type="button"><Pencil className="h-4 w-4" />{Object.values(workspaceApplication.interviewPreparation).some((value) => value.trim()) ? (language === "he" ? "המשך הכנה" : "Continue preparation") : (language === "he" ? "פתיחת מרכז ההכנה" : "Open preparation workspace")}</button></section>}
               <section className="workspace-role-snapshot workspace-readiness-card">
                 <div className="workspace-section-heading"><div><h4><FileCheck2 className="h-4 w-4" />{language === "he" ? "רשימת מוכנות" : "Readiness checklist"}</h4><small>{language === "he" ? "במקום ציון כללי: מה מוכן, מה חסר ומה כדאי לשפר." : "Instead of a generic score: what is ready, missing, or worth improving."}</small></div><div className="workspace-readiness-summary"><strong>{workspaceReadiness?.ready || 0}/{workspaceReadiness?.items.length || 0}</strong><span>{language === "he" ? "פריטים מוכנים" : "items ready"}</span>{workspaceApplication.jobUrl && <a aria-label={language === "he" ? "פתיחת מודעת המקור" : "Open source listing"} href={workspaceApplication.jobUrl} rel="noreferrer" target="_blank"><ArrowUpRight className="h-4 w-4" /></a>}</div></div>
                 {(["role", "application"] as const).map((group) => <div className="readiness-group" key={group}><h5>{group === "role" ? (language === "he" ? "מידע על המשרה" : "Role information") : (language === "he" ? "מוכנות לפעולה" : "Action readiness")}</h5><div className="readiness-list">{workspaceReadiness?.items.filter((item) => item.group === group).map((item) => <article className={`readiness-item readiness-${item.status}`} key={item.target}><span className="readiness-icon">{item.status === "complete" ? <CheckCircle2 className="h-4 w-4" /> : item.status === "improve" ? <CircleAlert className="h-4 w-4" /> : <Plus className="h-4 w-4" />}</span><div><strong>{item.label}</strong><p>{item.detail}</p></div>{item.status === "complete" ? <span className="readiness-state">{language === "he" ? "הושלם" : "Complete"}</span> : <button onClick={() => item.target === "contact" ? (setWorkspaceApplicationId(null), openContactForApplication(workspaceApplication)) : openReadinessItem(workspaceApplication, item.target)} type="button">{item.action}<ChevronRight className="h-3.5 w-3.5" /></button>}</article>)}</div></div>)}
@@ -4318,8 +4301,8 @@ export default function Home() {
                 <details className="timeline-add"><summary><Plus className="h-4 w-4" />{language === "he" ? "הוספת שלב או אירוע" : "Add stage or event"}</summary><div><input aria-label={language === "he" ? "שם השלב" : "Stage name"} className="form-control" list="process-stage-options" onChange={(event) => setTimelineDraft((current) => ({ ...current, name: event.target.value }))} value={timelineDraft.name} /><input aria-label={language === "he" ? "תאריך ושעת השלב" : "Stage date and time"} className="form-control" onChange={(event) => setTimelineDraft((current) => ({ ...current, dateTime: event.target.value }))} type="datetime-local" value={timelineDraft.dateTime} /><select aria-label={language === "he" ? "מצב השלב" : "Stage signal"} className="form-control" onChange={(event) => setTimelineDraft((current) => ({ ...current, trafficLight: event.target.value as TrafficLight }))} value={timelineDraft.trafficLight}><option value="none">⚪ {language === "he" ? "ללא סימון" : "No signal"}</option><option value="green">🟢 {language === "he" ? "מתקדם" : "Progressing"}</option><option value="yellow">🟡 {language === "he" ? "ממתין" : "Waiting"}</option><option value="red">🔴 {language === "he" ? "חסום או נסגר" : "Blocked or closed"}</option></select><input aria-label={language === "he" ? "הערה קצרה" : "Short note"} className="form-control" onChange={(event) => setTimelineDraft((current) => ({ ...current, note: event.target.value }))} placeholder={language === "he" ? "הערה קצרה" : "Short note"} value={timelineDraft.note} /><input aria-label={language === "he" ? "פעולת המשך" : "Next task"} className="form-control" onChange={(event) => setTimelineDraft((current) => ({ ...current, nextTask: event.target.value }))} placeholder={language === "he" ? "פעולת המשך" : "Next task or follow-up"} value={timelineDraft.nextTask} /><button className="primary-button" onClick={() => addTimelineEvent(workspaceApplication)} type="button"><Plus className="h-4 w-4" />{language === "he" ? "הוספה לציר הזמן" : "Add to timeline"}</button></div></details>
                 {activeCalendarMenu === `workspace-${workspaceApplication.id}` && <ApplicationCalendarMenu application={workspaceApplication} language={language} onClose={() => setActiveCalendarMenu(null)} onEdit={() => { setWorkspaceApplicationId(null); openEditApplication(workspaceApplication); }} />}
               </section>
-              <section><div className="workspace-section-heading"><div><h4>{language === "he" ? "אנשים ושיחות נטוורקינג" : "People & networking conversations"}</h4><small>{language === "he" ? "נשמרים ב־Networking ואינם נספרים כשלבי ראיון." : "Stored in Networking and never counted as interview stages."}</small></div><figure className="workflow-illustration workflow-illustration-tiny"><Image alt={language === "he" ? "איור של שיחת נטוורקינג מקצועית" : "Illustration of a professional networking conversation"} fill sizes="96px" src="/carvio-networking-conversation-v1.jpg" /></figure></div>{contacts.filter((contact) => contact.linkedApplicationId === workspaceApplication.id || workspaceApplication.linkedContactIds?.includes(contact.id) || contact.company.toLowerCase() === workspaceApplication.company.toLowerCase() || contact.name === workspaceApplication.contactName).length ? contacts.filter((contact) => contact.linkedApplicationId === workspaceApplication.id || workspaceApplication.linkedContactIds?.includes(contact.id) || contact.company.toLowerCase() === workspaceApplication.company.toLowerCase() || contact.name === workspaceApplication.contactName).map((contact) => <button className="workspace-person" key={contact.id} onClick={() => { setWorkspaceApplicationId(null); switchView("networking"); }} type="button"><span>{contact.name.slice(0, 1)}</span><span><strong>{contact.name}</strong><small>{contact.role} · {contact.company}</small></span><ChevronRight className="h-4 w-4" /></button>) : <p className="workspace-empty">{language === "he" ? "עדיין אין איש קשר שמקושר למועמדות הזו." : "No contact is linked to this application yet."}</p>}<div className="workspace-context-actions"><button className="text-button" onClick={() => { setWorkspaceApplicationId(null); openContactForApplication(workspaceApplication); }} type="button"><Plus className="h-4 w-4" />{language === "he" ? "הוספת איש קשר או תיעוד שיחה" : "Add contact or log conversation"}</button><button className="text-button" onClick={() => openOutreachForApplication(workspaceApplication)} type="button"><MessagesSquare className="h-4 w-4" />{language === "he" ? "טיוטת פנייה מקומית" : "Draft outreach locally"}</button></div></section>
-              <section><div className="workspace-section-heading"><div><h4>{language === "he" ? "הכנה, הודעות וקורות חיים" : "Preparation, messages & CV"}</h4><small>{language === "he" ? "תבניות מקומיות ושקופות המבוססות רק על הנתונים ששמרתם." : "Transparent local templates based only on the context you saved."}</small></div><figure className="workflow-illustration workflow-illustration-tiny"><Image alt={language === "he" ? "איור של הכנה רגועה לראיון" : "Illustration of calm interview preparation"} fill sizes="96px" src="/carvio-interview-preparation-v1.jpg" /></figure></div>{resumes.length ? resumes.slice(0, 3).map((resume) => <div className="workspace-file" key={resume.id}><FileText className="h-4 w-4" /><span><strong>{resume.name}</strong><small>{new Date(resume.addedAt).toLocaleDateString()}</small></span></div>) : <p className="workspace-empty">{language === "he" ? "טרם נוספה גרסת קורות חיים." : "No CV version added yet."}</p>}<div className="workspace-context-actions">{workspaceApplication.status === "Offer" && <button className="text-button workspace-offer-action" onClick={() => openOfferDecision(workspaceApplication)} type="button"><Scale className="h-4 w-4" />{language === "he" ? "בדיקת ההצעה" : "Review offer"}</button>}<button className="text-button" onClick={() => openInterviewPreparation(workspaceApplication)} type="button"><Target className="h-4 w-4" />{language === "he" ? "מרכז הכנה לראיון" : "Interview preparation workspace"}</button><button className="text-button" onClick={() => openCvSupport(workspaceApplication)} type="button"><FileCheck2 className="h-4 w-4" />{language === "he" ? "התאמת קורות חיים לדרישות" : "Tailor CV to requirements"}</button></div></section>
+              <section><div className="workspace-section-heading"><div><h4>{language === "he" ? "אנשים ושיחות נטוורקינג" : "People & networking conversations"}</h4><small>{language === "he" ? "נשמרים ב־Networking ואינם נספרים כשלבי ראיון." : "Stored in Networking and never counted as interview stages."}</small></div><figure className="workflow-illustration workflow-illustration-tiny"><Image alt={language === "he" ? "איור של שיחת נטוורקינג מקצועית" : "Illustration of a professional networking conversation"} fill sizes="96px" src="/carvio-networking-conversation-v1.jpg" /></figure></div>{contacts.filter((contact) => contact.linkedApplicationId === workspaceApplication.id || workspaceApplication.linkedContactIds?.includes(contact.id)).length ? contacts.filter((contact) => contact.linkedApplicationId === workspaceApplication.id || workspaceApplication.linkedContactIds?.includes(contact.id)).map((contact) => <button className="workspace-person" key={contact.id} onClick={() => { setWorkspaceApplicationId(null); switchView("networking"); }} type="button"><span>{contact.name.slice(0, 1)}</span><span><strong>{contact.name}</strong><small>{contact.role} · {contact.company}</small></span><ChevronRight className="h-4 w-4" /></button>) : <p className="workspace-empty">{language === "he" ? "עדיין אין איש קשר שמקושר למועמדות הזו." : "No contact is linked to this application yet."}</p>}<div className="workspace-context-actions"><button className="text-button" onClick={() => { setWorkspaceApplicationId(null); openContactForApplication(workspaceApplication); }} type="button"><Plus className="h-4 w-4" />{language === "he" ? "הוספת איש קשר או תיעוד שיחה" : "Add contact or log conversation"}</button><button className="text-button" onClick={() => openOutreachForApplication(workspaceApplication)} type="button"><MessagesSquare className="h-4 w-4" />{language === "he" ? "טיוטת פנייה מקומית" : "Draft outreach locally"}</button></div></section>
+              <section><div className="workspace-section-heading"><div><h4>{language === "he" ? "הכנה, הודעות וקורות חיים" : "Preparation, messages & CV"}</h4><small>{language === "he" ? "תבניות מקומיות ושקופות המבוססות רק על הנתונים ששמרתם." : "Transparent local templates based only on the context you saved."}</small></div><figure className="workflow-illustration workflow-illustration-tiny"><Image alt={language === "he" ? "איור של הכנה רגועה לראיון" : "Illustration of calm interview preparation"} fill sizes="96px" src="/carvio-interview-preparation-v1.jpg" /></figure></div>{resumes.some(resume => resume.id === workspaceApplication.linkedResumeId) ? resumes.filter(resume => resume.id === workspaceApplication.linkedResumeId).map((resume) => <div className="workspace-file" key={resume.id}><FileText className="h-4 w-4" /><span><strong>{resume.name}</strong><small>{new Date(resume.addedAt).toLocaleDateString()}</small></span></div>) : <p className="workspace-empty">{language === "he" ? "טרם קושרה גרסת קורות חיים למשרה הזו." : "No CV version linked to this application yet."}</p>}<div className="workspace-context-actions">{workspaceApplication.status === "Offer" && <button className="text-button workspace-offer-action" onClick={() => openOfferDecision(workspaceApplication)} type="button"><Scale className="h-4 w-4" />{language === "he" ? "בדיקת ההצעה" : "Review offer"}</button>}<button className="text-button" onClick={() => openInterviewPreparation(workspaceApplication)} type="button"><Target className="h-4 w-4" />{language === "he" ? "מרכז הכנה לראיון" : "Interview preparation workspace"}</button><button className="text-button" onClick={() => openCvSupport(workspaceApplication)} type="button"><FileCheck2 className="h-4 w-4" />{language === "he" ? "התאמת קורות חיים לדרישות" : "Tailor CV to requirements"}</button></div></section>
               <section><h4>📝 {language === "he" ? "הערות" : "Notes"}</h4><p className="workspace-notes">{workspaceApplication.notes || (language === "he" ? "אין עדיין הערות להזדמנות הזו." : "No notes for this opportunity yet.")}</p></section>
               </div>
             </details>
@@ -4463,6 +4446,8 @@ export default function Home() {
               <Field label="What was outside your control? (optional)"><textarea className="form-control min-h-20 resize-y" defaultValue={activeRecoveryEntry?.outsideControl} name="outsideControl" placeholder="Internal candidate, changed budget, timing, team decision…" /></Field>
             </>}
             {recoveryNeed === "Help me close the loop" && <button className="secondary-button w-full border-pink-400/20 bg-pink-400/5" onClick={() => { setMessageProfile({ ...emptyMessageProfile, recipientType: "Recruiter", intent: "Thank them", tone: "Warm & professional", company: recoveryApplication.company, role: recoveryApplication.role, senderName: userProfile.name }); setMessageContext({ applicationLabel: `${recoveryApplication.role} · ${recoveryApplication.company}`, contactLabel: "", loadedFields: ["company", "role", userProfile.name && "sender"].filter(Boolean) as string[] }); setGeneratedMessage(""); setMessageSubjectDraft(""); setShowEmailHandoff(false); setRecoveryApplication(null); navigateToSection("message-studio"); }} type="button">💌 Open a thank-you message in Message Studio</button>}
+      applicationId: application.id,
+      contactId: linkedContact?.id,
             <Field label="One gentle next step"><input className="form-control" defaultValue={activeRecoveryEntry?.nextAction} name="nextAction" placeholder={recoveryNeed === "I need a moment" ? "e.g. Return to Carvio tomorrow afternoon" : "e.g. Send one thank-you note, then stop for today"} /></Field>
             <div className="rounded-xl bg-white/[0.03] p-3 text-xs leading-5 text-slate-500">If the feelings become overwhelming or extend beyond the job search, consider speaking with someone you trust or a qualified professional. Carvio is here to support reflection, not replace human care.</div>
             <div className="modal-actions"><button className="secondary-button" onClick={() => setRecoveryApplication(null)} type="button">Not now</button><button className="primary-button bg-emerald-500 hover:bg-emerald-400" type="submit"><HeartHandshake className="h-4 w-4" /> Save my reset</button></div>
