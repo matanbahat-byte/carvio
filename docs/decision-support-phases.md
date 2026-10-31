@@ -28,6 +28,7 @@ Automated tests cover five goals/legacy values, source migration and outcome den
 - Isolated local restore: malformed company value rejected without changing the empty workspace. Legacy Applied status and original unknown source text preserved; old networking intent migrated to networking_focus.
 - No personal production records modified and no public deployment.
 - Final build loaded successfully in the isolated fictional workspace in Hebrew. Screenshot `/tmp/carvio-decision-support-mobile-he.jpg` is actually desktop-width: the requested viewport override did not produce a narrow screenshot, so it is not mobile-verification evidence.
+- Subsequent focused check after approval: reloaded with a 390×844 viewport, verified innerWidth/body scrollWidth both 390, inspected Hebrew dark-mode layout, Tab focus, Enter opening application workspace, and Escape closing the dialog. Screenshot `/tmp/carvio-final-mobile-dark.jpg`. Restored light mode and default viewport. This is focused coverage, not a complete accessibility audit.
 
 ### Remaining verification / limitations
 
