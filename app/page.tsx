@@ -1813,7 +1813,7 @@ export default function Home() {
       };
       if (action.id.startsWith("app-plan-")) return {
         headline: language === "he" ? `הגדרת הצעד הבא עבור ${roleAtCompany}` : `Define the next step for ${roleAtCompany}`,
-        reason: language === "he" ? "למועמדות הפעילה עדיין אין פעולה ברורה." : "This active application does not have a clear next step yet.",
+        reason: action.detail,
         cta: language === "he" ? "הגדרת צעד הבא" : "Set next step",
         canComplete: false,
       };
@@ -1906,7 +1906,7 @@ export default function Home() {
     if (application && action.id.startsWith("app-plan-")) return {
       action,
       headline: language === "he" ? `הגדרת הצעד הבא עבור ${applicationContext}` : `Define the next step for ${applicationContext}`,
-      reason: language === "he" ? "למועמדות הפעילה עדיין אין פעולה ברורה." : "This active application does not have a clear next step.",
+      reason: action.detail,
       urgency: language === "he" ? "נדרש צעד הבא" : "Needs a next step",
       tone: "neutral",
       cta: language === "he" ? "הגדרת צעד" : "Set next step",

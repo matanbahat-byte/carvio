@@ -8,6 +8,16 @@ test('same snapshot and clock return identical recommendations without mutation'
  const apps=[app()]; const before=JSON.stringify(apps);assert.deepEqual(rank(apps),rank(apps));assert.equal(JSON.stringify(apps),before);
 });
 test('Considering remains a saved action, not an application follow-up',()=>{assert.equal(rank([app()])[0].id,'app-undated-Considering');assert.equal(rank([app()])[0].intent,'open');});
+test('completed first action suggests a neutral next move without implying submission',()=>{
+ for(const language of ['en','he']) {
+  const record=app('Considering',{nextStep:''}); const before=JSON.stringify(record);
+  const action=rank([record],{language})[0];
+  assert.equal(action.id,'app-plan-Considering'); assert.equal(action.intent,'open');
+  assert.match(action.detail,language==='en'?/saved opportunity/:/הזדמנות ששמרתם/);
+  assert.doesNotMatch(action.detail,/active application|מועמדות פעילה/);
+  assert.equal(JSON.stringify(record),before); assert.equal(record.status,'Considering');
+ }
+});
 test('Interview and Offer dates take precedence over undated actions',()=>{
  assert.ok(rank([app(),app('Interview',{eventDateTime:'2026-10-31T10:00:00Z',eventType:'Interview'})])[0].id.startsWith('app-event-'));
  assert.ok(rank([app(),app('Offer',{nextStepDue:'2026-10-31'})])[0].id.startsWith('app-upcoming-'));

@@ -32,6 +32,10 @@ Automated tests cover five goals/legacy values, source migration and outcome den
 
 ### Remaining verification / limitations
 
+### First-use follow-up — 2026-10-31
+
+Tested a fresh isolated local origin on port 3027, not demo and not the personal workspace. Confirmed zero applications/contacts initially, selected active search, saved company/role plus an optional undated action, and completed the action. Considering remained unchanged and submitted/interview/conversation counts remained zero. Fixed the resulting planning explanation to describe an unsubmitted record as a saved opportunity, not an active application; both recommendation surfaces now use the same reason. Added bilingual regression coverage for the completed-action state. This does not verify email/account registration.
+
 - Manual journeys are not a full automated E2E suite. All mobile, keyboard, dark-theme and accessibility permutations are not yet verified on the final build.
 - Email delivery, registration and cloud restore are unverified. Optional backup collections and all unknown fields are not comprehensively schema-validated.
 - No real seven-day observation or timed human usability study has occurred.
