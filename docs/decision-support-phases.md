@@ -32,6 +32,12 @@ Automated tests cover five goals/legacy values, source migration and outcome den
 
 ### Remaining verification / limitations
 
+### Reusable evidence links — 2026-11-01
+
+Added an optional saved-evidence links editor in Application Workspace and CV Lab. Users explicitly select multiple active requirement IDs, save or unlink all without deleting evidence/legacy notes. Links are constrained to the evidence's owning application, deduplicated and filtered against available requirements; unknown old IDs are shown as unavailable and removed only on save. Pure display projection resolves shared evidence without persisting additional text copies, and readiness/map consume that projection. Legacy inline notes remain independent and are deliberately not deleted by unlinking structured evidence. Removed the prominent percentage from the requirements/evidence display in favor of a numerator/denominator with a relevance caveat. Four additional regression tests (46 total); final build/UI verification follows below. No dependencies, AI service, backend, or public deployment added.
+
+Verified final build: 46 tests and production build passed. Local Hebrew browser journey linked one existing fictional evidence item to two requirements, observed 2/2 in the display, then unlinked both; evidence item and legacy note remained, display reverted to 1/2 for that independent legacy note. Reloaded and confirmed both structured link checkboxes unchecked. Screenshot `/tmp/carvio-evidence-reuse-verified.jpg`. CV Lab integration shares the editor but its full navigation path has not been manually exercised in this pass. No account registration/email/cloud test performed.
+
 ### Contact-only follow-up repair — 2026-11-01
 
 Manual local journey found that Plan follow-up rejected a draft opened from a contact without an application. Repaired explicit-ID routing: contact context takes precedence; application-only context remains supported; no company-name inference. Planning updates only next action/date, not last-contact, delivery or interview records. Existing actions require confirmation before replacement. Calendar date formatting now uses the local day rather than UTC slicing. Added three pure regression tests (42 total). Also retained the pending trust-card copy correction so empty fields are not described as used facts. No public deployment.
