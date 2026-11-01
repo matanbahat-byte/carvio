@@ -32,6 +32,16 @@ Automated tests cover five goals/legacy values, source migration and outcome den
 
 ### Remaining verification / limitations
 
+### Contact-only follow-up repair — 2026-11-01
+
+Manual local journey found that Plan follow-up rejected a draft opened from a contact without an application. Repaired explicit-ID routing: contact context takes precedence; application-only context remains supported; no company-name inference. Planning updates only next action/date, not last-contact, delivery or interview records. Existing actions require confirmation before replacement. Calendar date formatting now uses the local day rather than UTC slicing. Added three pure regression tests (42 total). Also retained the pending trust-card copy correction so empty fields are not described as used facts. No public deployment.
+
+Final local verification: 42 tests, targeted ESLint and production build passed. Generated a fresh contact-only draft on the rebuilt app; Plan follow-up saved an action dated Nov 8, 2026 on the existing contact (one contact, no meeting). Overview still showed zero conversations and zero interviews, and the unrelated application action remained unchanged. Screenshot `/tmp/carvio-contact-follow-up-fixed.jpg`. Replacement confirmation is implemented but its accept/cancel paths have not yet been manually exercised.
+
+Replacement confirmation follow-up: the native browser confirm blocked the automation before either branch could be verified. Replaced it with the existing accessible in-app Modal: current/proposed actions and dates, explicit Cancel/Replace, safe initial cancel focus, Escape cancellation, and a stale-record guard to avoid overwriting an action changed while confirmation is open. Browser verification of these branches is recorded below after completion.
+
+Verified the new confirmation locally: saved a distinctive existing action, opened replacement, cancelled, reopened and confirmed the original action/date were intact; explicitly selected Replace reminder and verified the new action/date in Networking, with exactly one contact and no scheduled meeting. Screenshot `/tmp/carvio-safe-replacement-dialog.jpg`. 42 tests and production build passed; ESLint initially exhausted its default heap but passed separately with a 6144 MB heap. Escape and concurrent-record-change branches are implemented, not manually exercised in this pass. No public deployment.
+
 ### First-use follow-up — 2026-10-31
 
 Tested a fresh isolated local origin on port 3027, not demo and not the personal workspace. Confirmed zero applications/contacts initially, selected active search, saved company/role plus an optional undated action, and completed the action. Considering remained unchanged and submitted/interview/conversation counts remained zero. Fixed the resulting planning explanation to describe an unsubmitted record as a saved opportunity, not an active application; both recommendation surfaces now use the same reason. Added bilingual regression coverage for the completed-action state. This does not verify email/account registration.

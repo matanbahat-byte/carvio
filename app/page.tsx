@@ -1,4 +1,5 @@
 "use client";
+import { messageFollowUpTarget, followUpDate } from "@/lib/message-follow-up";
 import { UsageIntentPicker } from "@/components/usage-intent-picker";
 import { AiEvidenceForm } from "@/components/ai-evidence-form";
 import { rankNextActions, recommendationKey, type NextBestAction } from "@/lib/recommendations";
@@ -1336,6 +1337,7 @@ export default function Home() {
   const [generatedMessage, setGeneratedMessage] = useState("");
   const [messageSubjectDraft, setMessageSubjectDraft] = useState("");
   const [showEmailHandoff, setShowEmailHandoff] = useState(false);
+  const [pendingFollowUp, setPendingFollowUp] = useState<{ target: { kind: "contact" | "application"; id: string }; action: string; due: string; existing: string; existingDue: string; label: string } | null>(null);
   const [postProfile, setPostProfile] = useState<PostProfile>(emptyPostProfile);
   const [generatedPost, setGeneratedPost] = useState("");
   const [recoveryEntries, setRecoveryEntries] = useState<RecoveryEntry[]>([]);
@@ -3140,16 +3142,44 @@ export default function Home() {
   }
 
   function planMessageFollowUp() {
-    const match = messageApplication;
-    if (!match) {
-      setNotice(language === "he" ? "לא נמצאה מועמדות תואמת לפי החברה והתפקיד. שמרו אותה ב־Applications לפני תכנון פעולת המשך." : "No matching application was found for this company and role. Save it in Applications before planning a follow-up.");
+    const target = messageFollowUpTarget(messageContext, contacts.map(item => item.id), applications.map(item => item.id));
+    if (!target) {
+      setNotice(language === "he" ? "יש לפתוח את הטיוטה מאיש קשר שמור או לבחור מועמדות לקישור לפני תכנון פעולת המשך." : "Open the draft from a saved contact or explicitly link an application before planning a follow-up.");
       return;
     }
-    const due = new Date();
-    due.setDate(due.getDate() + 7);
-    recordActionEvent("follow_up_planned", match.id, { days: 7 });
-    setApplications((items) => items.map((item) => item.id === match.id ? { ...item, nextStep: `Follow up on outreach to ${messageProfile.recipientName || messageProfile.recipientType.toLowerCase()}`, nextStepDue: due.toISOString().slice(0, 10) } : item));
-    setNotice(language === "he" ? "פעולת המשך נוספה למועמדות לעוד שבעה ימים." : "Follow-up added to the matching application for seven days from now.");
+    const due = followUpDate(new Date());
+    const action = language === "he" ? "בדיקת הטיוטה והחלטה על המשך הפנייה" : "Review the draft and decide on the next outreach step";
+    const contact = target.kind === "contact" ? contacts.find(item => item.id === target.id) : undefined;
+    const application = target.kind === "application" ? applications.find(item => item.id === target.id) : undefined;
+    const existing = contact?.nextAction || application?.nextStep || "";
+    if (existing.trim()) {
+      setPendingFollowUp({ target, action, due, existing, existingDue: contact?.nextActionDue || application?.nextStepDue || "", label: contact?.name || application?.company || "" });
+      return;
+    }
+    saveMessageFollowUp(target, action, due);
+  }
+
+  function confirmMessageFollowUp() {
+    if (!pendingFollowUp) return;
+    const { target, action, due, existing, existingDue } = pendingFollowUp;
+    const contact = target.kind === "contact" ? contacts.find(item => item.id === target.id) : undefined;
+    const application = target.kind === "application" ? applications.find(item => item.id === target.id) : undefined;
+    setPendingFollowUp(null);
+    if ((!contact && !application) || (contact?.nextAction || application?.nextStep || "") !== existing || (contact?.nextActionDue || application?.nextStepDue || "") !== existingDue) {
+      setNotice(language === "he" ? "הפעולה השתנתה מאז פתיחת האישור. בדקו אותה ונסו שוב; לא הוחלף מידע." : "The action changed while confirmation was open. Review it and try again; nothing was replaced.");
+      return;
+    }
+    saveMessageFollowUp(target, action, due);
+  }
+
+  function saveMessageFollowUp(target: { kind: "contact" | "application"; id: string }, action: string, due: string) {
+    recordActionEvent("follow_up_planned", target.id, { days: 7 });
+    if (target.kind === "contact") {
+      setContacts(items => items.map(item => item.id === target.id ? { ...item, nextAction: action, nextActionDue: due } : item));
+    } else {
+      setApplications(items => items.map(item => item.id === target.id ? { ...item, nextStep: action, nextStepDue: due } : item));
+    }
+    setNotice(language === "he" ? `תזכורת נוספה ל${target.kind === "contact" ? "איש הקשר" : "מועמדות"} לעוד שבעה ימים. לא תועדה שליחה.` : `Reminder added to the ${target.kind === "contact" ? "contact" : "application"} for seven days from now. No message was marked as sent.`);
   }
 
   function markThankYouSent() {
@@ -3802,7 +3832,7 @@ export default function Home() {
             <div className="message-preview message-draft-panel">
               <div className="message-draft-heading"><div className="flex items-center gap-3"><div className="rounded-xl bg-pink-400/10 p-2.5 text-pink-300"><MessagesSquare className="h-5 w-5" /></div><div><h3 className="font-semibold">{language === "he" ? "טיוטת הפנייה שלך" : "Your outreach draft"}</h3><p className="text-xs text-slate-500">{language === "he" ? "הנושא וגוף ההודעה ניתנים לעריכה מלאה" : "Subject and message are fully editable"}</p></div></div>{generatedMessage && <span aria-live="polite" className="message-draft-count">{generatedMessage.trim() ? generatedMessage.trim().split(/\s+/).length : 0} {language === "he" ? "מילים" : "words"} · {generatedMessage.length} {language === "he" ? "תווים" : "characters"}</span>}</div>
               {generatedMessage ? <>
-                <aside className="message-application-context" aria-label={language === "he" ? "איך CARVIO עזר" : "How CARVIO helped"}><div><strong>{language === "he" ? "איך CARVIO עזר" : "How CARVIO helped"}</strong><p>{language === "he" ? "שימשו: פרטי הנמען, החברה, התפקיד והעוגן האישי שהזנתם. המידע שנטען מצוין מעל הטופס." : "Used: your recipient, company, role and personal anchor. Loaded sources are identified above the form."}</p><p>{language === "he" ? "לא אומת: ניסיון, פרטי משרה וטענות שבטקסט — יש לבדוק לפני העתקה." : "Not verified: experience, vacancy details and claims in the text — check before copying."}</p><p>{language === "he" ? "שיטת יצירה: תבנית מקומית. CARVIO לא שלח את ההודעה." : "Generation method: local template. CARVIO did not send this message."}</p></div></aside>
+                <aside className="message-application-context" aria-label={language === "he" ? "איך CARVIO עזר" : "How CARVIO helped"}><div><strong>{language === "he" ? "איך CARVIO עזר" : "How CARVIO helped"}</strong><p>{language === "he" ? "הטיוטה מבוססת על הפרטים שמילאתם ועל תבנית מקומית. שדה ריק אינו מידע ידוע. מקורות המידע שנטען מצוינים מעל הטופס; השוו את הטיוטה לפרטים לפני ההעתקה." : "The draft is based on the details you filled in and a local template. Empty fields are not known facts. Loaded sources are identified above the form; compare the draft with your details before copying."}</p><p>{language === "he" ? "לא אומת: ניסיון, פרטי משרה וטענות שבטקסט — יש לבדוק לפני העתקה." : "Not verified: experience, vacancy details and claims in the text — check before copying."}</p><p>{language === "he" ? "שיטת יצירה: תבנית מקומית. CARVIO לא שלח את ההודעה." : "Generation method: local template. CARVIO did not send this message."}</p></div></aside>
                 <label className="message-subject-field"><span>{language === "he" ? "נושא" : "Subject"}</span><input className="form-control" dir={language === "he" ? "rtl" : "ltr"} onChange={(event) => setMessageSubjectDraft(event.target.value)} value={messageSubjectDraft} /></label>
                 <textarea aria-label={language === "he" ? "טיוטת פנייה ניתנת לעריכה" : "Editable outreach message"} className="form-control message-draft-editor" dir={language === "he" ? "rtl" : "ltr"} onChange={(event) => { setGeneratedMessage(event.target.value); recordActionEvent("message_draft_edited", messageContext?.applicationId || messageContext?.contactId || "draft"); }} ref={messageDraftRef} value={generatedMessage} />
                 <div className="message-draft-actions">
@@ -4199,6 +4229,14 @@ export default function Home() {
         </Modal>
       )}
 
+      {pendingFollowUp && <Modal title={language === "he" ? "להחליף את הפעולה המתוכננת?" : "Replace the planned action?"} description={pendingFollowUp.label} onClose={() => setPendingFollowUp(null)} closeLabel={language === "he" ? "ביטול ההחלפה" : "Cancel replacement"}>
+        <div className="space-y-4">
+          <div><strong>{language === "he" ? "הפעולה הקיימת" : "Existing action"}</strong><p>{pendingFollowUp.existing}</p><p>{pendingFollowUp.existingDue ? formatDate(pendingFollowUp.existingDue) : (language === "he" ? "ללא תאריך יעד" : "No due date")}</p></div>
+          <div><strong>{language === "he" ? "התזכורת המוצעת" : "Proposed reminder"}</strong><p>{pendingFollowUp.action}</p><p>{formatDate(pendingFollowUp.due)}</p></div>
+          <p>{language === "he" ? "רק הפעולה ותאריך היעד יוחלפו. ההודעה לא תסומן כנשלחה." : "Only the action and due date will change. The message will not be marked as sent."}</p>
+          <div className="flex flex-wrap gap-3"><button autoFocus className="secondary-button" onClick={() => setPendingFollowUp(null)} type="button">{language === "he" ? "ביטול" : "Cancel"}</button><button className="primary-button" onClick={confirmMessageFollowUp} type="button">{language === "he" ? "החלפת התזכורת" : "Replace reminder"}</button></div>
+        </div>
+      </Modal>}
       {showGoalTarget && <Modal title={language === "he" ? "ההזדמנות הבאה שלי" : "My next opportunity"} onClose={() => setShowGoalTarget(false)} closeLabel={language === "he" ? "סגירה" : "Close"}>
         <Field label={language === "he" ? "תפקיד יעד" : "Target role"}><input className="form-control" value={userProfile.targetRole} onChange={(event) => setUserProfile((current) => ({ ...current, targetRole: event.target.value }))} /></Field>
         <Field label={language === "he" ? "מה חשוב לי ולא ארצה להתפשר עליו?" : "What are my non-negotiables?"}><textarea className="form-control" value={userProfile.nonNegotiables || ""} onChange={(event) => setUserProfile((current) => ({ ...current, nonNegotiables: event.target.value }))} /></Field>
