@@ -1,6 +1,6 @@
 "use client";
 import { EvidenceLinksEditor } from "@/components/evidence-links-editor";
-import { relinkEvidence, evidenceForRequirements } from "@/lib/evidence-links";
+import { relinkEvidence, evidenceForRequirements, evidenceContext, restorableRequirementEvidence } from "@/lib/evidence-links";
 import { messageFollowUpTarget, followUpDate } from "@/lib/message-follow-up";
 import { UsageIntentPicker } from "@/components/usage-intent-picker";
 import { AiEvidenceForm } from "@/components/ai-evidence-form";
@@ -804,9 +804,7 @@ function normalizeApplication(value: Partial<Application>): Application {
     })) : [],
     requirementEvidence: syncRequirementEvidence(
       value.requirements || "",
-      Array.isArray(value.requirementEvidence) ? value.requirementEvidence
-        .filter((item): item is RequirementEvidence => Boolean(item && typeof item.requirement === "string" && typeof item.evidence === "string"))
-        .map((item) => ({ requirement: item.requirement, evidence: item.evidence, category: item.category })) : [],
+      Array.isArray(value.requirementEvidence) ? restorableRequirementEvidence(value.requirementEvidence) : [],
     ),
     interviewPreparation: {
       ...emptyApplication.interviewPreparation,
@@ -962,11 +960,7 @@ function applicationEvidenceContext(application: Application, language: "en" | "
   const mapped = application.requirementEvidence.length
     ? application.requirementEvidence
     : syncRequirementEvidence(application.requirements, []);
-  if (!mapped.length) return language === "he" ? "טרם נשמרו דרישות למשרה." : "No role requirements have been saved yet.";
-  return mapped.map((item, index) => {
-    const evidence = item.evidence.trim() || (language === "he" ? "פער: נדרשת דוגמה או דרך להסביר את הפער." : "Gap: add a proof point or prepare how to explain the gap.");
-    return `${index + 1}. ${item.requirement}\n   ${language === "he" ? "ראיה" : "Evidence"}: ${evidence}`;
-  }).join("\n");
+  return evidenceContext(mapped, application.evidenceItems || [], application.id, language);
 }
 
 function landingVisibleForUrl(search: string) {

@@ -1,5 +1,18 @@
 export type LinkedEvidence = { id: string; applicationId: string; text: string; requirementIds: string[] };
 
+export function restorableRequirementEvidence<T extends { id?: string; requirement: string; evidence: string }>(rows: T[]): T[] {
+  return rows.filter(item => Boolean(item && typeof item.requirement === "string" && typeof item.evidence === "string"));
+}
+
+export function evidenceContext(requirements: { id?: string; requirement: string; evidence: string }[], items: LinkedEvidence[], applicationId: string, language: "he" | "en") {
+  const mapped = evidenceForRequirements(requirements, items, applicationId);
+  if (!mapped.length) return language === "he" ? "טרם נשמרו דרישות למשרה." : "No role requirements have been saved yet.";
+  return mapped.map((item, index) => {
+    const evidence = item.evidence.trim() || (language === "he" ? "פער: נדרשת דוגמה או דרך להסביר את הפער." : "Gap: add a proof point or prepare how to explain the gap.");
+    return `${index + 1}. ${item.requirement}\n   ${language === "he" ? "ראיה" : "Evidence"}: ${evidence}`;
+  }).join("\n");
+}
+
 export function evidenceForRequirements<T extends { id?: string; evidence: string }>(requirements: T[], items: LinkedEvidence[], applicationId: string): T[] {
   return requirements.map(requirement => {
     let evidence = requirement.evidence;

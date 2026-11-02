@@ -1,8 +1,30 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {relinkEvidence,evidenceForRequirements} from '../lib/evidence-links.ts';
+import {relinkEvidence,evidenceForRequirements,evidenceContext,restorableRequirementEvidence} from '../lib/evidence-links.ts';
 const evidence={id:'e',applicationId:'a',text:'Only supplied experience',requirementIds:['r1']};
 const requirements=[{id:'r1'},{id:'r2'},{id:'ignored',ignored:true}];
+test('restore roundtrip preserves requirement IDs and therefore saved evidence links',()=>{
+ const source=[{id:'r1',requirement:'Reporting',evidence:'',category:'Communication'}];
+ const restored=restorableRequirementEvidence(JSON.parse(JSON.stringify([...source,null,{requirement:42,evidence:''}])));
+ assert.deepEqual(restored,source);
+ assert.ok(evidenceContext(restored,[evidence],'a','en').includes(evidence.text));
+ assert.equal(restored[0].id,'r1');
+ assert.deepEqual(restorableRequirementEvidence([{requirement:'Legacy',evidence:''}]),[{requirement:'Legacy',evidence:''}]);
+});
+test('CV context includes explicitly linked evidence and keeps unsupported requirements as gaps in both languages',()=>{
+ const rows=[{id:'r1',requirement:'Reporting',evidence:''},{id:'r2',requirement:'SQL',evidence:''}];
+ const before=JSON.stringify(rows);
+ for(const language of ['en','he']) {
+  const text=evidenceContext(rows,[evidence],'a',language);
+  assert.ok(text.includes(evidence.text));assert.match(text,/2\. SQL/);assert.ok(text.includes(language==='he'?'פער:':'Gap:'));
+  assert.ok(!evidenceContext(rows,[evidence],'b',language).includes(evidence.text));
+ }
+ assert.equal(JSON.stringify(rows),before);
+});
+test('legacy-only CV context remains readable and empty inputs make no claims',()=>{
+ assert.match(evidenceContext([{requirement:'Reporting',evidence:'Existing supplied note'}],[],'a','en'),/Existing supplied note/);
+ assert.equal(evidenceContext([],[],'a','en'),'No role requirements have been saved yet.');
+});
 test('display resolves links by ID without persisting copies or counting duplicate notes',()=>{
  const rows=[{id:'r1',evidence:''},{id:'r2',evidence:evidence.text}];const before=JSON.stringify(rows);
  const item={...evidence,requirementIds:['r1','r2']};

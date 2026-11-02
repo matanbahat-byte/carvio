@@ -32,6 +32,10 @@ Automated tests cover five goals/legacy values, source migration and outcome den
 
 ### Remaining verification / limitations
 
+### CV context and stable requirement IDs — 2026-11-02
+
+Completed the CV Lab navigation check. Found two defects: CV tailoring context ignored structured evidence links, and hydration's requirement sanitization discarded saved IDs before synchronization, orphaning links after reload. CV context now resolves explicit evidence links; restoration retains valid rows and their IDs/categories. Legacy notes remain supported, missing evidence remains an explicit gap, cross-application links do not leak into drafts. Added three tests (49 total). Final build and tests passed. Local Hebrew journey: saved a fictional test link from CV Lab, reloaded, observed the 2/2 evidence display in Application Workspace, reopened CV tailoring and verified linked evidence in the generated context. Screenshot `/tmp/carvio-cv-linked-evidence-verified.jpg`. Old already-orphaned links are not guessed or auto-repaired; users explicitly select their intended requirement in the editor. No public deployment.
+
 ### Reusable evidence links — 2026-11-01
 
 Added an optional saved-evidence links editor in Application Workspace and CV Lab. Users explicitly select multiple active requirement IDs, save or unlink all without deleting evidence/legacy notes. Links are constrained to the evidence's owning application, deduplicated and filtered against available requirements; unknown old IDs are shown as unavailable and removed only on save. Pure display projection resolves shared evidence without persisting additional text copies, and readiness/map consume that projection. Legacy inline notes remain independent and are deliberately not deleted by unlinking structured evidence. Removed the prominent percentage from the requirements/evidence display in favor of a numerator/denominator with a relevance caveat. Four additional regression tests (46 total); final build/UI verification follows below. No dependencies, AI service, backend, or public deployment added.
