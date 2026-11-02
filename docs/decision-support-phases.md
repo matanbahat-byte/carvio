@@ -32,6 +32,10 @@ Automated tests cover five goals/legacy values, source migration and outcome den
 
 ### Remaining verification / limitations
 
+### Generation-time message transparency — 2026-11-02
+
+Replaced the generic trust-card input claim with a generation-time snapshot of template inputs. Lists only nonempty content fields and template controls actually consulted (recipient type excluded for thank-you). Email, contact role and relationship are not falsely listed as body-generation inputs. Snapshot stays in component memory, never analytics. Changed form inputs/language produce a stale-draft warning; manual subject/body edits are separately disclosed and never silently overwritten by form changes. Explicit regeneration resets the snapshot and edit notice. Added pure/SSR bilingual tests (51 total). Production build passed. Local Hebrew browser verification: blank sender/context absent from the list; manual subject/body remained byte-for-byte unchanged after company edit; warning appeared; explicit regeneration used the new company and cleared stale/edit notices. Screenshot `/tmp/carvio-message-provenance-verified.jpg`. No public deployment.
+
 ### CV context and stable requirement IDs — 2026-11-02
 
 Completed the CV Lab navigation check. Found two defects: CV tailoring context ignored structured evidence links, and hydration's requirement sanitization discarded saved IDs before synchronization, orphaning links after reload. CV context now resolves explicit evidence links; restoration retains valid rows and their IDs/categories. Legacy notes remain supported, missing evidence remains an explicit gap, cross-application links do not leak into drafts. Added three tests (49 total). Final build and tests passed. Local Hebrew journey: saved a fictional test link from CV Lab, reloaded, observed the 2/2 evidence display in Application Workspace, reopened CV tailoring and verified linked evidence in the generated context. Screenshot `/tmp/carvio-cv-linked-evidence-verified.jpg`. Old already-orphaned links are not guessed or auto-repaired; users explicitly select their intended requirement in the editor. No public deployment.

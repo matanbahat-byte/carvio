@@ -1,4 +1,6 @@
 "use client";
+import { MessageTrustCard } from "@/components/message-trust-card";
+import { messageProvenance, messageInputsChanged, type MessageProvenance } from "@/lib/message-provenance";
 import { EvidenceLinksEditor } from "@/components/evidence-links-editor";
 import { relinkEvidence, evidenceForRequirements, evidenceContext, restorableRequirementEvidence } from "@/lib/evidence-links";
 import { messageFollowUpTarget, followUpDate } from "@/lib/message-follow-up";
@@ -1331,6 +1333,8 @@ export default function Home() {
   const [messageProfile, setMessageProfile] = useState<MessageProfile>(emptyMessageProfile);
   const [messageContext, setMessageContext] = useState<MessageContext | null>(null);
   const [generatedMessage, setGeneratedMessage] = useState("");
+  const [draftProvenance, setDraftProvenance] = useState<MessageProvenance | null>(null);
+  const [draftManuallyEdited, setDraftManuallyEdited] = useState(false);
   const [messageSubjectDraft, setMessageSubjectDraft] = useState("");
   const [showEmailHandoff, setShowEmailHandoff] = useState(false);
   const [pendingFollowUp, setPendingFollowUp] = useState<{ target: { kind: "contact" | "application"; id: string }; action: string; due: string; existing: string; existingDue: string; label: string } | null>(null);
@@ -3079,6 +3083,8 @@ export default function Home() {
       return;
     }
     setGeneratedMessage(generateOutreachMessage(messageProfile, language));
+    setDraftProvenance(messageProvenance(messageProfile, language));
+    setDraftManuallyEdited(false);
     recordActionEvent("message_draft_created", messageContext?.applicationId || messageContext?.contactId || "draft", { method: "local_template" });
     setMessageSubjectDraft(messageSubject(messageProfile, language));
     setShowEmailHandoff(false);
@@ -3834,9 +3840,9 @@ export default function Home() {
             <div className="message-preview message-draft-panel">
               <div className="message-draft-heading"><div className="flex items-center gap-3"><div className="rounded-xl bg-pink-400/10 p-2.5 text-pink-300"><MessagesSquare className="h-5 w-5" /></div><div><h3 className="font-semibold">{language === "he" ? "טיוטת הפנייה שלך" : "Your outreach draft"}</h3><p className="text-xs text-slate-500">{language === "he" ? "הנושא וגוף ההודעה ניתנים לעריכה מלאה" : "Subject and message are fully editable"}</p></div></div>{generatedMessage && <span aria-live="polite" className="message-draft-count">{generatedMessage.trim() ? generatedMessage.trim().split(/\s+/).length : 0} {language === "he" ? "מילים" : "words"} · {generatedMessage.length} {language === "he" ? "תווים" : "characters"}</span>}</div>
               {generatedMessage ? <>
-                <aside className="message-application-context" aria-label={language === "he" ? "איך CARVIO עזר" : "How CARVIO helped"}><div><strong>{language === "he" ? "איך CARVIO עזר" : "How CARVIO helped"}</strong><p>{language === "he" ? "הטיוטה מבוססת על הפרטים שמילאתם ועל תבנית מקומית. שדה ריק אינו מידע ידוע. מקורות המידע שנטען מצוינים מעל הטופס; השוו את הטיוטה לפרטים לפני ההעתקה." : "The draft is based on the details you filled in and a local template. Empty fields are not known facts. Loaded sources are identified above the form; compare the draft with your details before copying."}</p><p>{language === "he" ? "לא אומת: ניסיון, פרטי משרה וטענות שבטקסט — יש לבדוק לפני העתקה." : "Not verified: experience, vacancy details and claims in the text — check before copying."}</p><p>{language === "he" ? "שיטת יצירה: תבנית מקומית. CARVIO לא שלח את ההודעה." : "Generation method: local template. CARVIO did not send this message."}</p></div></aside>
-                <label className="message-subject-field"><span>{language === "he" ? "נושא" : "Subject"}</span><input className="form-control" dir={language === "he" ? "rtl" : "ltr"} onChange={(event) => setMessageSubjectDraft(event.target.value)} value={messageSubjectDraft} /></label>
-                <textarea aria-label={language === "he" ? "טיוטת פנייה ניתנת לעריכה" : "Editable outreach message"} className="form-control message-draft-editor" dir={language === "he" ? "rtl" : "ltr"} onChange={(event) => { setGeneratedMessage(event.target.value); recordActionEvent("message_draft_edited", messageContext?.applicationId || messageContext?.contactId || "draft"); }} ref={messageDraftRef} value={generatedMessage} />
+                <MessageTrustCard snapshot={draftProvenance} changed={Boolean(draftProvenance && messageInputsChanged(draftProvenance, messageProfile, language))} edited={draftManuallyEdited} language={language} />
+                <label className="message-subject-field"><span>{language === "he" ? "נושא" : "Subject"}</span><input className="form-control" dir={language === "he" ? "rtl" : "ltr"} onChange={(event) => { setMessageSubjectDraft(event.target.value); setDraftManuallyEdited(true); }} value={messageSubjectDraft} /></label>
+                <textarea aria-label={language === "he" ? "טיוטת פנייה ניתנת לעריכה" : "Editable outreach message"} className="form-control message-draft-editor" dir={language === "he" ? "rtl" : "ltr"} onChange={(event) => { setGeneratedMessage(event.target.value); setDraftManuallyEdited(true); recordActionEvent("message_draft_edited", messageContext?.applicationId || messageContext?.contactId || "draft"); }} ref={messageDraftRef} value={generatedMessage} />
                 <div className="message-draft-actions">
                   <button className="secondary-button" onClick={() => { void copyMessageText(false); }} type="button"><Copy className="h-4 w-4" /> {language === "he" ? "העתקת ההודעה" : "Copy message"}</button>
                   <div className="email-handoff-control">
