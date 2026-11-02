@@ -32,6 +32,10 @@ Automated tests cover five goals/legacy values, source migration and outcome den
 
 ### Remaining verification / limitations
 
+### Shared evidence in outreach — 2026-11-02
+
+Found two remaining inline-only evidence selectors in Message Studio entry points. Application outreach and contact outreach with an explicitly linked application now use one shared pure evidence selector that resolves structured IDs and preserves legacy notes. Missing/deleted/unlinked/cross-application evidence is not inferred. Added two tests (53 total), build passed. Local Hebrew browser check confirmed the supplied evidence is prefilled in the relevant-value field when opening outreach from the application; screenshot `/tmp/carvio-shared-evidence-outreach.jpg`. The contact-specific browser path and interview-preparation field behavior were not expanded in this pass; interview notes remain user-entered. No public deployment.
+
 ### Generation-time message transparency — 2026-11-02
 
 Replaced the generic trust-card input claim with a generation-time snapshot of template inputs. Lists only nonempty content fields and template controls actually consulted (recipient type excluded for thank-you). Email, contact role and relationship are not falsely listed as body-generation inputs. Snapshot stays in component memory, never analytics. Changed form inputs/language produce a stale-draft warning; manual subject/body edits are separately disclosed and never silently overwritten by form changes. Explicit regeneration resets the snapshot and edit notice. Added pure/SSR bilingual tests (51 total). Production build passed. Local Hebrew browser verification: blank sender/context absent from the list; manual subject/body remained byte-for-byte unchanged after company edit; warning appeared; explicit regeneration used the new company and cleared stale/edit notices. Screenshot `/tmp/carvio-message-provenance-verified.jpg`. No public deployment.

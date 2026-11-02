@@ -2,7 +2,7 @@
 import { MessageTrustCard } from "@/components/message-trust-card";
 import { messageProvenance, messageInputsChanged, type MessageProvenance } from "@/lib/message-provenance";
 import { EvidenceLinksEditor } from "@/components/evidence-links-editor";
-import { relinkEvidence, evidenceForRequirements, evidenceContext, restorableRequirementEvidence } from "@/lib/evidence-links";
+import { relinkEvidence, evidenceForRequirements, evidenceContext, restorableRequirementEvidence, firstApplicationEvidence } from "@/lib/evidence-links";
 import { messageFollowUpTarget, followUpDate } from "@/lib/message-follow-up";
 import { UsageIntentPicker } from "@/components/usage-intent-picker";
 import { AiEvidenceForm } from "@/components/ai-evidence-form";
@@ -2875,7 +2875,7 @@ export default function Home() {
       || (application.contactName && contact.name === application.contactName)
       || (contact.linkedApplicationId === application.id && contact.company === application.company)
     );
-    const evidence = application.requirementEvidence.find((item) => item.evidence.trim())?.evidence.trim() || "";
+    const evidence = firstApplicationEvidence(application);
     const recipientName = application.contactName || linkedContact?.name || "";
     const recipientEmail = linkedContact?.email || "";
     setWorkspaceApplicationId(null);
@@ -2916,7 +2916,7 @@ export default function Home() {
         : /referr/.test(relationship)
           ? "Referral"
           : "Networking contact";
-    const evidence = linkedApplication?.requirementEvidence.find((item) => item.evidence.trim())?.evidence.trim() || "";
+    const evidence = firstApplicationEvidence(linkedApplication);
     const company = contact.company || linkedApplication?.company || "";
     const role = linkedApplication?.role || userProfile.targetRole || "";
     const intent: MessageProfile["intent"] = linkedApplication && isSubmittedApplicationStatus(linkedApplication.status)

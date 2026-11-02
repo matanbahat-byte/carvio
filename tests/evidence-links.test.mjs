@@ -1,8 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {relinkEvidence,evidenceForRequirements,evidenceContext,restorableRequirementEvidence} from '../lib/evidence-links.ts';
+import {relinkEvidence,evidenceForRequirements,evidenceContext,restorableRequirementEvidence,firstApplicationEvidence} from '../lib/evidence-links.ts';
 const evidence={id:'e',applicationId:'a',text:'Only supplied experience',requirementIds:['r1']};
 const requirements=[{id:'r1'},{id:'r2'},{id:'ignored',ignored:true}];
+test('outreach from application or explicitly linked contact resolves the same shared evidence',()=>{
+ const application={id:'a',requirementEvidence:[{id:'r1',evidence:''}],evidenceItems:[evidence]};
+ const before=JSON.stringify(application);
+ assert.equal(firstApplicationEvidence(application),evidence.text);
+ assert.equal(JSON.stringify(application),before);
+ assert.equal(firstApplicationEvidence({...application,id:'b'}),'');
+ assert.equal(firstApplicationEvidence({...application,evidenceItems:[{...evidence,requirementIds:['deleted']}]}),'');
+ assert.equal(firstApplicationEvidence(undefined),'');
+});
+test('legacy outreach evidence remains available without adding a structured record',()=>{
+ assert.equal(firstApplicationEvidence({id:'a',requirementEvidence:[{evidence:'  Supplied legacy experience  '}]}),'Supplied legacy experience');
+});
 test('restore roundtrip preserves requirement IDs and therefore saved evidence links',()=>{
  const source=[{id:'r1',requirement:'Reporting',evidence:'',category:'Communication'}];
  const restored=restorableRequirementEvidence(JSON.parse(JSON.stringify([...source,null,{requirement:42,evidence:''}])));

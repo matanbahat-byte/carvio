@@ -1,5 +1,10 @@
 export type LinkedEvidence = { id: string; applicationId: string; text: string; requirementIds: string[] };
 
+export function firstApplicationEvidence(application: { id: string; requirementEvidence: { id?: string; evidence: string }[]; evidenceItems?: LinkedEvidence[] } | null | undefined) {
+  if (!application) return "";
+  return evidenceForRequirements(application.requirementEvidence, application.evidenceItems || [], application.id).find(item => item.evidence.trim())?.evidence.trim() || "";
+}
+
 export function restorableRequirementEvidence<T extends { id?: string; requirement: string; evidence: string }>(rows: T[]): T[] {
   return rows.filter(item => Boolean(item && typeof item.requirement === "string" && typeof item.evidence === "string"));
 }
