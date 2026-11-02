@@ -32,6 +32,10 @@ Automated tests cover five goals/legacy values, source migration and outcome den
 
 ### Remaining verification / limitations
 
+### Explicit recipient identity — 2026-11-02
+
+Removed name-only lookup from application outreach and thank-you entry points. A shared selector respects ordered explicit contact IDs; if absent, only one unambiguous reverse application-ID link is accepted. Multiple reverse candidates never choose arbitrarily. Legacy free-text names remain usable but do not borrow email/role from same-name contacts. Linked contact name takes precedence over stale free text to avoid name/email mismatch. Three regression tests cover same-name contacts, contact order, removed links, and ambiguous reverse links (56 total). Tests/build passed. Local browser check confirmed the existing explicit contact still prefilled its saved name/role; empty saved email remained empty. Screenshot `/tmp/carvio-explicit-recipient-check.jpg`. Duplicate-name/thank-you branches covered by shared-selector tests, not a separate full browser journey. No public deployment.
+
 ### Shared evidence in outreach — 2026-11-02
 
 Found two remaining inline-only evidence selectors in Message Studio entry points. Application outreach and contact outreach with an explicitly linked application now use one shared pure evidence selector that resolves structured IDs and preserves legacy notes. Missing/deleted/unlinked/cross-application evidence is not inferred. Added two tests (53 total), build passed. Local Hebrew browser check confirmed the supplied evidence is prefilled in the relevant-value field when opening outreach from the application; screenshot `/tmp/carvio-shared-evidence-outreach.jpg`. The contact-specific browser path and interview-preparation field behavior were not expanded in this pass; interview notes remain user-entered. No public deployment.

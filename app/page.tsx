@@ -1,4 +1,5 @@
 "use client";
+import { linkedOutreachContact } from "@/lib/contact-links";
 import { MessageTrustCard } from "@/components/message-trust-card";
 import { messageProvenance, messageInputsChanged, type MessageProvenance } from "@/lib/message-provenance";
 import { EvidenceLinksEditor } from "@/components/evidence-links-editor";
@@ -2870,13 +2871,9 @@ export default function Home() {
   }
 
   function openOutreachForApplication(application: Application) {
-    const linkedContact = contacts.find((contact) =>
-      contact.id === application.linkedContactIds?.[0]
-      || (application.contactName && contact.name === application.contactName)
-      || (contact.linkedApplicationId === application.id && contact.company === application.company)
-    );
+    const linkedContact = linkedOutreachContact(application, contacts);
     const evidence = firstApplicationEvidence(application);
-    const recipientName = application.contactName || linkedContact?.name || "";
+    const recipientName = linkedContact?.name || application.contactName || "";
     const recipientEmail = linkedContact?.email || "";
     setWorkspaceApplicationId(null);
     setMessageProfile({
@@ -2967,18 +2964,14 @@ export default function Home() {
   }
 
   function openThankYouForApplication(application: Application) {
-    const linkedContact = contacts.find((contact) =>
-      contact.id === application.linkedContactIds?.[0]
-      || (application.contactName && contact.name === application.contactName)
-      || (contact.linkedApplicationId === application.id && contact.company === application.company)
-    );
+    const linkedContact = linkedOutreachContact(application, contacts);
     setWorkspaceApplicationId(null);
     setMessageProfile({
       ...emptyMessageProfile,
       recipientType: application.contactName || linkedContact ? "Recruiter" : "Hiring manager",
       intent: "Thank them",
       tone: "Warm & professional",
-      recipientName: application.contactName || linkedContact?.name || "",
+      recipientName: linkedContact?.name || application.contactName || "",
       recipientEmail: linkedContact?.email || "",
       recipientRole: linkedContact?.role || "",
       relationship: linkedContact?.relationship || "",
