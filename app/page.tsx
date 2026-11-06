@@ -1,4 +1,5 @@
 "use client";
+import { JobAvailabilityCheck } from "@/components/job-availability-check";
 import { SearchSourceCards } from "@/components/search-source-cards";
 import { validApplicationLinks } from "@/lib/backup-links";
 import { linkedOutreachContact } from "@/lib/contact-links";
@@ -4260,6 +4261,7 @@ export default function Home() {
               <button className="primary-button w-full" onClick={smartCaptureApplication} type="button"><ArrowRight className="h-4 w-4" />{language === "he" ? "בדיקת הפרטים" : "Review details"}</button>
             </> : smartCaptureStep === "review" ? <>
               <div className="smart-capture-review-heading"><CheckCircle2 className="h-5 w-5" /><div><strong>{language === "he" ? "הקישור נקלט" : "Link captured"}</strong><small>{applicationDraft.source} · {language === "he" ? "בדקו ותקנו לפי הצורך" : "Review and correct as needed"}</small></div></div>
+              <JobAvailabilityCheck url={applicationDraft.jobUrl} language={language} />
               <div className="smart-capture-review-grid">
                 <Field label={language === "he" ? "מקור (ניתן לתיקון)" : "Source (editable)"}><input list="capture-source-options" className="form-control" value={applicationDraft.source} onChange={(event) => setApplicationDraft((current) => ({ ...current, source: event.target.value }))} /><datalist id="capture-source-options">{["LinkedIn", "Google", "Company careers", "Manual", "Referral", "Recruiter", "Other"].map(source => <option key={source} value={source} />)}</datalist></Field>
                 <Field label={language === "he" ? "תפקיד (חובה)" : "Role (required)"}><input autoFocus id="capture-role" aria-invalid={Boolean(smartCaptureError) && !applicationDraft.role.trim()} aria-describedby={smartCaptureError ? "capture-error" : undefined} className="form-control" onChange={(event) => { setApplicationDraft((current) => ({ ...current, role: event.target.value })); setSmartCaptureError(""); }} placeholder={language === "he" ? "למשל Senior HR Business Partner" : "e.g. Senior HR Business Partner"} value={applicationDraft.role} /></Field>
