@@ -1,4 +1,5 @@
 "use client";
+import { validApplicationLinks } from "@/lib/backup-links";
 import { linkedOutreachContact } from "@/lib/contact-links";
 import { MessageTrustCard } from "@/components/message-trust-card";
 import { messageProvenance, messageInputsChanged, type MessageProvenance } from "@/lib/message-provenance";
@@ -3264,7 +3265,7 @@ export default function Home() {
     try {
       const backup = JSON.parse(await file.text()) as { applications?: Partial<Application>[]; contacts?: (Partial<Contact> & { companyRole?: string })[]; resumes?: ResumeFile[]; searchProfile?: Partial<SearchProfile>; recoveryEntries?: RecoveryEntry[]; userProfile?: Partial<UserProfile> };
       if (!Array.isArray(backup.applications) || !Array.isArray(backup.contacts)) throw new Error("Invalid backup");
-      if (!backup.applications.every(item => isCompatibleRecord(item, emptyApplication) && (!item.requirementEvidence || item.requirementEvidence.every(row => row && typeof row.requirement === "string" && typeof row.evidence === "string")) && (!item.processStages || item.processStages.every(stage => isCompatibleRecord(stage, { name: "", date: "", note: "", nextTask: "" })))) || !backup.contacts.every(item => isCompatibleRecord(item, emptyContact))) throw new Error("Invalid record");
+      if (!backup.applications.every(item => isCompatibleRecord(item, emptyApplication) && validApplicationLinks(item) && (!item.requirementEvidence || item.requirementEvidence.every(row => row && typeof row.requirement === "string" && typeof row.evidence === "string")) && (!item.processStages || item.processStages.every(stage => isCompatibleRecord(stage, { name: "", date: "", note: "", nextTask: "" })))) || !backup.contacts.every(item => isCompatibleRecord(item, emptyContact))) throw new Error("Invalid record");
       if (backup.searchProfile && !isCompatibleRecord(backup.searchProfile, emptySearchProfile)) throw new Error("Invalid search profile");
       if (backup.userProfile && !isCompatibleRecord(backup.userProfile, emptyUserProfile)) throw new Error("Invalid user profile");
       const restoredApplications = backup.applications.map(normalizeApplication);
