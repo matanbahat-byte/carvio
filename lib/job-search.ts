@@ -20,6 +20,7 @@ export type SearchProfile = {
 export type SearchOutcome = "unreviewed" | "found" | "none";
 
 export type JobSearchSource = {
+  id: "linkedin" | "indeed" | "google";
   name: string;
   emoji: string;
   featured: boolean;
@@ -166,11 +167,27 @@ export function captureJobLink(value: string) {
   return { jobUrl: url.toString(), source: linkedIn ? "LinkedIn" : indeed ? "Indeed" : "Other", company: "", role: "" };
 }
 
-export function officialSearchUrl(profile: SearchProfile) {
+export function googleJobSearch(profile: SearchProfile, language: Language = "en", options: { careerPages?: boolean; anyTime?: boolean } = {}) {
   const clean = normalizedSearchProfile(profile);
-  const quote = (text: string) => `"${text.replace(/["“”]/g, "")}"`;
-  const query = [quote(clean.role), quote(clean.location), '(careers OR jobs)', '-site:linkedin.com', '-site:indeed.com'].join(' ');
-  return `https://www.google.com/search?${new URLSearchParams({ q: query }).toString()}`;
+  const text = (value: string) => normalizeSearchText(value).replace(/["“”]/g, "");
+  const quote = (value: string) => `"${text(value)}"`;
+  const requiredSkills = clean.skillsMode === "required" ? clean.skills.split(",").filter(Boolean).map(quote) : [];
+  const exclusions = clean.exclude.split(",").map(value => text(value).replace(/^-+/, "")).filter(Boolean).map(value => `-${quote(value)}`);
+  const jobTerms = language === "he" ? "(jobs OR careers OR דרושים OR משרות)" : "(jobs OR careers OR hiring)";
+  // A role in normal page text is valid: do not require an exact phrase in its HTML title.
+  // Location words are also unquoted because job boards format cities/countries differently.
+  const careerTerms = '(careers OR "join our team" OR site:jobs.lever.co OR site:boards.greenhouse.io OR site:job-boards.greenhouse.io OR site:jobs.ashbyhq.com OR site:myworkdayjobs.com OR site:apply.workable.com)';
+  const query = [text(clean.role), options.careerPages ? careerTerms : jobTerms, text(clean.city), text(clean.country), ...requiredSkills, text(clean.industry), text(clean.workModel), ...exclusions, options.careerPages ? "-site:linkedin.com -site:indeed.com" : ""].filter(Boolean).join(" ");
+  const params = new URLSearchParams({ q: query, hl: language === "he" ? "he" : "en" });
+  const codes: Record<string, string> = { Netherlands: "nl", Israel: "il", "United Kingdom": "gb", Germany: "de", France: "fr", Spain: "es", Portugal: "pt", Belgium: "be", Canada: "ca", "United States": "us" };
+  if (codes[clean.country]) params.set("gl", codes[clean.country]);
+  const age = ({ "Past 24 hours": "qdr:d", "Past week": "qdr:w", "Past month": "qdr:m" } as Record<string, string>)[clean.datePosted];
+  if (age && !options.anyTime) params.set("tbs", age);
+  return { query, url: `https://www.google.com/search?${params.toString()}` };
+}
+
+export function officialSearchUrl(profile: SearchProfile, language: Language = "en") {
+  return googleJobSearch(profile, language, { careerPages: true, anyTime: true }).url;
 }
 
 export function localizedSearchFilter(value: string, language: Language) {
@@ -241,7 +258,7 @@ export function searchFilterSummary(profile: SearchProfile, source: "linkedin" |
   const applied: string[] = [];
   const notApplied: string[] = [];
   const add = (name: string, value: string, supported = true) => { if (value) (supported ? applied : notApplied).push(`${name}: ${value}`); };
-  add(he ? "ביטוי תפקיד (כולל חלופות מוצגות בשאילתה)" : "Role phrase (aliases shown in query)", profile.role);
+  add(source === "google" ? (he ? "מילות התפקיד" : "Role keywords") : (he ? "ביטוי תפקיד (כולל חלופות מוצגות בשאילתה)" : "Role phrase (aliases shown in query)"), profile.role);
   add(he ? "מיקום מבוקש" : "Requested location", [profile.location, profile.country].filter(Boolean).join(", "));
   add(he ? "רדיוס" : "Radius", `${profile.radius} km`, source !== "google");
   add(he ? "מועד פרסום" : "Date posted", localizedSearchFilter(profile.datePosted, language), ["Past 24 hours", "Past week", "Past month", "Any time"].includes(profile.datePosted));
@@ -257,22 +274,16 @@ export function searchFilterSummary(profile: SearchProfile, source: "linkedin" |
 export function jobSearchSources(profile: SearchProfile, language: Language = "en"): JobSearchSource[] {
   const clean = normalizedSearchProfile(profile);
   const indeedDomains: Record<string, string> = { Netherlands: "nl.indeed.com", Israel: "il.indeed.com", "United Kingdom": "uk.indeed.com", Germany: "de.indeed.com", France: "fr.indeed.com", Spain: "es.indeed.com", Portugal: "pt.indeed.com", Belgium: "be.indeed.com", Canada: "ca.indeed.com", "United States": "www.indeed.com" };
-  const googleDomains: Record<string, string> = { Netherlands: "www.google.nl", Israel: "www.google.co.il", "United Kingdom": "www.google.co.uk", Germany: "www.google.de", France: "www.google.fr", Spain: "www.google.es", Portugal: "www.google.pt", Belgium: "www.google.be", Canada: "www.google.ca", "United States": "www.google.com" };
-  const countryCodes: Record<string, string> = { Netherlands: "nl", Israel: "il", "United Kingdom": "gb", Germany: "de", France: "fr", Spain: "es", Portugal: "pt", Belgium: "be", Canada: "ca", "United States": "us" };
   const indeedDomain = indeedDomains[clean.country] || "www.indeed.com";
-  const googleDomain = googleDomains[clean.country] || "www.google.com";
   const quote = (value: string) => `"${value.replace(/["“”]/g, "").trim()}"`;
   const skills = clean.skillsMode === "required" ? clean.skills.split(",").map(normalizeSearchText).filter(Boolean) : [];
   const exclusions = clean.exclude.split(",").map((term) => normalizeSearchText(term).replace(/^-+/, "")).filter(Boolean);
   const supplement = skills.map(quote);
   const negative = exclusions.map((term) => `-${quote(term)}`);
-  const exactRole = `intitle:${quote(clean.role)}`;
   const indeedQuery = [quote(clean.role), ...supplement.map((term) => `AND ${term}`), ...negative, clean.workModel ? `AND ${quote(clean.workModel)}` : ""].filter(Boolean).join(" ");
-  const googleQuery = [exactRole, "jobs", clean.city ? quote(clean.city) : "", quote(clean.country), ...supplement, clean.industry ? quote(clean.industry) : "", clean.workModel ? quote(clean.workModel) : "", ...negative].filter(Boolean).join(" ");
+  const google = googleJobSearch(profile, language);
   const indeedAge = clean.datePosted === "Past 24 hours" ? "1" : clean.datePosted === "Past week" ? "7" : clean.datePosted === "Past month" ? "30" : "";
   const linkedInAge = clean.datePosted === "Past 24 hours" ? "r86400" : clean.datePosted === "Past week" ? "r604800" : clean.datePosted === "Past month" ? "r2592000" : "";
-  const googleAge = clean.datePosted === "Past 24 hours" ? "qdr:d" : clean.datePosted === "Past week" ? "qdr:w" : clean.datePosted === "Past month" ? "qdr:m" : "";
-  const countryCode = countryCodes[clean.country] || clean.country.slice(0, 2).toLowerCase();
   const linkedInQuery = linkedInKeywordQuery(clean);
   const linkedInParams = new URLSearchParams({ keywords: linkedInQuery, location: clean.location, distance: linkedInDistanceFromKilometers(clean.radius), sortBy: "DD", origin: "JOB_SEARCH_PAGE_JOB_FILTER" });
   if (linkedInAge) linkedInParams.set("f_TPR", linkedInAge);
@@ -286,15 +297,13 @@ export function jobSearchSources(profile: SearchProfile, language: Language = "e
   const indeedParams = new URLSearchParams({ q: indeedQuery, l: clean.location, radius: clean.radius, sort: "date" });
   if (indeedAge) indeedParams.set("fromage", indeedAge);
   if (indeedEmployment[clean.employmentType]) indeedParams.set("jt", indeedEmployment[clean.employmentType]);
-  const googleParams = new URLSearchParams({ q: googleQuery, hl: language === "he" ? "he" : "en", gl: countryCode });
-  if (googleAge) googleParams.set("tbs", googleAge);
   const freshnessLabel = language === "he"
     ? ({ "Past 24 hours": "24 השעות האחרונות", "Past week": "השבוע האחרון", "Past month": "החודש האחרון", "Any time": "ללא הגבלת זמן" }[clean.datePosted] || clean.datePosted)
     : clean.datePosted;
   const sentSummary = `${quote(clean.role)} · ${clean.location || clean.country} · ${freshnessLabel}`;
   return [
-    { name: "LinkedIn", emoji: "in", featured: true, freshness: freshnessLabel, accuracy: sentSummary, query: linkedInQuery, description: language === "he" ? "הקישור שולח את ביטוי התפקיד, המיקום והמסננים המפורטים כאן. LinkedIn עשוי להציג המלצות או להרחיב התאמות; בדקו את התפקיד והמיקום בכל מודעה." : "The link sends the role phrase, location and filters listed here. LinkedIn may show recommendations or broader matches; check the role and location in each listing.", url: `https://www.linkedin.com/jobs/search/?${linkedInParams.toString()}`, ...searchFilterSummary({ ...clean, location: clean.city }, "linkedin", language) },
-    { name: language === "he" ? "Indeed — חיפוש מקומי" : "Indeed — local search", emoji: "🌍", featured: false, freshness: freshnessLabel, accuracy: sentSummary, query: indeedQuery, description: language === "he" ? "קישור לחיפוש ב־Indeed. יש לבדוק את המסננים והתוצאות במקור." : "A search link to Indeed. Review its filters and results at the source.", url: `https://${indeedDomain}/jobs?${indeedParams.toString()}`, ...searchFilterSummary({ ...clean, location: clean.city }, "indeed", language) },
-    { name: language === "he" ? "Google — חיפוש ממוקד משרות" : "Google — jobs-focused search", emoji: "🔎", featured: false, freshness: freshnessLabel, accuracy: sentSummary, query: googleQuery, description: language === "he" ? "מילות חיפוש למשרות, לא מאגר תוצאות מאומתות." : "A web query for jobs, not a verified listing feed.", url: `https://${googleDomain}/search?${googleParams.toString()}`, ...searchFilterSummary({ ...clean, location: clean.city }, "google", language) },
+    { id: "linkedin", name: "LinkedIn", emoji: "in", featured: true, freshness: freshnessLabel, accuracy: sentSummary, query: linkedInQuery, description: language === "he" ? "הקישור שולח את ביטוי התפקיד, המיקום והמסננים המפורטים כאן. LinkedIn עשוי להציג המלצות או להרחיב התאמות; בדקו את התפקיד והמיקום בכל מודעה." : "The link sends the role phrase, location and filters listed here. LinkedIn may show recommendations or broader matches; check the role and location in each listing.", url: `https://www.linkedin.com/jobs/search/?${linkedInParams.toString()}`, ...searchFilterSummary({ ...clean, location: clean.city }, "linkedin", language) },
+    { id: "indeed", name: language === "he" ? "Indeed — חיפוש מקומי" : "Indeed — local search", emoji: "🌍", featured: false, freshness: freshnessLabel, accuracy: sentSummary, query: indeedQuery, description: language === "he" ? "קישור לחיפוש ב־Indeed. יש לבדוק את המסננים והתוצאות במקור." : "A search link to Indeed. Review its filters and results at the source.", url: `https://${indeedDomain}/jobs?${indeedParams.toString()}`, ...searchFilterSummary({ ...clean, location: clean.city }, "indeed", language) },
+    { id: "google", name: language === "he" ? "Google — חיפוש ממוקד משרות" : "Google — jobs-focused search", emoji: "🔎", featured: false, freshness: freshnessLabel, accuracy: sentSummary, query: google.query, description: language === "he" ? "מילות חיפוש למשרות, לא מאגר תוצאות מאומתות." : "A web query for jobs, not a verified listing feed.", url: google.url, ...searchFilterSummary({ ...clean, location: clean.city }, "google", language) },
   ];
 }
