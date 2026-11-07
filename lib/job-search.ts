@@ -35,7 +35,7 @@ export type JobSearchSource = {
 };
 
 
-export const emptySearchProfile: SearchProfile = { role: "", filterRole: "", location: "", country: "Netherlands", radius: "25", skills: "", skillsMode: "preference", seniority: "", workModel: "", employmentType: "Full-time", datePosted: "Past week", industry: "", exclude: "" };
+export const emptySearchProfile: SearchProfile = { role: "", filterRole: "", location: "", country: "", radius: "25", skills: "", skillsMode: "preference", seniority: "", workModel: "", employmentType: "Full-time", datePosted: "Past week", industry: "", exclude: "" };
 const supplyChainSkillSuggestions = ["Inventory management", "Demand planning", "Procurement", "Logistics", "S&OP", "ERP", "Supplier management", "Warehouse operations", "Forecasting"];
 const hrSkillSuggestions = ["Business partnering", "Talent management", "Employee relations", "Organizational development", "Change management", "Workforce planning", "Coaching", "HR analytics", "People strategy", "Recruitment", "Compensation & benefits", "Labor law"];
 
