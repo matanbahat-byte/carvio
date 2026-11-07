@@ -10382,3 +10382,54 @@ html[data-carvio-theme="light"] {
 .search-source-limit { margin-block: .65rem; padding-inline-start: .65rem; border-inline-start: 3px solid var(--cv-mustard); color: var(--cv-body); }
 .search-request-keywords { display: block; margin-block: .5rem; padding: .65rem; border-radius: .5rem; background: var(--cv-surface); color: var(--cv-text); white-space: pre-wrap; overflow-wrap: anywhere; unicode-bidi: plaintext; }
 .search-copy-keywords { margin-block: .5rem; min-height: 2.75rem; }
+
+/* The language control stays in the same corner in both reading directions. */
+.carvio-welcome,
+.carvio-shell {
+  --carvio-language-top: max(.5rem, env(safe-area-inset-top));
+}
+
+.carvio-welcome { overflow: clip; }
+
+.carvio-language-bar {
+  position: sticky;
+  top: var(--carvio-language-top);
+  z-index: 46;
+  width: min(100%, 72rem);
+  min-height: 2.75rem;
+  margin-inline: auto;
+  pointer-events: none;
+}
+
+.carvio-workspace-language {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: .75rem;
+}
+
+.carvio-language-bar .carvio-language-switch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .25rem;
+  min-height: 2.75rem;
+  padding: .25rem .38rem .25rem .65rem;
+  border: 1px solid #99bfb3;
+  border-radius: 999px;
+  background: #fff;
+  color: #163d34;
+  box-shadow: 0 4px 14px #10251f20;
+  font-size: .875rem;
+  font-weight: 750;
+  white-space: nowrap;
+  pointer-events: auto;
+}
+
+.carvio-language-switch:hover { border-color: #087f6c; }
+.carvio-language-switch:focus-visible { outline: 3px solid #087f6c; outline-offset: 3px; }
+.carvio-language-switch span { padding: .28rem .46rem; border-radius: 999px; }
+.carvio-language-switch [data-current="true"] { background: #126957; color: #fff; }
+
+@media (min-width: 768px) {
+  .calm-desktop-nav { top: calc(var(--carvio-language-top) + 3.25rem); }
+}

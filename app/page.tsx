@@ -3461,13 +3461,26 @@ export default function Home() {
     return <main className="min-h-screen bg-slate-50" aria-label="Loading Carvio" />;
   }
 
+  const languageSwitcher = (
+    <button
+      aria-label={language === "en" ? "Switch language to Hebrew" : "החלפת שפה לאנגלית"}
+      className="carvio-language-switch"
+      onClick={() => setLanguage(language === "en" ? "he" : "en")}
+      type="button"
+    >
+      <Languages aria-hidden="true" className="h-4 w-4" />
+      <span data-current={language === "en"} lang="en">English</span>
+      <span data-current={language === "he"} lang="he">עברית</span>
+    </button>
+  );
+
   if (showLanding) {
     return (
       <main className={`carvio-welcome welcome-theme-${theme}`} dir={language === "he" ? "rtl" : "ltr"}>
-        <nav className="welcome-nav">
+        <header className="welcome-nav carvio-language-bar" dir="ltr">
           <strong>CARVIO</strong>
-          <button onClick={() => setLanguage(language === "en" ? "he" : "en")} type="button"><Languages className="h-4 w-4" />{language === "en" ? "עברית" : "English"}</button>
-        </nav>
+          {languageSwitcher}
+        </header>
         <section className="welcome-hero">
           <div className="welcome-copy">
             <span className="welcome-kicker"><Sparkles className="h-4 w-4" />{language === "he" ? "חיפוש עבודה, עם פחות עומס" : "A calmer way to move your career forward"}</span>
@@ -3495,8 +3508,9 @@ export default function Home() {
 
   return (
     <main className={`carvio-shell min-h-screen px-4 py-6 text-slate-100 sm:px-6 sm:py-8 lg:px-8 ${theme === "light" ? "carvio-light" : theme === "ocean" ? "carvio-ocean" : theme === "plum" ? "carvio-plum" : ""}`} dir={language === "he" ? "rtl" : "ltr"}>
+      <div className="carvio-language-bar carvio-workspace-language" dir="ltr">{languageSwitcher}</div>
       <div className="calm-content mx-auto flex max-w-7xl flex-col gap-8">
-        {demoMode && <aside className="demo-mode-banner" role="status"><strong>{language === "he" ? "מצב דמו · נתונים פיקטיביים בלבד" : "Demo mode · fictional data only"}</strong><p>{language === "he" ? "נתוני הדמו נשארים בסיור. סביבת העבודה האישית נשמרת במכשיר הזה, ואפשר להתחבר בה כדי לסנכרן." : "Demo changes stay in this session. Your personal workspace is saved on this device. Sign in there to sync across devices."}</p><button className="secondary-button" type="button" onClick={() => window.location.assign("/?workspace=1")}>{language === "he" ? "פתיחת סביבת עבודה במכשיר הזה" : "Open workspace on this device"}</button></aside>}
+        {demoMode && <aside className="demo-mode-banner" role="status"><strong>{language === "he" ? "מצב דמו · נתונים פיקטיביים בלבד" : "Demo mode · fictional data only"}</strong><p>{language === "he" ? "נתוני הדמו נשארים בסיור. סביבת העבודה האישית נשמרת במכשיר הזה, ואפשר להתחבר בה כדי לסנכרן." : "Demo changes stay in this session. Your personal workspace is saved on this device. Sign in there to sync across devices."}</p><button className="secondary-button" type="button" onClick={() => { window.localStorage.setItem(LANGUAGE_KEY, JSON.stringify(language)); window.location.assign("/?workspace=1"); }}>{language === "he" ? "פתיחת סביבת עבודה במכשיר הזה" : "Open workspace on this device"}</button></aside>}
         <nav aria-label={language === "he" ? "ניווט ראשי ב־Carvio" : "Carvio main navigation"} className="calm-desktop-nav">
           {([
             ["home", House, copy.overview],
@@ -3524,7 +3538,6 @@ export default function Home() {
                 <button aria-expanded={showAppearance} aria-haspopup="dialog" aria-label={language === "he" ? "צבעים ונגישות" : "Colors and accessibility"} className="hero-icon-button" onClick={() => setShowAppearance((current) => !current)} title={language === "he" ? "צבעים ונגישות" : "Colors & accessibility"} type="button"><Palette className="h-4 w-4" /></button>
                 {showAppearance && <div aria-label={language === "he" ? "בחירת פלטת צבעים" : "Choose a color palette"} className="appearance-menu" role="dialog"><p className="text-sm font-semibold">{copy.choosePalette}</p><div className="mt-3 grid grid-cols-2 gap-2">{([{ value: "dark", label: copy.darkForest, colors: ["#07110d", "#166534", "#14b8a6"] }, { value: "light", label: copy.cleanLight, colors: ["#ffffff", "#e0f2fe", "#059669"] }, { value: "ocean", label: copy.deepOcean, colors: ["#071827", "#075985", "#22d3ee"] }, { value: "plum", label: copy.warmPlum, colors: ["#211126", "#7e22ce", "#fb7185"] }] as { value: ColorTheme; label: string; colors: string[] }[]).map((option) => <button aria-pressed={theme === option.value} className={`palette-option ${theme === option.value ? "palette-option-active" : ""}`} key={option.value} onClick={() => { selectTheme(option.value); setShowAppearance(false); }} type="button"><span className="flex" aria-hidden="true">{option.colors.map((color) => <span className="h-5 w-5 border border-white/20 first:rounded-s-full last:rounded-e-full" key={color} style={{ backgroundColor: color }} />)}</span><span>{option.label}</span></button>)}</div></div>}
               </div>
-              <button aria-label={language === "en" ? "Switch to Hebrew" : "Switch to English"} className="hero-language-button" onClick={() => setLanguage(language === "en" ? "he" : "en")} type="button"><Languages className="h-4 w-4" /> {copy.hebrew}</button>
             </div>
           </div>
           <section className="dashboard-v2-today" aria-labelledby="dashboard-v2-today-title">
@@ -4240,7 +4253,6 @@ export default function Home() {
           <div className="section-heading"><div><p className="eyebrow text-cyan-300">{copy.preferences}</p><h2 className="section-title">{copy.preferencesTitle}</h2></div><span className="text-3xl" aria-hidden="true">⚙️</span></div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <button className="calm-setting-button" onClick={() => setShowAppearance(!showAppearance)} type="button"><Palette className="h-5 w-5 text-cyan-300" /><span><strong>{copy.appearance}</strong><small>{copy.appearanceHelp}</small></span></button>
-            <button className="calm-setting-button" onClick={() => setLanguage(language === "en" ? "he" : "en")} type="button"><Languages className="h-5 w-5 text-violet-300" /><span><strong>{copy.language}</strong><small>{language === "en" ? "Switch to Hebrew" : "מעבר לאנגלית"}</small></span></button>
             <button className="calm-setting-button" onClick={() => setShowTrustCenter(true)} type="button"><ShieldCheck className="h-5 w-5 text-emerald-300" /><span><strong>{copy.privacy}</strong><small>{copy.privacyHelp}</small></span></button>
             <button className="calm-setting-button" onClick={() => { setFeedbackError(""); setShowFeedbackModal(true); }} type="button"><MessageCircleMore className="h-5 w-5 text-amber-300" /><span><strong>{copy.pilotFeedback}</strong><small>{copy.pilotFeedbackHelp}</small></span></button>
             <button className="calm-setting-button" onClick={resetDemoData} type="button"><RotateCcw className="h-5 w-5 text-rose-300" /><span><strong>{copy.resetDemo}</strong><small>{language === "he" ? "חזרה בטוחה לנתוני ההדגמה" : "Safely restore the original demo data"}</small></span></button>
