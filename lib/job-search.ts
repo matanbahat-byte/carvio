@@ -158,6 +158,30 @@ export function patchSearchProfile(current: SearchProfile, patch: Partial<Search
   return { ...current, ...patch, ...(patch.country !== undefined && patch.country !== current.country ? { location: "" } : {}) };
 }
 
+const jobLinkTrackingParams = new Set([
+  "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "utm_id",
+  "utm_source_platform", "utm_creative_format", "utm_marketing_tactic",
+  "gclid", "dclid", "fbclid", "msclkid",
+]);
+
+export function jobLinkIdentity(value: string) {
+  let url: URL;
+  try {
+    url = new URL(value.trim());
+  } catch {
+    return null;
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+
+  // Compare without tracking tags while keeping the saved source link intact.
+  const params = url.searchParams;
+  for (const name of new Set(params.keys())) {
+    if (jobLinkTrackingParams.has(name.toLowerCase())) params.delete(name);
+  }
+  url.search = params.toString();
+  return url.href;
+}
+
 export function captureJobLink(value: string) {
   const url = new URL(value.trim());
   if (!/^https?:$/.test(url.protocol)) throw new Error("Unsupported URL");
