@@ -1,4 +1,5 @@
-export type Availability = { status: "published" | "not-published" | "unknown"; reason: "listed" | "absent" | "unsupported" | "unreachable"; checkedAt: string };
+export type VerifiedJobDetails = { role: string; company: string; location: string };
+export type Availability = { status: "published" | "not-published" | "unknown"; reason: "listed" | "absent" | "unsupported" | "unreachable"; checkedAt: string; details?: VerifiedJobDetails };
 type Target = { provider: "greenhouse" | "lever"; id: string; detail: string; board: string };
 
 // Construct requests only to fixed public ATS API hosts, never to the supplied URL.
@@ -42,6 +43,12 @@ async function boundedJson(response: Response): Promise<unknown> {
   return JSON.parse(new TextDecoder().decode(all));
 }
 
+function verifiedField(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const text = value.trim();
+  return text.length <= 300 ? text : "";
+}
+
 export async function checkJobAvailability(input: string, request: typeof fetch = fetch): Promise<Availability> {
   const checkedAt = new Date().toISOString();
   const result = (status: Availability["status"], reason: Availability["reason"]): Availability => ({ status, reason, checkedAt });
@@ -52,9 +59,25 @@ export async function checkJobAvailability(input: string, request: typeof fetch 
   try {
     const response = await request(target.detail, options);
     if (response.ok) {
-      const job = await boundedJson(response) as { id?: unknown; title?: unknown; text?: unknown };
-      if (job && String(job.id) === target.id && typeof (target.provider === "lever" ? job.text : job.title) === "string") return result("published", "listed");
-      return result("unknown", "unreachable");
+      const job = await boundedJson(response) as {
+        id?: unknown;
+        title?: unknown;
+        text?: unknown;
+        company_name?: unknown;
+        location?: { name?: unknown };
+        categories?: { location?: unknown };
+      } | null;
+      const lever = target.provider === "lever";
+      const role = verifiedField(lever ? job?.text : job?.title);
+      if (!job || String(job.id) !== target.id || !role) return result("unknown", "unreachable");
+      return {
+        ...result("published", "listed"),
+        details: {
+          role,
+          company: lever ? "" : verifiedField(job.company_name),
+          location: verifiedField(lever ? job.categories?.location : job.location?.name),
+        },
+      };
     }
     // A missing/blocked endpoint alone is not evidence of closure. Confirm a
     // valid public board before calling the posting no longer published.

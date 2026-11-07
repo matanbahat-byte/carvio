@@ -1,5 +1,6 @@
 "use client";
 import { JobAvailabilityCheck } from "@/components/job-availability-check";
+import type { VerifiedJobDetails } from "@/lib/job-availability";
 import { SearchSourceCards } from "@/components/search-source-cards";
 import { validApplicationLinks } from "@/lib/backup-links";
 import { linkedOutreachContact } from "@/lib/contact-links";
@@ -17,7 +18,7 @@ import Image from "next/image";
 import { googleJobSearch, officialSearchUrl, changeSearchRole, searchPreferencesNeedReview, emptySearchProfile, sanitizeSearchProfile, normalizedSearchProfile, migrateSearchProfile, nextSearchDateWindow, skillSuggestionsForRole, localizedSearchFilter, companyJobSearchRoute, jobSearchSources, searchProfileChanged, broadenSearchProfile, patchSearchProfile, captureJobLink, jobLinkIdentity, type SearchProfile, type SearchOutcome, type JobSearchSource } from "@/lib/job-search";
 import { agendaEntries, scheduledTimestamp } from "@/lib/schedule";
 import { extractJobRequirements, splitRequirementText, uniqueRequirements, requirementCategory } from "@/lib/job-requirements";
-import { ChangeEvent, FormEvent, Fragment, ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, Fragment, ReactNode, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   ArrowDown,
   ArrowRight,
@@ -1409,6 +1410,20 @@ export default function Home() {
   const [smartCaptureUrl, setSmartCaptureUrl] = useState("");
   const [smartCaptureText, setSmartCaptureText] = useState("");
   const [smartCaptureError, setSmartCaptureError] = useState("");
+  const captureEditedFields = useRef(new Set<keyof VerifiedJobDetails>());
+  const applyVerifiedCaptureDetails = useCallback((url: string, details: VerifiedJobDetails) => {
+    setApplicationDraft(current => {
+      if (current.jobUrl !== url) return current;
+      const edited = captureEditedFields.current;
+      return {
+        ...current,
+        role: edited.has("role") ? current.role : details.role || current.role,
+        company: edited.has("company") ? current.company : details.company || current.company,
+        location: edited.has("location") ? current.location : details.location || current.location,
+      };
+    });
+  }, []);
+
   const [workspaceApplicationId, setWorkspaceApplicationId] = useState<string | null>(null);
   const [showCommandBar, setShowCommandBar] = useState(false);
   const [commandQuery, setCommandQuery] = useState("");
@@ -2337,6 +2352,7 @@ export default function Home() {
       return;
     }
     if (openExistingCapture(captured.jobUrl)) return;
+    captureEditedFields.current.clear();
     setEditingApplicationId(null);
     const detectedRequirements = extractJobRequirements(smartCaptureText);
     setApplicationDraft({
@@ -4339,19 +4355,19 @@ export default function Home() {
               <button className="primary-button w-full" onClick={smartCaptureApplication} type="button"><ArrowRight className="h-4 w-4" />{language === "he" ? "בדיקת הפרטים" : "Review details"}</button>
             </> : smartCaptureStep === "review" ? <>
               <div className="smart-capture-review-heading"><CheckCircle2 className="h-5 w-5" /><div><strong>{language === "he" ? "הקישור נקלט" : "Link captured"}</strong><small>{applicationDraft.source} · {language === "he" ? "בדקו ותקנו לפי הצורך" : "Review and correct as needed"}</small></div></div>
-              <JobAvailabilityCheck url={applicationDraft.jobUrl} language={language} />
-              {activeView === "search" && !searchDraftChanged && submittedSearch?.role && <p className="text-sm text-slate-500">{language === "he" ? "התפקיד והמיקום המוצעים נלקחו מהחיפוש. התאימו אותם לפרטים שבמודעה לפני השמירה." : "The suggested role and location come from your search. Check them against the listing before saving."}</p>}
+              {activeView === "search" && !searchDraftChanged && submittedSearch?.role && <p className="text-sm text-slate-500">{language === "he" ? "בדקו את הפרטים המוצעים מול המודעה. כאשר הפרטים זמינים במקור, נציג אותם במקום פרטי החיפוש." : "Check suggested details against the listing. When the source provides details, they replace the search suggestions."}</p>}
               <div className="smart-capture-review-grid">
                 <Field label={language === "he" ? "מקור (ניתן לתיקון)" : "Source (editable)"}><input list="capture-source-options" className="form-control" value={applicationDraft.source} onChange={(event) => setApplicationDraft((current) => ({ ...current, source: event.target.value }))} /><datalist id="capture-source-options">{["LinkedIn", "Google", "Company careers", "Manual", "Referral", "Recruiter", "Other"].map(source => <option key={source} value={source} />)}</datalist></Field>
-                <Field label={language === "he" ? "תפקיד (חובה)" : "Role (required)"}><input autoFocus={!applicationDraft.role} id="capture-role" aria-invalid={Boolean(smartCaptureError) && !applicationDraft.role.trim()} aria-describedby={smartCaptureError ? "capture-error" : undefined} className="form-control" onChange={(event) => { setApplicationDraft((current) => ({ ...current, role: event.target.value })); setSmartCaptureError(""); }} placeholder={language === "he" ? "למשל Senior HR Business Partner" : "e.g. Senior HR Business Partner"} value={applicationDraft.role} /></Field>
-                <Field label={language === "he" ? "חברה (חובה)" : "Company (required)"}><input autoFocus={Boolean(applicationDraft.role)} id="capture-company" aria-invalid={Boolean(smartCaptureError) && !applicationDraft.company.trim()} aria-describedby={smartCaptureError ? "capture-error" : undefined} className="form-control" onChange={(event) => { setApplicationDraft((current) => ({ ...current, company: event.target.value })); setSmartCaptureError(""); }} placeholder={language === "he" ? "שם החברה" : "Company name"} value={applicationDraft.company} /></Field>
-                <Field label={language === "he" ? "מיקום (אופציונלי)" : "Location (optional)"}><input className="form-control" onChange={(event) => setApplicationDraft((current) => ({ ...current, location: event.target.value }))} placeholder={language === "he" ? "עיר או אזור" : "City or area"} value={applicationDraft.location} /></Field>
+                <Field label={language === "he" ? "תפקיד (חובה)" : "Role (required)"}><input autoFocus={!applicationDraft.role} id="capture-role" aria-invalid={Boolean(smartCaptureError) && !applicationDraft.role.trim()} aria-describedby={smartCaptureError ? "capture-error" : undefined} className="form-control" onChange={(event) => { captureEditedFields.current.add("role"); setApplicationDraft((current) => ({ ...current, role: event.target.value })); setSmartCaptureError(""); }} placeholder={language === "he" ? "למשל Senior HR Business Partner" : "e.g. Senior HR Business Partner"} value={applicationDraft.role} /></Field>
+                <Field label={language === "he" ? "חברה (חובה)" : "Company (required)"}><input autoFocus={Boolean(applicationDraft.role)} id="capture-company" aria-invalid={Boolean(smartCaptureError) && !applicationDraft.company.trim()} aria-describedby={smartCaptureError ? "capture-error" : undefined} className="form-control" onChange={(event) => { captureEditedFields.current.add("company"); setApplicationDraft((current) => ({ ...current, company: event.target.value })); setSmartCaptureError(""); }} placeholder={language === "he" ? "שם החברה" : "Company name"} value={applicationDraft.company} /></Field>
+                <Field label={language === "he" ? "מיקום (אופציונלי)" : "Location (optional)"}><input className="form-control" onChange={(event) => { captureEditedFields.current.add("location"); setApplicationDraft((current) => ({ ...current, location: event.target.value })); }} placeholder={language === "he" ? "עיר או אזור" : "City or area"} value={applicationDraft.location} /></Field>
                 <Field label={language === "he" ? "שלב" : "Stage"}><select className="form-control" onChange={(event) => setApplicationDraft((current) => ({ ...current, status: event.target.value as ApplicationStatus }))} value={applicationDraft.status}>{["Considering", "Applied"].map((status) => <option key={status} value={status}>{statusLabel(status as ApplicationStatus)}</option>)}</select></Field>
                 <Field label={language === "he" ? "הפעולה הבאה (אופציונלי)" : "Next action (optional)"}><input className="form-control" onChange={(event) => setApplicationDraft((current) => ({ ...current, nextStep: event.target.value, captureNextStepEdited: true }))} value={applicationDraft.nextStep} /></Field>
                 <Field label={language === "he" ? "תאריך ושעת יעד (אופציונלי)" : "Due date and time (optional)"}><input className="form-control" type="datetime-local" onInput={(event) => { const nextStepDue = event.currentTarget.value; setApplicationDraft((current) => ({ ...current, nextStepDue })); }} value={applicationDraft.nextStepDue} /></Field>
               </div>
               {smartCaptureError && <p id="capture-error" role="alert" className="form-error">{smartCaptureError}</p>}
               <div className="smart-capture-review-actions"><button className="secondary-button" onClick={() => { setSmartCaptureStep("link"); setSmartCaptureError(""); }} type="button">{language === "he" ? "חזרה" : "Back"}</button><button className="secondary-button" onClick={openCapturedApplicationDetails} type="button">{language === "he" ? "פרטים נוספים" : "More details"}</button><button className="primary-button" onClick={saveSmartCapture} type="button"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "שמירת המשרה" : "Save job"}</button></div>
+              <JobAvailabilityCheck url={applicationDraft.jobUrl} language={language} onVerifiedDetails={applyVerifiedCaptureDetails} />
             </> : <div className="smart-capture-success"><div className="smart-capture-success-icon"><CheckCircle2 className="h-9 w-9" /></div><div><strong>{applicationDraft.role}</strong><span>{applicationDraft.company}</span></div><p>{applicationDraft.nextStep.trim() ? (language === "he" ? `הצעד הבא: ${applicationDraft.nextStep}` : `Next action: ${applicationDraft.nextStep}`) : (language === "he" ? "המשרה נשמרה. אפשר להגדיר פעולה הבאה כשתהיו מוכנים." : "Your job is saved. Set a next action when you are ready.")}{applicationDraft.nextStepDue && <small>{formatDate(language, applicationDraft.nextStepDue, true)}</small>}</p><button className="primary-button" onClick={openSavedCapture} type="button">{language === "he" ? "פתיחת המועמדות" : "Open application"}<ArrowRight className="h-4 w-4" /></button><button className="smart-capture-not-now" onClick={resetSmartCapture} type="button">{language === "he" ? "לא עכשיו" : "Not now"}</button></div>}
           </div>
         </Modal>
