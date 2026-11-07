@@ -8,7 +8,7 @@ test('broader and career-page routes preserve role and location without claiming
   const official=new URL(officialSearchUrl(p));assert.ok(official.searchParams.get('q').includes('חיפה'));assert.ok(official.searchParams.get('q').includes('-site:linkedin.com'));
 });
 import assert from 'node:assert/strict';
-import { changeSearchRole, searchPreferencesNeedReview, emptySearchProfile, sanitizeSearchProfile, migrateSearchProfile, jobSearchSources, searchProfileChanged, broadenSearchProfile, patchSearchProfile, skillSuggestionsForRole, captureJobLink } from '../lib/job-search.ts';
+import { changeSearchRole, searchPreferencesNeedReview, emptySearchProfile, sanitizeSearchProfile, migrateSearchProfile, jobSearchSources, searchProfileChanged, broadenSearchProfile, patchSearchProfile, skillSuggestionsForRole, captureJobLink, jobLinkIdentity } from '../lib/job-search.ts';
 
 const profile = (patch = {}) => ({ ...emptySearchProfile, role: 'Software Engineer', filterRole: 'Software Engineer', country: 'Israel', location: 'Beer Sheva', ...patch });
 const linkedIn = (p) => jobSearchSources(p, 'en')[0];
@@ -112,4 +112,21 @@ test('captured URLs keep their source without inventing role or company', () => 
   }
   assert.equal(captureJobLink('https://linkedin.com.evil.example/jobs').source, 'Other');
   for(const url of ['javascript:alert(1)','file:///tmp/test','not a url']) assert.throws(()=>captureJobLink(url));
+});
+
+test('job link identity ignores tracking tags on either the old or incoming URL', () => {
+  const source = 'https://il.linkedin.com/jobs/view/supply-chain-manager-wm-at-wolt-4474243974';
+  const tracked = source + '?utm_source=carvio_qa&utm_campaign=launch&fbclid=example';
+  assert.equal(jobLinkIdentity(tracked), jobLinkIdentity(source));
+  assert.equal(captureJobLink(tracked).jobUrl, tracked);
+});
+
+test('job link identity preserves query and fragment identifiers used by job boards', () => {
+  const board = 'https://example.com/jobs';
+  assert.equal(jobLinkIdentity(board + '?utm_source=email&jobId=123#details'), board + '?jobId=123#details');
+  assert.notEqual(jobLinkIdentity(board + '?jobId=123'), jobLinkIdentity(board + '?jobId=456'));
+  assert.notEqual(jobLinkIdentity(board + '#job-123'), jobLinkIdentity(board + '#job-456'));
+  assert.notEqual(jobLinkIdentity(board + '?ref=abc'), jobLinkIdentity(board + '?ref=def'));
+  assert.equal(jobLinkIdentity(''), null);
+  assert.equal(jobLinkIdentity('javascript:alert(1)'), null);
 });
