@@ -14,7 +14,7 @@ import { rankNextActions, recommendationKey, type NextBestAction } from "@/lib/r
 import { localProductMetrics, goalMetrics, readinessStates, isCompatibleRecord, messageSubject, generateOutreachMessage, normalizeUsageIntent, goalAction, migrateSource, sourceOutcomes, hasPersonalAnchor, linkContactIds, privateEventProperties, safeSourceUrl, type ProductEventName, type MessageProfile, type UsageIntent, type SourceType } from "@/lib/decision-support";
 
 import Image from "next/image";
-import { googleJobSearch, officialSearchUrl, changeSearchRole, searchPreferencesNeedReview, emptySearchProfile, sanitizeSearchProfile, normalizedSearchProfile, migrateSearchProfile, nextSearchDateWindow, skillSuggestionsForRole, localizedSearchFilter, companyJobSearchRoute, jobSearchSources, searchProfileChanged, broadenSearchProfile, patchSearchProfile, captureJobLink, type SearchProfile, type SearchOutcome, type JobSearchSource } from "@/lib/job-search";
+import { googleJobSearch, officialSearchUrl, changeSearchRole, searchPreferencesNeedReview, emptySearchProfile, sanitizeSearchProfile, normalizedSearchProfile, migrateSearchProfile, nextSearchDateWindow, skillSuggestionsForRole, localizedSearchFilter, companyJobSearchRoute, jobSearchSources, searchProfileChanged, broadenSearchProfile, patchSearchProfile, captureJobLink, jobLinkIdentity, type SearchProfile, type SearchOutcome, type JobSearchSource } from "@/lib/job-search";
 import { agendaEntries, scheduledTimestamp } from "@/lib/schedule";
 import { extractJobRequirements, splitRequirementText, uniqueRequirements, requirementCategory } from "@/lib/job-requirements";
 import { ChangeEvent, FormEvent, Fragment, ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
@@ -2382,7 +2382,9 @@ export default function Home() {
   }
 
   function openExistingCapture(jobUrl: string) {
-    const existing = jobUrl && applications.find((item) => item.jobUrl === jobUrl);
+    const identity = jobLinkIdentity(jobUrl);
+    if (!identity) return false;
+    const existing = applications.find((item) => jobLinkIdentity(item.jobUrl) === identity);
     if (!existing) return false;
     finishCapturedSave(existing);
     setNotice(language === "he" ? "הקישור כבר שמור. פתחנו את המועמדות הקיימת." : "This link is already saved. We opened the existing application.");
