@@ -79,6 +79,7 @@ import { CloudAccount, WelcomeAccountAccess, type CloudWorkspacePayload } from "
 const APPLICATIONS_KEY = "carvio.applications.v1";
 const CONTACTS_KEY = "carvio.contacts.v1";
 const FEEDBACK_KEY = "carvio.feedback.v1";
+const PILOT_FEEDBACK_EMAIL = "carvio.team@gmail.com";
 const RESUMES_KEY = "carvio.resumes.v1";
 const SEARCH_PROFILE_KEY = "carvio.search-profile.v1";
 const RECOVERY_KEY = "carvio.recovery.v1";
@@ -3330,12 +3331,12 @@ export default function Home() {
       "9. Anything else?",
       entry.openFeedback.trim() || "—",
     ].join("\n");
-    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent("matanbahat@gmail.com")}&su=${encodeURIComponent("Carvio pilot feedback")}&body=${encodeURIComponent(body)}`;
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(PILOT_FEEDBACK_EMAIL)}&su=${encodeURIComponent("Carvio pilot feedback")}&body=${encodeURIComponent(body)}`;
     const gmailWindow = window.open(gmailUrl, "_blank", "noopener,noreferrer");
 
     void navigator.clipboard?.writeText(body).catch(() => undefined);
     if (!gmailWindow) {
-      setFeedbackError("Your browser blocked the Gmail window. The feedback was copied—allow pop-ups and try again, or paste it into a message to matanbahat@gmail.com.");
+      setFeedbackError(`Your browser blocked the Gmail window. The feedback was copied—allow pop-ups and try again, or paste it into a message to ${PILOT_FEEDBACK_EMAIL}.`);
       return;
     }
     setShowFeedbackModal(false);
