@@ -7,22 +7,22 @@ export function JobAvailabilityCheck({ url, language, onVerifiedDetails }: {
   language: "en" | "he";
   onVerifiedDetails: (url: string, details: VerifiedJobDetails) => void;
 }) {
-  const [result, setResult] = useState<Availability | null>(null);
+  const [check, setCheck] = useState<{ url: string; attempt: number; result: Availability } | null>(null);
   const [attempt, setAttempt] = useState(0);
-  const [pending, setPending] = useState(true);
+  const result = check?.url === url && check.attempt === attempt ? check.result : null;
+  const pending = result === null;
   useEffect(() => {
     const controller = new AbortController();
-    setPending(true);
-    setResult(null);
     fetch("/api/job-availability", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url }), signal: controller.signal })
       .then(response => { if (!response.ok) throw new Error("Unavailable"); return response.json(); })
       .then((value: Availability) => {
         if (controller.signal.aborted) return;
-        setResult(value);
+        setCheck({ url, attempt, result: value });
         if (value.status === "published" && value.details) onVerifiedDetails(url, value.details);
       })
-      .catch(() => { if (!controller.signal.aborted) setResult({ status: "unknown", reason: "unreachable", checkedAt: "" }); })
-      .finally(() => { if (!controller.signal.aborted) setPending(false); });
+      .catch(() => {
+        if (!controller.signal.aborted) setCheck({ url, attempt, result: { status: "unknown", reason: "unreachable", checkedAt: "" } });
+      });
     return () => controller.abort();
   }, [url, attempt, onVerifiedDetails]);
   const he = language === "he";
