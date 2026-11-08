@@ -721,10 +721,6 @@
 }
 
 @media (max-width: 420px) {
-  .dashboard-v2-today-visual {
-    display: none;
-  }
-
   .dashboard-v2-today-actions {
     grid-template-columns: minmax(0, 1fr) auto;
   }

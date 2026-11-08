@@ -3589,7 +3589,7 @@ export default function Home() {
                 </div>
                 {nextBestActions.length > 1 && <button className="dashboard-v2-attention-link" onClick={() => document.getElementById("dashboard-attention")?.scrollIntoView({ behavior: "smooth", block: "center" })} type="button">{language === "he" ? `${nextBestActions.length - 1} פריטים נוספים דורשים תשומת לב` : `${nextBestActions.length - 1} other ${nextBestActions.length === 2 ? "item needs" : "items need"} attention`}<ArrowDown className="h-4 w-4" /></button>}
               </div>
-              <figure aria-hidden="true" className="dashboard-v2-today-visual"><Image alt="" fill priority sizes="(max-width: 420px) 0px, (max-width: 700px) calc(100vw - 3rem), 320px" src="/carvio-next-action-recovery-v1.jpg" /></figure>
+              <figure aria-hidden="true" className="dashboard-v2-today-visual"><Image alt="" fill priority sizes="(max-width: 700px) calc(100vw - 3rem), 320px" src="/carvio-next-action-recovery-v1.jpg" /></figure>
             </div>
           </section>
 
