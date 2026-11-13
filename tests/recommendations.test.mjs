@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {rankNextActions,recommendationExplanation,recommendationKey} from '../lib/recommendations.ts';
+import {rankNextActions,recommendationExplanation,recommendationKey,staleReviewAge} from '../lib/recommendations.ts';
 const now=Date.parse('2026-10-30T10:00:00Z');
 const app=(status='Considering',patch={})=>({id:status,company:'QA',role:'QA role',status,eventDateTime:'',eventType:'',lastActivityAt:'2026-10-30',appliedDate:'',nextStep:'Review requirements',nextStepDue:'',contactName:'',priority:'Medium',trafficLight:'none',...patch});
 const rank=(applications,patch={})=>rankNextActions({applications,contacts:[],recoveryEntries:[],dailyMood:'',language:'en',now,...patch});
@@ -43,4 +43,10 @@ test('recommendation explanations disclose their basis without inventing a confi
   assert.ok(explanation.expected.length>10);
   assert.doesNotMatch(JSON.stringify(explanation),/confidence|%|ביטחון/i);
  }
+});
+test('stale review identifies only open records with genuinely old activity or deadlines',()=>{
+ assert.equal(staleReviewAge(app('Applied',{lastActivityAt:'2026-09-20'}),now),40);
+ assert.equal(staleReviewAge(app('Considering',{lastActivityAt:'2026-10-20',nextStepDue:'2026-10-01'}),now),29);
+ assert.equal(staleReviewAge(app('Interview',{lastActivityAt:'2026-10-20',nextStepDue:'2026-10-20'}),now),null);
+ assert.equal(staleReviewAge(app('Withdrawn',{lastActivityAt:'2026-08-01'}),now),null);
 });
