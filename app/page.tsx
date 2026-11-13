@@ -12,6 +12,7 @@ import { messageFollowUpTarget, followUpDate, captureReviewAction, captureStageC
 import { UsageIntentPicker } from "@/components/usage-intent-picker";
 import { AiEvidenceForm } from "@/components/ai-evidence-form";
 import { rankNextActions, recommendationExplanation, recommendationKey, staleReviewAge, type NextBestAction } from "@/lib/recommendations";
+import { applyReadiness, type ApplyReadinessTarget } from "@/lib/apply-readiness";
 import { localProductMetrics, goalMetrics, readinessStates, isCompatibleRecord, messageSubject, generateOutreachMessage, normalizeUsageIntent, goalAction, migrateSource, sourceOutcomes, hasPersonalAnchor, linkContactIds, privateEventProperties, safeSourceUrl, type ProductEventName, type MessageProfile, type UsageIntent, type SourceType } from "@/lib/decision-support";
 
 import Image from "next/image";
@@ -1636,6 +1637,7 @@ export default function Home() {
     [applications, messageContext?.applicationId],
   );
   const workspaceReadiness = workspaceApplication ? jobReadinessChecklist(workspaceApplication, language) : null;
+  const workspaceApplyReadiness = workspaceApplication && workspaceApplication.status === "Considering" ? applyReadiness(workspaceApplication, language) : null;
   const workspaceEvidence = workspaceApplication ? evidenceForRequirements(workspaceApplication.requirementEvidence, workspaceApplication.evidenceItems || [], workspaceApplication.id) : [];
   const workspaceOfferReadiness = workspaceApplication?.status === "Offer" ? offerReadiness(workspaceApplication, language) : null;
   const workspaceNegotiation = workspaceApplication && (workspaceApplication.offerDetails.decisionOutcome !== "Undecided" || workspaceApplication.status === "Offer") ? {
@@ -2623,6 +2625,40 @@ export default function Home() {
       field?.focus();
       field?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 80);
+  }
+
+  function openApplyReadinessItem(application: Application, target: ApplyReadinessTarget) {
+    if (target === "contact") {
+      setWorkspaceApplicationId(null);
+      openContactForApplication(application);
+      return;
+    }
+    openReadinessItem(application, target);
+  }
+
+  function markApplicationApplied(application: Application) {
+    const now = new Date();
+    const followUp = new Date(now);
+    followUp.setDate(followUp.getDate() + 7);
+    setApplications((items) => items.map((item) => item.id === application.id ? {
+      ...item,
+      status: "Applied",
+      appliedDate: item.appliedDate || now.toISOString().slice(0, 10),
+      nextStep: language === "he" ? "מעקב לאחר ההגשה" : "Follow up after applying",
+      nextStepDue: followUp.toISOString().slice(0, 10),
+      lastActivityAt: now.toISOString(),
+    } : item));
+    recordActionEvent("application_created", application.id, { sourceType: "apply_readiness" });
+    setWorkspaceApplicationId(null);
+    setNotice(language === "he" ? "ההגשה תועדה ונקבעה תזכורת מעקב לעוד שבוע." : "Application recorded with a follow-up reminder in one week.");
+  }
+
+  function closeApplicationBeforeApplying(application: Application) {
+    const confirmed = window.confirm(language === "he" ? "להעביר את ההזדמנות לסגורות כ־Withdrawn? היא תישאר בהיסטוריה." : "Move this opportunity to Closed as Withdrawn? It will remain in your history.");
+    if (!confirmed) return;
+    setApplications((items) => items.map((item) => item.id === application.id ? { ...item, status: "Withdrawn", nextStep: "", nextStepDue: "", lastActivityAt: new Date().toISOString() } : item));
+    setWorkspaceApplicationId(null);
+    setNotice(language === "he" ? "ההזדמנות הועברה לסגורות ונשמרה בהיסטוריה." : "Opportunity moved to Closed and kept in history.");
   }
 
   function saveApplication(event: FormEvent<HTMLFormElement>) {
@@ -4463,6 +4499,11 @@ export default function Home() {
           <div className="application-workspace application-workspace-v2">
             <header><span aria-hidden="true" className={`application-company-logo ${workspaceApplication.logoUrl ? "application-company-logo-image" : ""}`} style={workspaceApplication.logoUrl ? { backgroundImage: `url("${workspaceApplication.logoUrl}")` } : undefined}>{workspaceApplication.logoUrl ? "" : workspaceApplication.company.slice(0, 1)}</span><div><span className={statusStyles[workspaceApplication.status]}>{statusLabel(workspaceApplication.status)}</span><h3>{workspaceApplication.role}</h3><p>{workspaceApplication.company}{workspaceApplication.location ? ` · ${workspaceApplication.location}` : ""}</p></div><i className={trafficLightMeta[workspaceApplication.trafficLight].dot} /></header>
             <section className="workspace-next-action"><div><span>⚡ {language === "he" ? "הפעולה המומלצת עכשיו" : "Recommended now"}</span><strong>{workspaceApplication.nextStep || (language === "he" ? "הגדירו את הצעד הבא" : "Define the next move")}</strong><small>{workspaceApplication.nextStepDue ? formatDate(language, workspaceApplication.nextStepDue) : (language === "he" ? "ללא תאריך יעד" : "No due date")}</small><p className="workspace-action-reason"><CircleHelp className="h-4 w-4" /><span><b>{language === "he" ? "למה עכשיו?" : "Why this?"}</b>{workspaceActionReason(workspaceApplication, language)}</span></p></div><div className="workspace-primary-action"><button className="workspace-action-primary" onClick={() => workspaceApplication.nextStep ? completeApplicationAction(workspaceApplication) : openEditApplication(workspaceApplication)} type="button">{workspaceApplication.nextStep ? <CheckCircle2 className="h-4 w-4" /> : <Plus className="h-4 w-4" />}{workspaceApplication.nextStep ? (language === "he" ? "סימון כבוצע" : "Mark done") : (language === "he" ? "הגדרת פעולה" : "Set action")}</button></div></section>
+            {workspaceApplyReadiness && <section className={`apply-readiness apply-readiness-${workspaceApplyReadiness.state}`} aria-label={language === "he" ? "מוכנות לפני הגשה" : "Apply readiness"}>
+              <div className="apply-readiness-heading"><div><span>{language === "he" ? "לפני שמגישים" : "Before you apply"}</span><h4>{workspaceApplyReadiness.state === "ready" ? (language === "he" ? "יש מספיק הקשר להחלטה" : "Enough context to decide") : (language === "he" ? "כדאי להשלים בדיקה קצרה" : "A short review will improve the decision")}</h4><p>{language === "he" ? "בדיקה עובדתית של המידע ששמרתם — ללא ציון התאמה מומצא." : "A factual check of what you saved—without an invented fit score."}</p></div><strong>{workspaceApplyReadiness.state === "ready" ? (language === "he" ? "מוכן להחלטה" : "Decision ready") : (language === "he" ? "מחקר קודם" : "Research first")}</strong></div>
+              <div className="apply-readiness-signals">{workspaceApplyReadiness.signals.map((signal) => <article className={`apply-signal apply-signal-${signal.tone}`} key={signal.key}><span>{signal.tone === "positive" ? <CheckCircle2 className="h-4 w-4" /> : signal.tone === "attention" ? <CircleAlert className="h-4 w-4" /> : <CircleHelp className="h-4 w-4" />}</span><div><strong>{signal.title}</strong><p>{signal.detail}</p></div></article>)}</div>
+              <div className="apply-readiness-actions">{workspaceApplyReadiness.missingTarget && <button className="secondary-button" onClick={() => openApplyReadinessItem(workspaceApplication, workspaceApplyReadiness.missingTarget!)} type="button"><Search className="h-4 w-4" />{language === "he" ? "מחקר והשלמת הפער" : "Research the gap"}</button>}{workspaceApplication.jobUrl && <a className="primary-button" href={workspaceApplication.jobUrl} rel="noreferrer" target="_blank">{language === "he" ? "פתיחת המקור והגשה" : "Open source & apply"}<ArrowUpRight className="h-4 w-4" /></a>}<button className="secondary-button" onClick={() => markApplicationApplied(workspaceApplication)} type="button"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "הגשתי" : "I applied"}</button><button className="text-button apply-skip" onClick={() => closeApplicationBeforeApplying(workspaceApplication)} type="button">{language === "he" ? "לא מתאים לי" : "Not for me"}</button></div>
+            </section>}
             <section className="workspace-snapshot" aria-label={language === "he" ? "תמונת מצב" : "Opportunity snapshot"}><div><span>{language === "he" ? "שלב" : "Stage"}</span><strong>{statusLabel(workspaceApplication.status)}</strong></div><div><span>{language === "he" ? "עדיפות" : "Priority"}</span><strong>{workspaceApplication.priority || (language === "he" ? "לא הוגדרה" : "Not set")}</strong></div><div><span>{language === "he" ? "מקור" : "Source"}</span><strong>{workspaceApplication.source || (language === "he" ? "לא צוין" : "Not provided")}</strong></div><div><span>{language === "he" ? "מודל עבודה" : "Work model"}</span><strong>{workspaceApplication.workModel || (language === "he" ? "לא צוין" : "Not provided")}</strong></div></section>
             {safeSourceUrl(workspaceApplication.sourceUrl || workspaceApplication.jobUrl) && <a className="text-button" href={safeSourceUrl(workspaceApplication.sourceUrl || workspaceApplication.jobUrl)} target="_blank" rel="noopener noreferrer">{language === "he" ? "אימות במקור" : "Verify at source"}<ExternalLink className="h-4 w-4" /></a>}
             <details className="workspace-more-context">
