@@ -1,7 +1,34 @@
 export type NextBestAction = { id: string; score: number; label: string; detail: string; target: string; kind: string; applicationId?: string; contactId?: string; intent?: "open" | "message" | "calendar" | "recover" };
+export type RecommendationExplanation = { reason: string; basedOn: string; expected: string };
 type ApplicationSignal = {id:string;company:string;role:string;status:string;eventDateTime:string;eventType:string;lastActivityAt?:string;appliedDate:string;nextStep:string;nextStepDue:string;contactName:string;linkedContactIds?:string[];priority:string;trafficLight:string};
 type ContactSignal = {id:string;company:string;name:string;linkedApplicationId?:string;nextAction?:string;nextActionDue:string;lastContactDate:string};
 export function recommendationKey(action: NextBestAction) { return `${action.id}:${action.label}`; }
+export function recommendationExplanation(action: NextBestAction, language: "he" | "en"): RecommendationExplanation {
+  const he = language === "he";
+  const basedOn = action.id.startsWith("app-event-")
+    ? (he ? "מועד הפגישה והשלב הנוכחי במועמדות" : "The meeting date and current application stage")
+    : action.id.startsWith("app-upcoming-") || action.id.startsWith("app-due-") || action.id.startsWith("app-undated-")
+      ? (he ? "הפעולה ותאריך היעד ששמרתם" : "The action and due date you saved")
+      : action.id.startsWith("app-review-") || action.id.startsWith("app-wait-")
+        ? (he ? "הזמן שעבר מאז הפעילות האחרונה וסטטוס המועמדות" : "Time since the last activity and the application status")
+        : action.id.startsWith("app-contact-")
+          ? (he ? "עדיפות המועמדות והיעדר איש קשר מקושר" : "The application priority and absence of a linked contact")
+          : action.id.startsWith("app-plan-")
+            ? (he ? "מועמדות פעילה שעדיין אין לה צעד המשך" : "An active application without a next step")
+            : action.id.startsWith("contact-")
+              ? (he ? "פעולת ההמשך ששמרתם עבור איש הקשר" : "The follow-up you saved for this contact")
+              : action.intent === "recover"
+                ? (he ? "תהליך שנסגר והצורך לבחור צעד קטן שבשליטתכם" : "A closed process and the option to choose a small step within your control")
+                : (he ? "המידע שתיעדתם בסביבת העבודה" : "The information recorded in your workspace");
+  const expected = action.intent === "recover"
+    ? (he ? "לעזור לעצור, לסכם ולבחור צעד קטן להמשך" : "Help you pause, reflect, and choose one manageable next step")
+    : action.id.startsWith("app-contact-") || action.id.startsWith("contact-")
+      ? (he ? "לקדם שיחה אנושית ורלוונטית סביב ההזדמנות" : "Move a relevant human conversation forward")
+      : action.id.startsWith("app-review-")
+        ? (he ? "להבהיר אם ההזדמנות עדיין פעילה או שאפשר לסגור אותה" : "Clarify whether the opportunity is still active or can be closed")
+        : (he ? "לשמור על התהליך בתנועה בלי להוסיף משימה חדשה" : "Keep the search moving without adding another task");
+  return { reason: action.detail, basedOn, expected };
+}
 export function rankNextActions({applications, contacts, recoveryEntries, dailyMood, language, now, usageIntent, dismissed = [], formatDate = (value: string) => value}: {applications:ApplicationSignal[];contacts:ContactSignal[];recoveryEntries:{applicationId:string}[];dailyMood:string;language:"he"|"en";now:number;usageIntent?:string;dismissed?:string[];formatDate?:(value:string,withTime?:boolean)=>string}): NextBestAction[] {
   const isClosedApplicationStatus = (status: string) => ["Accepted","Rejected","Withdrawn"].includes(status);
   const isPast = (value: string) => Number.isFinite(Date.parse(value)) && Date.parse(value) < now;
