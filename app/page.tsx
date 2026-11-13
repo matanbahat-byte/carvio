@@ -13,6 +13,7 @@ import { UsageIntentPicker } from "@/components/usage-intent-picker";
 import { AiEvidenceForm } from "@/components/ai-evidence-form";
 import { rankNextActions, recommendationExplanation, recommendationKey, staleReviewAge, type NextBestAction } from "@/lib/recommendations";
 import { applyReadiness, type ApplyReadinessTarget } from "@/lib/apply-readiness";
+import { firstJobDecisionComplete, nextActionDueTomorrow } from "@/lib/activation";
 import { localProductMetrics, goalMetrics, readinessStates, isCompatibleRecord, messageSubject, generateOutreachMessage, normalizeUsageIntent, goalAction, migrateSource, sourceOutcomes, hasPersonalAnchor, linkContactIds, privateEventProperties, safeSourceUrl, type ProductEventName, type MessageProfile, type UsageIntent, type SourceType } from "@/lib/decision-support";
 
 import Image from "next/image";
@@ -2375,6 +2376,7 @@ export default function Home() {
       requirementEvidence: detectedRequirements.map((requirement) => ({ requirement, evidence: "", category: requirementCategory(requirement) })),
       capturedAt: new Date().toISOString(),
       nextStep: captureReviewAction(language),
+      nextStepDue: applications.length === 0 ? nextActionDueTomorrow() : "",
     });
     setSmartCaptureStep("review");
   }
@@ -2392,6 +2394,10 @@ export default function Home() {
     if (!applicationDraft.role.trim() || !applicationDraft.company.trim()) {
       setSmartCaptureError(language === "he" ? "יש להשלים תפקיד וחברה לפני השמירה." : "Add the role and company before saving.");
       document.getElementById(!applicationDraft.role.trim() ? "capture-role" : "capture-company")?.focus();
+      return;
+    }
+    if (applications.length === 0 && !firstJobDecisionComplete(applicationDraft)) {
+      setSmartCaptureError(language === "he" ? "כדי ליצור סיבה ברורה לחזור, יש לבחור פעולה הבאה ומועד." : "Choose a next action and due date so Carvio can bring you back to a clear next move.");
       return;
     }
     if (openExistingCapture(applicationDraft.jobUrl)) return;
@@ -3616,7 +3622,24 @@ export default function Home() {
         </nav>
 
         <header className={`calm-view dashboard-v2 ${activeView !== "home" ? "calm-view-hidden" : ""}`} id="dashboard">
-          {applications.length === 0 && contacts.length === 0 && <section className="usage-intent-card"><UsageIntentPicker intent={userProfile.usageIntent} language={language} onChange={selectUsageGoal} /></section>}
+          {applications.length === 0 && contacts.length === 0 && <section className="first-job-decision" aria-labelledby="first-job-decision-title">
+            <div className="first-job-decision-copy">
+              <p className="dashboard-v2-label"><Sparkles className="h-4 w-4" />{language === "he" ? "הניצחון הראשון שלכם" : "Your first win"}</p>
+              <h1 id="first-job-decision-title">{language === "he" ? "יש משרה שאתם שוקלים כרגע?" : "Considering a job right now?"}</h1>
+              <p>{language === "he" ? "הדביקו קישור. Carvio יעזור לכם לשמור את ההזדמנות, לבחור צעד הבא ולקבוע מתי ממשיכים." : "Paste a job link. Carvio will help you save the opportunity, choose one next move, and decide when to continue."}</p>
+              <ol>
+                <li><span>1</span>{language === "he" ? "מוסיפים משרה אמיתית" : "Add a real opportunity"}</li>
+                <li><span>2</span>{language === "he" ? "בוחרים פעולה אחת" : "Choose one next action"}</li>
+                <li><span>3</span>{language === "he" ? "קובעים מועד לחזרה" : "Schedule when to return"}</li>
+              </ol>
+              <div className="first-job-decision-actions">
+                <button className="dashboard-v2-primary" onClick={() => setShowSmartCapture(true)} type="button"><LinkIcon className="h-4 w-4" />{language === "he" ? "הדבקת קישור למשרה" : "Paste a job link"}</button>
+                <button onClick={() => switchView("search")} type="button">{language === "he" ? "אין לי משרה עדיין — לחיפוש" : "I do not have one yet — search"}</button>
+              </div>
+              <small><ShieldCheck className="h-4 w-4" />{language === "he" ? "נשמר בסביבת העבודה שלכם. לא נמציא התאמה או ניסיון." : "Saved in your workspace. We never invent fit or experience."}</small>
+            </div>
+            <figure aria-hidden="true"><Image alt="" fill priority sizes="(max-width: 700px) calc(100vw - 3rem), 360px" src="/carvio-next-action-recovery-v1.jpg" /></figure>
+          </section>}
           <div className="carvio-hero-top">
             <div className="dashboard-v2-greeting">
               <p>{language === "he" ? "בוקר טוב" : "Good morning"}{userProfile.name ? `, ${userProfile.name}` : ""}</p>
@@ -3631,7 +3654,7 @@ export default function Home() {
               </div>
             </div>
           </div>
-          <section className="dashboard-v2-today" aria-labelledby="dashboard-v2-today-title">
+          {(applications.length > 0 || contacts.length > 0) && <section className="dashboard-v2-today" aria-labelledby="dashboard-v2-today-title">
             <button className="text-button" type="button" onClick={() => navigateToSection("preferences")}>{language === "he" ? "שינוי המטרה" : "Change goal"}</button>
             <div className="dashboard-v2-today-layout">
               <div className="dashboard-v2-today-content">
@@ -3666,7 +3689,7 @@ export default function Home() {
               </div>
               <figure aria-hidden="true" className="dashboard-v2-today-visual"><Image alt="" fill priority sizes="(max-width: 700px) calc(100vw - 3rem), 320px" src="/carvio-next-action-recovery-v1.jpg" /></figure>
             </div>
-          </section>
+          </section>}
 
           {(applications.length > 0 || contacts.length > 0) && <>
           <section className="dashboard-v2-section dashboard-v2-attention" id="dashboard-attention" aria-labelledby="dashboard-attention-title">
@@ -4445,13 +4468,13 @@ export default function Home() {
                 <Field label={language === "he" ? "חברה (חובה)" : "Company (required)"}><input autoFocus={Boolean(applicationDraft.role)} id="capture-company" aria-invalid={Boolean(smartCaptureError) && !applicationDraft.company.trim()} aria-describedby={smartCaptureError ? "capture-error" : undefined} className="form-control" onChange={(event) => { captureEditedFields.current.add("company"); setApplicationDraft((current) => ({ ...current, company: event.target.value })); setSmartCaptureError(""); }} placeholder={language === "he" ? "שם החברה" : "Company name"} value={applicationDraft.company} /></Field>
                 <Field label={language === "he" ? "מיקום (אופציונלי)" : "Location (optional)"}><input className="form-control" onChange={(event) => { captureEditedFields.current.add("location"); setApplicationDraft((current) => ({ ...current, location: event.target.value })); }} placeholder={language === "he" ? "עיר או אזור" : "City or area"} value={applicationDraft.location} /></Field>
                 <Field label={language === "he" ? "שלב" : "Stage"}><select className="form-control" onChange={(event) => setApplicationDraft((current) => ({ ...current, status: event.target.value as ApplicationStatus }))} value={applicationDraft.status}>{["Considering", "Applied"].map((status) => <option key={status} value={status}>{statusLabel(status as ApplicationStatus)}</option>)}</select></Field>
-                <Field label={language === "he" ? "הפעולה הבאה (אופציונלי)" : "Next action (optional)"}><input className="form-control" onChange={(event) => setApplicationDraft((current) => ({ ...current, nextStep: event.target.value, captureNextStepEdited: true }))} value={applicationDraft.nextStep} /></Field>
-                <Field label={language === "he" ? "תאריך ושעת יעד (אופציונלי)" : "Due date and time (optional)"}><input className="form-control" type="datetime-local" onInput={(event) => { const nextStepDue = event.currentTarget.value; setApplicationDraft((current) => ({ ...current, nextStepDue })); }} value={applicationDraft.nextStepDue} /></Field>
+                <Field label={applications.length === 0 ? (language === "he" ? "הפעולה הבאה (חובה)" : "Next action (required)") : (language === "he" ? "הפעולה הבאה (אופציונלי)" : "Next action (optional)")}><input className="form-control" onChange={(event) => setApplicationDraft((current) => ({ ...current, nextStep: event.target.value, captureNextStepEdited: true }))} value={applicationDraft.nextStep} /></Field>
+                <Field label={applications.length === 0 ? (language === "he" ? "מתי ממשיכים? (חובה)" : "When will you continue? (required)") : (language === "he" ? "תאריך ושעת יעד (אופציונלי)" : "Due date and time (optional)")}><input className="form-control" type="datetime-local" onInput={(event) => { const nextStepDue = event.currentTarget.value; setApplicationDraft((current) => ({ ...current, nextStepDue })); }} value={applicationDraft.nextStepDue} /></Field>
               </div>
               {smartCaptureError && <p id="capture-error" role="alert" className="form-error">{smartCaptureError}</p>}
               <div className="smart-capture-review-actions"><button className="secondary-button" onClick={() => { setSmartCaptureStep("link"); setSmartCaptureError(""); }} type="button">{language === "he" ? "חזרה" : "Back"}</button><button className="secondary-button" onClick={openCapturedApplicationDetails} type="button">{language === "he" ? "פרטים נוספים" : "More details"}</button><button className="primary-button" onClick={saveSmartCapture} type="button"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "שמירת המשרה" : "Save job"}</button></div>
               <JobAvailabilityCheck url={applicationDraft.jobUrl} language={language} onVerifiedDetails={applyVerifiedCaptureDetails} />
-            </> : <div className="smart-capture-success"><div className="smart-capture-success-icon"><CheckCircle2 className="h-9 w-9" /></div><div><strong>{applicationDraft.role}</strong><span>{applicationDraft.company}</span></div><p>{applicationDraft.nextStep.trim() ? (language === "he" ? `הצעד הבא: ${applicationDraft.nextStep}` : `Next action: ${applicationDraft.nextStep}`) : (language === "he" ? "המשרה נשמרה. אפשר להגדיר פעולה הבאה כשתהיו מוכנים." : "Your job is saved. Set a next action when you are ready.")}{applicationDraft.nextStepDue && <small>{formatDate(language, applicationDraft.nextStepDue, true)}</small>}</p><button className="primary-button" onClick={openSavedCapture} type="button">{language === "he" ? "פתיחת המועמדות" : "Open application"}<ArrowRight className="h-4 w-4" /></button><button className="smart-capture-not-now" onClick={resetSmartCapture} type="button">{language === "he" ? "לא עכשיו" : "Not now"}</button></div>}
+            </> : <div className="smart-capture-success"><div className="smart-capture-success-icon"><CheckCircle2 className="h-9 w-9" /></div><div><strong>{applicationDraft.role}</strong><span>{applicationDraft.company}</span></div><p>{applicationDraft.nextStep.trim() ? (language === "he" ? `הצעד הבא שלכם מוכן: ${applicationDraft.nextStep}` : `Your next move is ready: ${applicationDraft.nextStep}`) : (language === "he" ? "המשרה נשמרה. אפשר להגדיר פעולה הבאה כשתהיו מוכנים." : "Your job is saved. Set a next action when you are ready.")}{applicationDraft.nextStepDue && <small>{formatDate(language, applicationDraft.nextStepDue, true)}</small>}</p><button className="primary-button" onClick={openSavedCapture} type="button">{language === "he" ? "המשך מהמקום שבו עצרתי" : "Continue where I left off"}<ArrowRight className="h-4 w-4" /></button><button className="smart-capture-not-now" onClick={resetSmartCapture} type="button">{language === "he" ? "חזרה לסקירה" : "Back to overview"}</button></div>}
           </div>
         </Modal>
       )}
