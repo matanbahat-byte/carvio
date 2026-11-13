@@ -17,3 +17,16 @@ test('empty text stays empty and repeated requirements are deduplicated', () => 
   assert.deepEqual(extractJobRequirements('  '), []);
   assert.equal(extractJobRequirements('Requirements:\nAdvanced Excel; Advanced Excel').length, 1);
 });
+
+test('retains all four units in the reported case and labels AWS as optional', () => {
+  const source = 'Required: Python; SQL; 3 years of experience. Nice to have: AWS.';
+  assert.deepEqual(extractJobRequirements(source), ['Python', 'SQL', '3 years of experience.', 'Nice to have: AWS.']);
+});
+
+test('recognizes standalone skills across separators and languages', () => {
+  for (const source of ['SQL', 'AWS', 'SQL, AWS', 'SQL; AWS', 'SQL\nAWS', 'דרישות: SQL, AWS', 'דרישות:\nSQL; AWS']) {
+    assert.deepEqual(extractJobRequirements(source), source === 'SQL' || source === 'AWS' ? [source] : ['SQL', 'AWS'], source);
+  }
+  assert.deepEqual(extractJobRequirements('יתרון:\nSQL, AWS'), ['יתרון: SQL', 'יתרון: AWS']);
+  assert.deepEqual(extractJobRequirements('Required: C++; R\nPreferred:\nAWS\nSQL'), ['C++', 'R', 'Preferred: AWS', 'Preferred: SQL']);
+});
