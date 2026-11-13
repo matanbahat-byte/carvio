@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {rankNextActions,recommendationKey} from '../lib/recommendations.ts';
+import {rankNextActions,recommendationExplanation,recommendationKey} from '../lib/recommendations.ts';
 const now=Date.parse('2026-10-30T10:00:00Z');
 const app=(status='Considering',patch={})=>({id:status,company:'QA',role:'QA role',status,eventDateTime:'',eventType:'',lastActivityAt:'2026-10-30',appliedDate:'',nextStep:'Review requirements',nextStepDue:'',contactName:'',priority:'Medium',trafficLight:'none',...patch});
 const rank=(applications,patch={})=>rankNextActions({applications,contacts:[],recoveryEntries:[],dailyMood:'',language:'en',now,...patch});
@@ -33,4 +33,14 @@ test('networking intent promotes explicit contact actions without inventing urge
  const contact={id:'c',name:'QA',company:'QA',nextAction:'Ask a specific question',nextActionDue:'',lastContactDate:''};
  assert.equal(rank([app()],{contacts:[contact],usageIntent:'networking_focus'})[0].contactId,'c');
  assert.match(rank([],{contacts:[contact],usageIntent:'networking_focus'})[0].detail,/no due date/);
+});
+test('recommendation explanations disclose their basis without inventing a confidence score',()=>{
+ const action=rank([app('Interview',{eventDateTime:'2026-10-31T10:00:00Z',eventType:'Interview'})])[0];
+ for(const language of ['en','he']) {
+  const explanation=recommendationExplanation(action,language);
+  assert.equal(explanation.reason,action.detail);
+  assert.ok(explanation.basedOn.length>10);
+  assert.ok(explanation.expected.length>10);
+  assert.doesNotMatch(JSON.stringify(explanation),/confidence|%|ביטחון/i);
+ }
 });
