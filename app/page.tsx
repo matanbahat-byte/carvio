@@ -11,7 +11,7 @@ import { relinkEvidence, evidenceForRequirements, evidenceContext, restorableReq
 import { messageFollowUpTarget, followUpDate, captureReviewAction, captureStageChange } from "@/lib/message-follow-up";
 import { UsageIntentPicker } from "@/components/usage-intent-picker";
 import { AiEvidenceForm } from "@/components/ai-evidence-form";
-import { rankNextActions, recommendationExplanation, recommendationKey, type NextBestAction } from "@/lib/recommendations";
+import { rankNextActions, recommendationExplanation, recommendationKey, staleReviewAge, type NextBestAction } from "@/lib/recommendations";
 import { localProductMetrics, goalMetrics, readinessStates, isCompatibleRecord, messageSubject, generateOutreachMessage, normalizeUsageIntent, goalAction, migrateSource, sourceOutcomes, hasPersonalAnchor, linkContactIds, privateEventProperties, safeSourceUrl, type ProductEventName, type MessageProfile, type UsageIntent, type SourceType } from "@/lib/decision-support";
 
 import Image from "next/image";
@@ -46,6 +46,7 @@ import {
   Link as LinkIcon,
   Languages,
   LoaderCircle,
+  ListChecks,
   Mail,
   MapPin,
   Menu,
@@ -1431,6 +1432,7 @@ export default function Home() {
   const [activeCalendarMenu, setActiveCalendarMenu] = useState<string | null>(null);
   const [showTodayOverflow, setShowTodayOverflow] = useState(false);
   const [showTodayExplanation, setShowTodayExplanation] = useState(false);
+  const [showStaleReview, setShowStaleReview] = useState(false);
   const [focusExplanationId, setFocusExplanationId] = useState<string | null>(null);
   const [actionEvents, setActionEvents] = useState<ActionEvent[]>([]);
   const productSessionRef = useRef("");
@@ -1799,6 +1801,10 @@ export default function Home() {
   }, [applications, contacts, dailyMood, language]);
 
   const nextBestActions = useMemo(() => rankNextActions({ applications, contacts, recoveryEntries, dailyMood, language, now: Date.now(), usageIntent: userProfile.usageIntent, dismissed: userProfile.dismissedRecommendations?.map(item => item.key), formatDate: (value, withTime) => formatDate(language, value, withTime) }), [applications, contacts, recoveryEntries, dailyMood, language, userProfile.usageIntent, userProfile.dismissedRecommendations]);
+  const staleApplications = useMemo(() => {
+    const now = Date.now();
+    return applications.map((application) => ({ application, age: staleReviewAge(application, now) })).filter((item): item is { application: Application; age: number } => item.age !== null).sort((a, b) => b.age - a.age);
+  }, [applications]);
 
   const primaryActionApplication = nextBestActions[0]?.applicationId
     ? applications.find((item) => item.id === nextBestActions[0].applicationId) || null
@@ -3152,6 +3158,22 @@ export default function Home() {
     switchView("applications");
   }
 
+  function resolveStaleApplication(application: Application, resolution: "active" | "later" | "withdrawn") {
+    const now = new Date();
+    const later = new Date(now);
+    later.setDate(later.getDate() + 7);
+    setApplications((items) => items.map((item) => item.id !== application.id ? item : resolution === "withdrawn"
+      ? { ...item, status: "Withdrawn", nextStep: "", nextStepDue: "", lastActivityAt: now.toISOString() }
+      : resolution === "later"
+        ? { ...item, nextStepDue: later.toISOString().slice(0, 10), lastActivityAt: now.toISOString(), trafficLight: "yellow" }
+        : { ...item, nextStepDue: "", lastActivityAt: now.toISOString(), trafficLight: item.trafficLight === "red" ? "yellow" : item.trafficLight }));
+    setNotice(resolution === "withdrawn"
+      ? (language === "he" ? "התהליך נסגר כ־Withdrawn ונשמר בהיסטוריה." : "The process was closed as Withdrawn and kept in history.")
+      : resolution === "later"
+        ? (language === "he" ? "התזכורת נדחתה בשבוע." : "The reminder was moved by one week.")
+        : (language === "he" ? "התהליך נשאר פעיל וסומן כנבדק היום." : "The process remains active and was reviewed today."));
+  }
+
   function updateMessageProfile(patch: Partial<MessageProfile>) {
     setMessageProfile((current) => ({ ...current, ...patch }));
   }
@@ -3584,7 +3606,7 @@ export default function Home() {
                   <p>{todayActionPresentation.reason}</p>
                   {nextBestActions[0] && <button aria-expanded={showTodayExplanation} className="recommendation-why-trigger" onClick={() => openRecommendationExplanation(nextBestActions[0], "overview")} type="button"><CircleHelp className="h-4 w-4" />{language === "he" ? "למה זו הפעולה הבאה?" : "Why is this the next action?"}<ChevronDown className={`h-4 w-4 transition ${showTodayExplanation ? "rotate-180" : ""}`} /></button>}
                 </div>
-                {nextBestActions[0] && showTodayExplanation && (() => { const explanation = recommendationExplanation(nextBestActions[0], language); return <section className="recommendation-explanation" aria-label={language === "he" ? "הסבר להמלצה" : "Recommendation explanation"}><div><strong>{language === "he" ? "למה עכשיו" : "Why now"}</strong><p>{explanation.reason}</p></div><div><strong>{language === "he" ? "מבוסס על" : "Based on"}</strong><p>{explanation.basedOn}</p></div><div><strong>{language === "he" ? "מה זה יכול לקדם" : "What this may improve"}</strong><p>{explanation.expected}</p></div><footer><span>{language === "he" ? "ההמלצה מבוססת רק על המידע ששמרתם ב־Carvio." : "This recommendation uses only information saved in Carvio."}</span><div><button onClick={() => markRecommendationHelpful(nextBestActions[0])} type="button"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "רלוונטי" : "Relevant"}</button><button onClick={dismissTodayRecommendation} type="button">{language === "he" ? "לא רלוונטי" : "Not relevant"}</button>{(primaryActionApplication || primaryActionContact) && <button onClick={() => { primaryActionApplication ? snoozeApplication(primaryActionApplication, 2) : primaryActionContact && snoozeContactAction(primaryActionContact, 2); setShowTodayExplanation(false); }} type="button"><Clock3 className="h-4 w-4" />{language === "he" ? "להזכיר בעוד יומיים" : "Remind me in 2 days"}</button>}</div></footer></section>; })()}
+                {nextBestActions[0] && showTodayExplanation && (() => { const explanation = recommendationExplanation(nextBestActions[0], language); return <section className="recommendation-explanation" aria-label={language === "he" ? "הסבר להמלצה" : "Recommendation explanation"}><div><strong>{language === "he" ? "למה עכשיו" : "Why now"}</strong><p>{explanation.reason}</p></div><div><strong>{language === "he" ? "מבוסס על" : "Based on"}</strong><p>{explanation.basedOn}</p></div><div><strong>{language === "he" ? "מה זה יכול לקדם" : "What this may improve"}</strong><p>{explanation.expected}</p></div><footer><span>{language === "he" ? "ההמלצה מבוססת רק על המידע ששמרתם ב־Carvio." : "This recommendation uses only information saved in Carvio."}</span><div><button onClick={() => markRecommendationHelpful(nextBestActions[0])} type="button"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "רלוונטי" : "Relevant"}</button><button onClick={dismissTodayRecommendation} type="button">{language === "he" ? "לא רלוונטי" : "Not relevant"}</button>{(primaryActionApplication || primaryActionContact) && <button onClick={() => { if (primaryActionApplication) snoozeApplication(primaryActionApplication, 2); else if (primaryActionContact) snoozeContactAction(primaryActionContact, 2); setShowTodayExplanation(false); }} type="button"><Clock3 className="h-4 w-4" />{language === "he" ? "להזכיר בעוד יומיים" : "Remind me in 2 days"}</button>}</div></footer></section>; })()}
                 <div className="dashboard-v2-today-actions">
                   <button className="dashboard-v2-primary" onClick={executeTodayPrimaryAction} type="button">{todayActionPresentation.cta}<ArrowUpRight className="h-4 w-4" /></button>
                   {!applications.length && !contacts.length && userProfile.usageIntent === "active_search" && <button type="button" onClick={() => switchView("search")}>{language === "he" ? "חיפוש משרות ממוקד" : "Run a focused job search"}</button>}
@@ -3612,7 +3634,7 @@ export default function Home() {
 
           {(applications.length > 0 || contacts.length > 0) && <>
           <section className="dashboard-v2-section dashboard-v2-attention" id="dashboard-attention" aria-labelledby="dashboard-attention-title">
-            <div className="dashboard-v2-section-heading"><div><p className="dashboard-v2-label"><CircleAlert className="h-4 w-4" />{language === "he" ? "דורש תשומת לב" : "Needs attention"}</p><h2 id="dashboard-attention-title">{language === "he" ? "דברים שלא כדאי שייפלו בין הכיסאות" : "Keep these from falling through the cracks"}</h2></div>{attentionPresentations.length > 3 && <button onClick={viewAllAttention} type="button">{language === "he" ? `לכל ${attentionPresentations.length} הפריטים` : `View all ${attentionPresentations.length}`}<ArrowUpRight className="h-4 w-4" /></button>}</div>
+            <div className="dashboard-v2-section-heading"><div><p className="dashboard-v2-label"><CircleAlert className="h-4 w-4" />{language === "he" ? "דורש תשומת לב" : "Needs attention"}</p><h2 id="dashboard-attention-title">{language === "he" ? "דברים שלא כדאי שייפלו בין הכיסאות" : "Keep these from falling through the cracks"}</h2></div><div className="dashboard-v2-heading-actions">{staleApplications.length > 1 && <button onClick={() => setShowStaleReview(true)} type="button"><ListChecks className="h-4 w-4" />{language === "he" ? `סקירת ${staleApplications.length} פריטים ישנים` : `Review ${staleApplications.length} old items`}</button>}{attentionPresentations.length > 3 && <button onClick={viewAllAttention} type="button">{language === "he" ? `לכל ${attentionPresentations.length} הפריטים` : `View all ${attentionPresentations.length}`}<ArrowUpRight className="h-4 w-4" /></button>}</div></div>
             {attentionPresentations.length > 0 ? <div className="dashboard-v2-attention-list">{attentionPresentations.slice(0, 3).map((item) => {
               const AttentionIcon = item.icon === "meeting" ? CalendarClock : item.icon === "contact" ? Users2 : item.icon === "plan" ? Target : item.icon === "recover" ? HeartHandshake : item.icon === "overdue" ? Clock3 : BriefcaseBusiness;
               return <article className="dashboard-v2-attention-row" key={item.action.id}>
@@ -4343,6 +4365,14 @@ export default function Home() {
           </div>
         </Modal>
       )}
+      {showStaleReview && <Modal title={language === "he" ? "סקירה מהירה של תהליכים ישנים" : "Quick review of old processes"} description={language === "he" ? "בחרו החלטה אחת לכל תהליך. שום פריט לא נמחק." : "Choose one decision for each process. Nothing is deleted."} closeLabel={language === "he" ? "סגירת הסקירה" : "Close review"} onClose={() => setShowStaleReview(false)} wide>
+        <div className="stale-review-list">
+          {staleApplications.length ? staleApplications.map(({ application, age }) => <article className="stale-review-item" key={application.id}>
+            <div><span>{language === "he" ? `${age} ימים ללא פעילות` : `${age} days without activity`}</span><strong>{application.role} · {application.company}</strong><p>{application.nextStep || (language === "he" ? "לא הוגדרה פעולה הבאה" : "No next action is defined")}</p></div>
+            <div className="stale-review-actions"><button onClick={() => resolveStaleApplication(application, "active")} type="button"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "עדיין פעיל" : "Still active"}</button><button onClick={() => resolveStaleApplication(application, "later")} type="button"><Clock3 className="h-4 w-4" />{language === "he" ? "להזכיר בעוד שבוע" : "Remind in a week"}</button><button onClick={() => resolveStaleApplication(application, "withdrawn")} type="button">{language === "he" ? "סגירה כ־Withdrawn" : "Close as Withdrawn"}</button></div>
+          </article>) : <div className="dashboard-v2-empty"><CheckCircle2 className="h-5 w-5" /><span><strong>{language === "he" ? "הסקירה הושלמה" : "Review complete"}</strong><small>{language === "he" ? "אין עוד תהליכים ישנים שמחכים להחלטה." : "No old processes are waiting for a decision."}</small></span></div>}
+        </div>
+      </Modal>}
 
       {pendingFollowUp && <Modal title={language === "he" ? "להחליף את הפעולה המתוכננת?" : "Replace the planned action?"} description={pendingFollowUp.label} onClose={() => setPendingFollowUp(null)} closeLabel={language === "he" ? "ביטול ההחלפה" : "Cancel replacement"}>
         <div className="space-y-4">
