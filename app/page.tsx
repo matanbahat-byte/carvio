@@ -11,7 +11,7 @@ import { relinkEvidence, evidenceForRequirements, evidenceContext, restorableReq
 import { messageFollowUpTarget, followUpDate, captureReviewAction, captureStageChange } from "@/lib/message-follow-up";
 import { UsageIntentPicker } from "@/components/usage-intent-picker";
 import { AiEvidenceForm } from "@/components/ai-evidence-form";
-import { rankNextActions, recommendationKey, type NextBestAction } from "@/lib/recommendations";
+import { rankNextActions, recommendationExplanation, recommendationKey, type NextBestAction } from "@/lib/recommendations";
 import { localProductMetrics, goalMetrics, readinessStates, isCompatibleRecord, messageSubject, generateOutreachMessage, normalizeUsageIntent, goalAction, migrateSource, sourceOutcomes, hasPersonalAnchor, linkContactIds, privateEventProperties, safeSourceUrl, type ProductEventName, type MessageProfile, type UsageIntent, type SourceType } from "@/lib/decision-support";
 
 import Image from "next/image";
@@ -1430,6 +1430,8 @@ export default function Home() {
   const [hiddenJobIds, setHiddenJobIds] = useState<string[]>([]);
   const [activeCalendarMenu, setActiveCalendarMenu] = useState<string | null>(null);
   const [showTodayOverflow, setShowTodayOverflow] = useState(false);
+  const [showTodayExplanation, setShowTodayExplanation] = useState(false);
+  const [focusExplanationId, setFocusExplanationId] = useState<string | null>(null);
   const [actionEvents, setActionEvents] = useState<ActionEvent[]>([]);
   const productSessionRef = useRef("");
   const messageDraftRef = useRef<HTMLTextAreaElement | null>(null);
@@ -3111,6 +3113,19 @@ export default function Home() {
     setShowTodayOverflow(false);
   }
 
+  function markRecommendationHelpful(action: NextBestAction) {
+    recordActionEvent("recommendation_helpful", action.applicationId || action.contactId || "workspace");
+    if (action.id === nextBestActions[0]?.id) setShowTodayExplanation(false);
+    setFocusExplanationId(null);
+    setNotice(language === "he" ? "תודה — המשוב יעזור לנו לשפר את התעדוף." : "Thanks — your feedback will help improve prioritization.");
+  }
+
+  function openRecommendationExplanation(action: NextBestAction, location: "overview" | "focus") {
+    recordActionEvent("recommendation_explanation_opened", action.applicationId || action.contactId || "workspace", { location });
+    if (location === "overview") setShowTodayExplanation((current) => !current);
+    else setFocusExplanationId((current) => current === action.id ? null : action.id);
+  }
+
   function completeContactAction(contact: Contact) {
     setContacts(items => items.map(item => item.id === contact.id ? { ...item, nextAction: "", nextActionDue: "" } : item));
     recordActionEvent("recommendation_completed", contact.id);
@@ -3567,7 +3582,9 @@ export default function Home() {
                   <span>{nextBestActions[0]?.kind || todayFocus.eyebrow}</span>
                   <h1 id="dashboard-v2-today-title">{todayActionPresentation.headline}</h1>
                   <p>{todayActionPresentation.reason}</p>
+                  {nextBestActions[0] && <button aria-expanded={showTodayExplanation} className="recommendation-why-trigger" onClick={() => openRecommendationExplanation(nextBestActions[0], "overview")} type="button"><CircleHelp className="h-4 w-4" />{language === "he" ? "למה זו הפעולה הבאה?" : "Why is this the next action?"}<ChevronDown className={`h-4 w-4 transition ${showTodayExplanation ? "rotate-180" : ""}`} /></button>}
                 </div>
+                {nextBestActions[0] && showTodayExplanation && (() => { const explanation = recommendationExplanation(nextBestActions[0], language); return <section className="recommendation-explanation" aria-label={language === "he" ? "הסבר להמלצה" : "Recommendation explanation"}><div><strong>{language === "he" ? "למה עכשיו" : "Why now"}</strong><p>{explanation.reason}</p></div><div><strong>{language === "he" ? "מבוסס על" : "Based on"}</strong><p>{explanation.basedOn}</p></div><div><strong>{language === "he" ? "מה זה יכול לקדם" : "What this may improve"}</strong><p>{explanation.expected}</p></div><footer><span>{language === "he" ? "ההמלצה מבוססת רק על המידע ששמרתם ב־Carvio." : "This recommendation uses only information saved in Carvio."}</span><div><button onClick={() => markRecommendationHelpful(nextBestActions[0])} type="button"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "רלוונטי" : "Relevant"}</button><button onClick={dismissTodayRecommendation} type="button">{language === "he" ? "לא רלוונטי" : "Not relevant"}</button>{(primaryActionApplication || primaryActionContact) && <button onClick={() => { primaryActionApplication ? snoozeApplication(primaryActionApplication, 2) : primaryActionContact && snoozeContactAction(primaryActionContact, 2); setShowTodayExplanation(false); }} type="button"><Clock3 className="h-4 w-4" />{language === "he" ? "להזכיר בעוד יומיים" : "Remind me in 2 days"}</button>}</div></footer></section>; })()}
                 <div className="dashboard-v2-today-actions">
                   <button className="dashboard-v2-primary" onClick={executeTodayPrimaryAction} type="button">{todayActionPresentation.cta}<ArrowUpRight className="h-4 w-4" /></button>
                   {!applications.length && !contacts.length && userProfile.usageIntent === "active_search" && <button type="button" onClick={() => switchView("search")}>{language === "he" ? "חיפוש משרות ממוקד" : "Run a focused job search"}</button>}
@@ -3658,7 +3675,7 @@ export default function Home() {
                 <button className="applications-v2-smart-capture" onClick={() => setShowSmartCapture(true)} type="button"><WandSparkles className="h-4 w-4" /> {language === "he" ? "לכידה מקישור" : "Capture from link"}</button>
               </div>
             </div>
-            {applicationScope === "active" && applicationFocusActions.length > 0 && <section className="applications-focus-strip" aria-label={language === "he" ? "הפעולות החשובות עכשיו" : "Focus now"}><header><span>{language === "he" ? "מיקוד עכשיו" : "Focus now"}</span><strong>{language === "he" ? "עד שלוש פעולות שיקדמו את החיפוש" : "Up to three moves that keep momentum"}</strong></header><div>{applicationFocusActions.map((action, index) => <button key={action.id} onClick={() => executeNextBestAction(action)} type="button"><span>{String(index + 1).padStart(2, "0")}</span><span><strong>{action.label}</strong><small>{action.detail}</small></span><ArrowUpRight className="h-4 w-4" /></button>)}</div></section>}
+            {applicationScope === "active" && applicationFocusActions.length > 0 && <section className="applications-focus-strip" aria-label={language === "he" ? "הפעולות החשובות עכשיו" : "Focus now"}><header><span>{language === "he" ? "מיקוד עכשיו" : "Focus now"}</span><strong>{language === "he" ? "עד שלוש פעולות שיקדמו את החיפוש" : "Up to three moves that keep momentum"}</strong></header><div>{applicationFocusActions.map((action, index) => { const explanation = recommendationExplanation(action, language); const expanded = focusExplanationId === action.id; return <article className="application-focus-card" key={action.id}><button className="application-focus-primary" onClick={() => executeNextBestAction(action)} type="button"><span>{String(index + 1).padStart(2, "0")}</span><span><strong>{action.label}</strong><small>{action.detail}</small></span><ArrowUpRight className="h-4 w-4" /></button><button aria-expanded={expanded} className="application-focus-why" onClick={() => openRecommendationExplanation(action, "focus")} type="button"><CircleHelp className="h-3.5 w-3.5" />{language === "he" ? "למה עכשיו?" : "Why now?"}</button>{expanded && <div className="application-focus-explanation"><p>{explanation.basedOn}</p><small>{explanation.expected}</small><div><button onClick={() => markRecommendationHelpful(action)} type="button">{language === "he" ? "רלוונטי" : "Relevant"}</button><button onClick={() => { recordActionEvent("recommendation_dismissed", action.applicationId || "workspace"); setUserProfile((current) => ({ ...current, dismissedRecommendations: [...(current.dismissedRecommendations || []).slice(-99), { key: recommendationKey(action), reason: "focus_not_relevant" }] })); setFocusExplanationId(null); }} type="button">{language === "he" ? "לא רלוונטי" : "Not relevant"}</button></div></div>}</article>; })}</div></section>}
             <div className="application-scope-switcher" role="group" aria-label={language === "he" ? "מועמדויות פעילות או סגורות" : "Active or closed applications"}><button aria-pressed={applicationScope === "active"} onClick={() => { setApplicationScope("active"); setApplicationStageFilter("all"); }} type="button">{language === "he" ? "פעילות" : "Active"}<span>{activeApplicationCount}</span></button><button aria-pressed={applicationScope === "closed"} onClick={() => { setApplicationScope("closed"); setApplicationStageFilter("all"); }} type="button">{language === "he" ? "סגורות" : "Closed"}<span>{closedApplicationCount}</span></button></div>
             <div className="application-view-switcher" role="group" aria-label={language === "he" ? "בחירת תצוגה" : "Choose application view"}>
               {([

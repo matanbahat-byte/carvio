@@ -127,6 +127,34 @@
   line-height: 1.65;
 }
 
+.recommendation-why-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.55rem;
+  color: rgb(153 246 228);
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.recommendation-explanation {
+  display: grid;
+  gap: 0.7rem;
+  max-width: 46rem;
+  margin-top: 0.85rem;
+  padding: 0.9rem;
+  border: 1px solid rgb(94 234 212 / 0.22);
+  border-radius: 0.9rem;
+  background: rgb(15 23 42 / 0.48);
+}
+
+.recommendation-explanation strong { color: rgb(153 246 228); font-size: 0.72rem; }
+.recommendation-explanation p { margin-top: 0.15rem; color: rgb(226 232 240); font-size: 0.82rem; line-height: 1.5; }
+.recommendation-explanation footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.6rem; padding-top: 0.65rem; border-top: 1px solid rgb(255 255 255 / 0.1); }
+.recommendation-explanation footer > span { color: rgb(148 163 184); font-size: 0.68rem; }
+.recommendation-explanation footer div { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.recommendation-explanation footer button { display: inline-flex; align-items: center; gap: 0.3rem; min-height: 2rem; padding: 0.38rem 0.58rem; border: 1px solid rgb(255 255 255 / 0.14); border-radius: 0.65rem; color: rgb(226 232 240); font-size: 0.68rem; font-weight: 700; }
+
 .dashboard-v2-today-copy .home-action-urgency {
   margin-top: 0.6rem;
 }
@@ -9074,26 +9102,32 @@ html[data-carvio-theme="light"] {
   gap: 0.5rem;
 }
 
-.applications-focus-strip > div > button {
+.application-focus-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--cv-border) 82%, transparent);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--cv-surface) 92%, transparent);
+}
+
+.application-focus-primary {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.55rem;
   min-width: 0;
   padding: 0.62rem;
-  border: 1px solid color-mix(in srgb, var(--cv-border) 82%, transparent);
-  border-radius: 0.75rem;
+  width: 100%;
   text-align: start;
-  background: color-mix(in srgb, var(--cv-surface) 92%, transparent);
 }
 
-.applications-focus-strip > div > button > span:first-child {
+.application-focus-primary > span:first-child {
   color: var(--cv-primary-ink);
   font-size: 0.62rem;
   font-weight: 850;
 }
 
-.applications-focus-strip > div > button > span:nth-child(2) {
+.application-focus-primary > span:nth-child(2) {
   display: grid;
   min-width: 0;
   gap: 0.12rem;
@@ -9109,6 +9143,21 @@ html[data-carvio-theme="light"] {
 .applications-focus-strip button strong { color: var(--cv-text); font-size: 0.7rem; }
 .applications-focus-strip button small { color: var(--cv-muted); font-size: 0.6rem; }
 .applications-focus-strip button svg { color: var(--cv-primary-ink); }
+
+.application-focus-why {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0 0.62rem 0.55rem;
+  color: var(--cv-primary-ink);
+  font-size: 0.62rem;
+  font-weight: 750;
+}
+
+.application-focus-explanation { display: grid; gap: 0.35rem; padding: 0.55rem 0.62rem 0.65rem; border-top: 1px solid var(--cv-border); color: var(--cv-text); font-size: 0.66rem; line-height: 1.45; }
+.application-focus-explanation small { color: var(--cv-muted); font-size: 0.62rem; }
+.application-focus-explanation > div { display: flex; gap: 0.35rem; }
+.application-focus-explanation > div button { padding: 0.3rem 0.45rem; border: 1px solid var(--cv-border); border-radius: 0.5rem; color: var(--cv-primary-ink); font-size: 0.6rem; font-weight: 750; }
 
 .application-scope-switcher {
   display: inline-flex;
