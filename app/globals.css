@@ -9829,6 +9829,75 @@ html[data-carvio-theme="light"] {
   font-weight: 750;
 }
 
+.completion-loop {
+  display: grid;
+  gap: 1rem;
+}
+
+.completion-loop-success {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.8rem;
+  border: 1px solid color-mix(in srgb, var(--cv-success) 35%, var(--cv-border));
+  border-radius: 0.8rem;
+  color: var(--cv-success);
+  background: color-mix(in srgb, var(--cv-success) 7%, var(--cv-surface));
+}
+
+.completion-loop-success span,
+.completion-loop-success strong,
+.completion-loop-success small {
+  display: block;
+}
+
+.completion-loop-success strong {
+  color: var(--cv-text);
+}
+
+.completion-loop-success small,
+.completion-loop > p {
+  color: var(--cv-muted-strong);
+}
+
+.completion-loop fieldset {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.completion-loop-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.completion-loop-options button {
+  min-height: 3.25rem;
+  padding: 0.6rem;
+  border: 1px solid var(--cv-border);
+  border-radius: 0.75rem;
+  color: var(--cv-body);
+  background: var(--cv-surface-soft);
+  font-weight: 700;
+}
+
+.completion-loop-options button.is-selected {
+  border-color: var(--cv-primary);
+  color: var(--cv-primary-ink);
+  background: color-mix(in srgb, var(--cv-primary) 14%, var(--cv-surface));
+}
+
+@media (max-width: 700px) {
+  .completion-loop-options {
+    grid-template-columns: 1fr;
+  }
+
+  .completion-loop .modal-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}
+
 .smart-capture-not-now:hover {
   color: var(--cv-text);
 }
