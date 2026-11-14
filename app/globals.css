@@ -166,6 +166,58 @@
   box-shadow: 0 22px 55px rgb(2 44 34 / 0.22);
 }
 
+.returning-user-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(99, 102, 241, 0.32);
+  border-radius: 1.1rem;
+  background: linear-gradient(115deg, rgba(99, 102, 241, 0.16), rgba(15, 23, 42, 0.78));
+}
+
+.returning-user-card > div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.returning-user-card span,
+.returning-user-card small {
+  color: var(--cv-muted-strong);
+}
+
+.returning-user-card strong {
+  font-size: 1.02rem;
+}
+
+.returning-user-card > button:nth-of-type(1) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.75rem;
+  padding: 0.65rem 0.9rem;
+  border: 0;
+  border-radius: 0.8rem;
+  background: #6366f1;
+  color: #fff;
+  font-weight: 750;
+}
+
+.returning-user-card > button:nth-of-type(2) {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--cv-muted-strong);
+}
+
 .dashboard-v2-today-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(12rem, 28%);
@@ -9722,6 +9774,51 @@ html[data-carvio-theme="light"] {
 .smart-capture-success .primary-button {
   width: min(100%, 22rem);
   justify-content: center;
+}
+
+.smart-capture-share {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  margin-top: 0.35rem;
+}
+
+.smart-capture-share > span {
+  width: 100%;
+  font-size: 0.78rem;
+}
+
+.smart-capture-share button {
+  min-height: 2.35rem;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--cv-border);
+  border-radius: 0.75rem;
+  background: transparent;
+  color: inherit;
+  font-weight: 700;
+}
+
+.carvio-light .returning-user-card {
+  border-color: rgba(79, 70, 229, 0.22);
+  background: linear-gradient(115deg, rgba(238, 242, 255, 0.96), rgba(255, 255, 255, 0.98));
+}
+
+@media (max-width: 700px) {
+  .returning-user-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .returning-user-card > button:nth-of-type(1) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .returning-user-card > button:nth-of-type(2) {
+    grid-column: 2;
+    grid-row: 1;
+  }
 }
 
 .smart-capture-not-now {

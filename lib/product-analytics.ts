@@ -5,6 +5,7 @@ export type AnalyticsProperties = Record<string, AnalyticsProperty>;
 
 const allowedProperties = new Set([
   "activeSeconds",
+  "channel",
   "count",
   "days",
   "durationBucket",
@@ -16,6 +17,17 @@ const allowedProperties = new Set([
   "sourceType",
   "status",
 ]);
+
+export function acquisitionChannel(search = "", referrer = "") {
+  const params = new URLSearchParams(search);
+  const tagged = `${params.get("utm_source") || ""} ${params.get("utm_medium") || ""}`.toLowerCase();
+  const source = `${tagged} ${referrer}`.toLowerCase();
+  if (/linkedin/.test(source)) return "linkedin";
+  if (/facebook|fb\b|instagram|meta/.test(source)) return "meta";
+  if (/whatsapp|wa\.me/.test(source)) return "whatsapp";
+  if (/google|bing|duckduckgo|search/.test(source)) return "search";
+  return referrer || tagged.trim() ? "referral" : "direct";
+}
 
 export function sanitizeAnalyticsProperties(properties: Record<string, unknown> = {}) {
   return Object.fromEntries(
@@ -38,6 +50,10 @@ export function localDateKey(date = new Date()) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+export function isReturningVisit(lastVisit: string | null, today = localDateKey()) {
+  return Boolean(lastVisit && lastVisit !== today);
 }
 
 export function emitProductEvent(eventName: string, properties: Record<string, unknown> = {}) {

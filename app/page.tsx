@@ -21,7 +21,7 @@ import { googleJobSearch, officialSearchUrl, changeSearchRole, searchPreferences
 import { agendaEntries, scheduledTimestamp } from "@/lib/schedule";
 import { greetingForHour, meaningfulMomentum } from "@/lib/ux-context";
 import { clearLocalWorkspaceData } from "@/lib/local-data";
-import { emitProductEvent } from "@/lib/product-analytics";
+import { emitProductEvent, isReturningVisit, localDateKey } from "@/lib/product-analytics";
 import { extractJobRequirements, splitRequirementText, uniqueRequirements, requirementCategory } from "@/lib/job-requirements";
 import { ChangeEvent, FormEvent, Fragment, ReactNode, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import {
@@ -99,6 +99,7 @@ const LANDING_KEY = "carvio.landing-seen.v1";
 const ANALYTICS_SAMPLE_PACK_KEY = "carvio.analytics-sample-pack.v1";
 const ACTION_EVENTS_KEY = "carvio.action-events.v1";
 const SEARCH_TASKS_KEY = "carvio.search-tasks.v1";
+const WORKSPACE_LAST_VISIT_KEY = "carvio.workspace-last-visit.v1";
 type SearchTask = { id: string; role: string; location: string; action: string; due: string; completed: boolean };
 
 const applicationStatuses = [
@@ -1386,6 +1387,7 @@ export default function Home() {
   const [userProfile, setUserProfile] = useState<UserProfile>(emptyUserProfile);
   const [showTrustCenter, setShowTrustCenter] = useState(false);
   const [showDeleteLocalConfirm, setShowDeleteLocalConfirm] = useState(false);
+  const [returningVisit, setReturningVisit] = useState(false);
   const [dailyMood, setDailyMood] = useState<DailyMood>("");
   const [activeView, setActiveView] = useState<AppView>("home");
   const [showQuickAdd, setShowQuickAdd] = useState(false);
@@ -1498,6 +1500,10 @@ export default function Home() {
       setUserProfile({ ...savedProfile, usageIntent: normalizeUsageIntent(savedProfile.usageIntent) });
       const checkIn = readStored<{ date: string; mood: DailyMood }>(CHECKIN_KEY, { date: "", mood: "" });
       setDailyMood(checkIn.date === new Date().toISOString().slice(0, 10) ? checkIn.mood : "");
+      const today = localDateKey();
+      const lastVisit = window.localStorage.getItem(WORKSPACE_LAST_VISIT_KEY);
+      setReturningVisit(isReturningVisit(lastVisit, today));
+      window.localStorage.setItem(WORKSPACE_LAST_VISIT_KEY, today);
       workspaceStorage().removeItem(LANDING_KEY);
       setShowLanding(landingVisibleForUrl(window.location.search));
       setHydrated(true);
@@ -1755,6 +1761,24 @@ export default function Home() {
   function selectTheme(nextTheme: ColorTheme) {
     workspaceStorage().setItem(THEME_EXPLICIT_KEY, JSON.stringify(true));
     setTheme(nextTheme);
+  }
+
+  async function shareCarvio(method: "copy" | "whatsapp" | "native") {
+    const url = window.location.origin;
+    const text = language === "he"
+      ? "מצאתי כלי שעוזר לנהל חיפוש עבודה, לקבל החלטות ולדעת מה הצעד הבא:"
+      : "I found a tool that keeps a job search organized and makes the next move clear:";
+    emitProductEvent("product_shared", { method });
+    if (method === "whatsapp") {
+      window.open(`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`, "_blank", "noopener,noreferrer");
+      return;
+    }
+    if (method === "native" && navigator.share) {
+      await navigator.share({ title: "Carvio", text, url }).catch(() => undefined);
+      return;
+    }
+    await navigator.clipboard.writeText(url);
+    setNotice(language === "he" ? "הקישור ל־CARVIO הועתק." : "CARVIO link copied.");
   }
 
   function navigateToSection(target: string) {
@@ -3666,6 +3690,7 @@ export default function Home() {
               </div>
             </div>
           </div>
+          {returningVisit && (applications.length > 0 || contacts.length > 0) && <section className="returning-user-card" aria-label={language === "he" ? "המשך מהביקור הקודם" : "Continue from your last visit"}><div><span>{language === "he" ? "טוב שחזרתם" : "Welcome back"}</span><strong>{language === "he" ? "הפעולה שקבעתם מחכה לכם כאן." : "The next move you saved is waiting for you."}</strong><small>{homepageAction.title}</small></div><button onClick={() => { setReturningVisit(false); executeTodayPrimaryAction(); }} type="button">{language === "he" ? "המשך מהמקום שבו עצרתי" : "Continue where I left off"}<ArrowUpRight className="h-4 w-4" /></button><button aria-label={language === "he" ? "סגירת הודעת החזרה" : "Dismiss welcome back message"} onClick={() => setReturningVisit(false)} type="button"><X className="h-4 w-4" /></button></section>}
           {(applications.length > 0 || contacts.length > 0) && <section className="dashboard-v2-today" aria-labelledby="dashboard-v2-today-title">
             <button className="text-button" type="button" onClick={() => navigateToSection("preferences")}>{language === "he" ? "שינוי המטרה" : "Change goal"}</button>
             <div className="dashboard-v2-today-layout">
@@ -4486,7 +4511,7 @@ export default function Home() {
               {smartCaptureError && <p id="capture-error" role="alert" className="form-error">{smartCaptureError}</p>}
               <div className="smart-capture-review-actions"><button className="secondary-button" onClick={() => { setSmartCaptureStep("link"); setSmartCaptureError(""); }} type="button">{language === "he" ? "חזרה" : "Back"}</button><button className="secondary-button" onClick={openCapturedApplicationDetails} type="button">{language === "he" ? "פרטים נוספים" : "More details"}</button><button className="primary-button" onClick={saveSmartCapture} type="button"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "שמירת המשרה" : "Save job"}</button></div>
               <JobAvailabilityCheck url={applicationDraft.jobUrl} language={language} onVerifiedDetails={applyVerifiedCaptureDetails} />
-            </> : <div className="smart-capture-success"><div className="smart-capture-success-icon"><CheckCircle2 className="h-9 w-9" /></div><div><strong>{applicationDraft.role}</strong><span>{applicationDraft.company}</span></div><p>{applicationDraft.nextStep.trim() ? (language === "he" ? `הצעד הבא שלכם מוכן: ${applicationDraft.nextStep}` : `Your next move is ready: ${applicationDraft.nextStep}`) : (language === "he" ? "המשרה נשמרה. אפשר להגדיר פעולה הבאה כשתהיו מוכנים." : "Your job is saved. Set a next action when you are ready.")}{applicationDraft.nextStepDue && <small>{formatDate(language, applicationDraft.nextStepDue, true)}</small>}</p><button className="primary-button" onClick={openSavedCapture} type="button">{language === "he" ? "המשך מהמקום שבו עצרתי" : "Continue where I left off"}<ArrowRight className="h-4 w-4" /></button><button className="smart-capture-not-now" onClick={resetSmartCapture} type="button">{language === "he" ? "חזרה לסקירה" : "Back to overview"}</button></div>}
+            </> : <div className="smart-capture-success"><div className="smart-capture-success-icon"><CheckCircle2 className="h-9 w-9" /></div><div><strong>{applicationDraft.role}</strong><span>{applicationDraft.company}</span></div><p>{applicationDraft.nextStep.trim() ? (language === "he" ? `הצעד הבא שלכם מוכן: ${applicationDraft.nextStep}` : `Your next move is ready: ${applicationDraft.nextStep}`) : (language === "he" ? "המשרה נשמרה. אפשר להגדיר פעולה הבאה כשתהיו מוכנים." : "Your job is saved. Set a next action when you are ready.")}{applicationDraft.nextStepDue && <small>{formatDate(language, applicationDraft.nextStepDue, true)} · {language === "he" ? "כשתחזרו, הפעולה תחכה לכם בסקירה." : "When you return, this move will be waiting in Overview."}</small>}</p><button className="primary-button" onClick={openSavedCapture} type="button">{language === "he" ? "המשך מהמקום שבו עצרתי" : "Continue where I left off"}<ArrowRight className="h-4 w-4" /></button><div className="smart-capture-share"><span>{language === "he" ? "מכירים מישהו שזה יעזור לו?" : "Know someone this could help?"}</span><button onClick={() => void shareCarvio("whatsapp")} type="button">WhatsApp</button><button onClick={() => void shareCarvio("copy")} type="button">{language === "he" ? "העתקת קישור" : "Copy link"}</button></div><button className="smart-capture-not-now" onClick={resetSmartCapture} type="button">{language === "he" ? "חזרה לסקירה" : "Back to overview"}</button></div>}
           </div>
         </Modal>
       )}
