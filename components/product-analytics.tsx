@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import {
   PRODUCT_EVENT_CHANNEL,
   activeDurationBucket,
+  localDateKey,
   sanitizeAnalyticsProperties,
   type AnalyticsProperties,
 } from "@/lib/product-analytics";
@@ -88,7 +89,7 @@ export function ProductAnalytics() {
       sessionRef.current = data.session;
       if (!data.session) return;
       enqueue("session_started", { method: "authenticated" });
-      const today = new Date().toISOString().slice(0, 10);
+      const today = localDateKey();
       const priorDay = window.localStorage.getItem(LAST_ACTIVE_DAY_KEY);
       if (priorDay && priorDay !== today) enqueue("return_visit", { method: "new_day" });
       window.localStorage.setItem(LAST_ACTIVE_DAY_KEY, today);

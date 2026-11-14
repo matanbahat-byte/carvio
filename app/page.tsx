@@ -21,6 +21,7 @@ import { googleJobSearch, officialSearchUrl, changeSearchRole, searchPreferences
 import { agendaEntries, scheduledTimestamp } from "@/lib/schedule";
 import { greetingForHour, meaningfulMomentum } from "@/lib/ux-context";
 import { clearLocalWorkspaceData } from "@/lib/local-data";
+import { emitProductEvent } from "@/lib/product-analytics";
 import { extractJobRequirements, splitRequirementText, uniqueRequirements, requirementCategory } from "@/lib/job-requirements";
 import { ChangeEvent, FormEvent, Fragment, ReactNode, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import {
@@ -1441,6 +1442,7 @@ export default function Home() {
   const [focusExplanationId, setFocusExplanationId] = useState<string | null>(null);
   const [actionEvents, setActionEvents] = useState<ActionEvent[]>([]);
   const productSessionRef = useRef("");
+  const lastProductEventRef = useRef<{ name: ProductEventName; targetId: string } | null>(null);
   const messageDraftRef = useRef<HTMLTextAreaElement | null>(null);
   const todayOverflowRef = useRef<HTMLDivElement | null>(null);
 
@@ -1590,6 +1592,11 @@ export default function Home() {
   useEffect(() => {
     if (hydrated) workspaceStorage().setItem(PROFILE_KEY, JSON.stringify(userProfile));
   }, [userProfile, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated || showLanding) return;
+    emitProductEvent("screen_viewed", { screen: activeView });
+  }, [activeView, hydrated, showLanding]);
 
   useEffect(() => {
     if (hydrated && dailyMood) workspaceStorage().setItem(CHECKIN_KEY, JSON.stringify({ date: new Date().toISOString().slice(0, 10), mood: dailyMood }));
@@ -2472,7 +2479,13 @@ export default function Home() {
     if (name === "application_action_completed") names.push("recommendation_completed");
     if (name === "application_updated") { const prior = applications.find(item => item.id === targetId); if (properties.status === "Applied" && prior?.status !== "Applied") names.push("marked_applied"); if (properties.status === "Interview" && prior?.status !== "Interview") names.push("interview_recorded"); }
     const occurredAt = new Date().toISOString();
-    setActionEvents((events) => name === "message_draft_edited" && events.at(-1)?.name === name && events.at(-1)?.targetId === targetId ? events : [...events.slice(-500 + names.length), ...names.map(eventName => ({ id: makeId("event"), name: eventName, targetId, occurredAt, properties: privateEventProperties({ ...properties, sessionId: productSessionRef.current }) }))]);
+    const safeProperties = privateEventProperties({ ...properties, sessionId: productSessionRef.current });
+    const duplicateDraftEdit = name === "message_draft_edited"
+      && lastProductEventRef.current?.name === name
+      && lastProductEventRef.current.targetId === targetId;
+    if (!duplicateDraftEdit) names.forEach((eventName) => emitProductEvent(eventName, safeProperties));
+    lastProductEventRef.current = { name, targetId };
+    setActionEvents((events) => name === "message_draft_edited" && events.at(-1)?.name === name && events.at(-1)?.targetId === targetId ? events : [...events.slice(-500 + names.length), ...names.map(eventName => ({ id: makeId("event"), name: eventName, targetId, occurredAt, properties: safeProperties }))]);
   }
 
   function selectUsageGoal(value: UserProfile["usageIntent"]) {
