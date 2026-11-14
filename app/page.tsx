@@ -14,6 +14,7 @@ import { AiEvidenceForm } from "@/components/ai-evidence-form";
 import { rankNextActions, recommendationExplanation, recommendationKey, staleReviewAge, type NextBestAction } from "@/lib/recommendations";
 import { applyReadiness, type ApplyReadinessTarget } from "@/lib/apply-readiness";
 import { firstJobDecisionComplete, nextActionDueTomorrow } from "@/lib/activation";
+import { completionLoopOptions } from "@/lib/completion-loop";
 import { localProductMetrics, goalMetrics, readinessStates, isCompatibleRecord, messageSubject, generateOutreachMessage, normalizeUsageIntent, goalAction, migrateSource, sourceOutcomes, hasPersonalAnchor, linkContactIds, privateEventProperties, safeSourceUrl, type ProductEventName, type MessageProfile, type UsageIntent, type SourceType } from "@/lib/decision-support";
 
 import Image from "next/image";
@@ -1370,6 +1371,7 @@ export default function Home() {
   const [messageSubjectDraft, setMessageSubjectDraft] = useState("");
   const [showEmailHandoff, setShowEmailHandoff] = useState(false);
   const [pendingFollowUp, setPendingFollowUp] = useState<{ target: { kind: "contact" | "application"; id: string }; action: string; due: string; existing: string; existingDue: string; label: string } | null>(null);
+  const [nextActionLoop, setNextActionLoop] = useState<{ applicationId: string; completedAction: string; nextAction: string; due: string } | null>(null);
   const [postProfile, setPostProfile] = useState<PostProfile>(emptyPostProfile);
   const [generatedPost, setGeneratedPost] = useState("");
   const [recoveryEntries, setRecoveryEntries] = useState<RecoveryEntry[]>([]);
@@ -1645,6 +1647,8 @@ export default function Home() {
     () => applications.find((item) => item.id === workspaceApplicationId) || null,
     [applications, workspaceApplicationId],
   );
+  const nextActionLoopApplication = nextActionLoop ? applications.find((item) => item.id === nextActionLoop.applicationId) || null : null;
+  const nextActionLoopOptions = nextActionLoopApplication ? completionLoopOptions(nextActionLoopApplication.status, language) : [];
   const interviewPrepApplication = useMemo(
     () => applications.find((item) => item.id === interviewPrepApplicationId) || null,
     [applications, interviewPrepApplicationId],
@@ -2485,7 +2489,19 @@ export default function Home() {
   function completeApplicationAction(application: Application) {
     setApplications((items) => items.map((item) => item.id === application.id ? { ...item, nextStep: "", nextStepDue: "", lastActivityAt: new Date().toISOString(), trafficLight: item.trafficLight === "red" ? "yellow" : item.trafficLight } : item));
     recordActionEvent("application_action_completed", application.id, { company: application.company, status: application.status });
-    setNotice(language === "he" ? "הפעולה הושלמה — מצוין 🌱" : "Action completed — momentum saved 🌱");
+    const options = completionLoopOptions(application.status, language);
+    setWorkspaceApplicationId(null);
+    setQuickUpdateId(null);
+    setQuickUpdateDraft(null);
+    setNextActionLoop({ applicationId: application.id, completedAction: application.nextStep, nextAction: options[0], due: nextActionDueTomorrow() });
+  }
+
+  function saveCompletionLoopAction() {
+    if (!nextActionLoop?.nextAction.trim() || !nextActionLoop.due) return;
+    setApplications((items) => items.map((item) => item.id === nextActionLoop.applicationId ? { ...item, nextStep: nextActionLoop.nextAction.trim(), nextStepDue: nextActionLoop.due, lastActivityAt: new Date().toISOString(), trafficLight: item.trafficLight === "red" ? "yellow" : item.trafficLight } : item));
+    recordActionEvent("follow_up_planned", nextActionLoop.applicationId, { method: "completion_loop" });
+    setNextActionLoop(null);
+    setNotice(language === "he" ? "הפעולה הבאה נקבעה ותחכה לכם בסקירה." : "Your next move is scheduled and waiting in Overview.");
   }
 
   function snoozeApplication(application: Application, days = 2) {
@@ -4467,6 +4483,17 @@ export default function Home() {
             <div><span>{language === "he" ? `${age} ימים ללא פעילות` : `${age} days without activity`}</span><strong>{application.role} · {application.company}</strong><p>{application.nextStep || (language === "he" ? "לא הוגדרה פעולה הבאה" : "No next action is defined")}</p></div>
             <div className="stale-review-actions"><button onClick={() => resolveStaleApplication(application, "active")} type="button"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "עדיין פעיל" : "Still active"}</button><button onClick={() => resolveStaleApplication(application, "later")} type="button"><Clock3 className="h-4 w-4" />{language === "he" ? "להזכיר בעוד שבוע" : "Remind in a week"}</button><button onClick={() => resolveStaleApplication(application, "withdrawn")} type="button">{language === "he" ? "סגירה כ־Withdrawn" : "Close as Withdrawn"}</button></div>
           </article>) : <div className="dashboard-v2-empty"><CheckCircle2 className="h-5 w-5" /><span><strong>{language === "he" ? "הסקירה הושלמה" : "Review complete"}</strong><small>{language === "he" ? "אין עוד תהליכים ישנים שמחכים להחלטה." : "No old processes are waiting for a decision."}</small></span></div>}
+        </div>
+      </Modal>}
+
+      {nextActionLoop && nextActionLoopApplication && <Modal title={language === "he" ? "מעולה. מה הצעד הבא?" : "Nice work. What comes next?"} description={`${nextActionLoopApplication.role} · ${nextActionLoopApplication.company}`} onClose={() => setNextActionLoop(null)} closeLabel={language === "he" ? "סגירת בחירת הפעולה הבאה" : "Close next-action choice"}>
+        <div className="completion-loop">
+          <div className="completion-loop-success"><CheckCircle2 className="h-5 w-5" /><span><strong>{language === "he" ? "הפעולה הושלמה" : "Action completed"}</strong><small>{nextActionLoop.completedAction || (language === "he" ? "ההתקדמות נשמרה" : "Your progress is saved")}</small></span></div>
+          <fieldset><legend>{language === "he" ? "בחרו פעולה אחת" : "Choose one next move"}</legend><div className="completion-loop-options">{nextActionLoopOptions.map((option) => <button aria-pressed={nextActionLoop.nextAction === option} className={nextActionLoop.nextAction === option ? "is-selected" : ""} key={option} onClick={() => setNextActionLoop((current) => current ? { ...current, nextAction: option } : current)} type="button">{option}</button>)}</div></fieldset>
+          <Field label={language === "he" ? "או כתבו פעולה משלכם" : "Or write your own"}><input autoFocus className="form-control" onChange={(event) => setNextActionLoop((current) => current ? { ...current, nextAction: event.target.value } : current)} value={nextActionLoop.nextAction} /></Field>
+          <Field label={language === "he" ? "מתי ממשיכים?" : "When will you continue?"}><input className="form-control" onChange={(event) => setNextActionLoop((current) => current ? { ...current, due: event.target.value } : current)} type="datetime-local" value={nextActionLoop.due} /></Field>
+          <p>{language === "he" ? "הפעולה תופיע בסקירה כשתחזרו." : "This move will be waiting in Overview when you return."}</p>
+          <div className="modal-actions"><button className="secondary-button" onClick={() => setNextActionLoop(null)} type="button">{language === "he" ? "לא עכשיו" : "Not now"}</button><button className="primary-button" disabled={!nextActionLoop.nextAction.trim() || !nextActionLoop.due} onClick={saveCompletionLoopAction} type="button"><CalendarPlus className="h-4 w-4" />{language === "he" ? "קביעת הפעולה הבאה" : "Schedule next move"}</button></div>
         </div>
       </Modal>}
 
