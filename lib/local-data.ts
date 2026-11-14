@@ -17,5 +17,7 @@ export const LOCAL_WORKSPACE_DATA_KEYS = [
 export function clearLocalWorkspaceData(workspace: StorageLike, local: StorageLike, session: StorageLike) {
   LOCAL_WORKSPACE_DATA_KEYS.forEach((key) => workspace.removeItem(key));
   local.removeItem("carvio.analytics-last-active-day.v1");
+  local.removeItem("carvio.analytics-acquisition-recorded.v1");
+  local.removeItem("carvio.workspace-last-visit.v1");
   ["carvio.analytics-session.v1", "carvio.product-session.workspace", "carvio.product-session.demo"].forEach((key) => session.removeItem(key));
 }

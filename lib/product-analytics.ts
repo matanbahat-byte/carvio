@@ -5,6 +5,7 @@ export type AnalyticsProperties = Record<string, AnalyticsProperty>;
 
 const allowedProperties = new Set([
   "activeSeconds",
+  "channel",
   "count",
   "days",
   "durationBucket",
@@ -16,6 +17,17 @@ const allowedProperties = new Set([
   "sourceType",
   "status",
 ]);
+
+export function acquisitionChannel(search = "", referrer = "") {
+  const params = new URLSearchParams(search);
+  const tagged = `${params.get("utm_source") || ""} ${params.get("utm_medium") || ""}`.toLowerCase();
+  const source = `${tagged} ${referrer}`.toLowerCase();
+  if (/linkedin/.test(source)) return "linkedin";
+  if (/facebook|fb\b|instagram|meta/.test(source)) return "meta";
+  if (/whatsapp|wa\.me/.test(source)) return "whatsapp";
+  if (/google|bing|duckduckgo|search/.test(source)) return "search";
+  return referrer || tagged.trim() ? "referral" : "direct";
+}
 
 export function sanitizeAnalyticsProperties(properties: Record<string, unknown> = {}) {
   return Object.fromEntries(

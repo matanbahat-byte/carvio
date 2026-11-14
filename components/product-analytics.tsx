@@ -5,6 +5,7 @@ import type { Session } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import {
   PRODUCT_EVENT_CHANNEL,
+  acquisitionChannel,
   activeDurationBucket,
   localDateKey,
   sanitizeAnalyticsProperties,
@@ -19,6 +20,7 @@ type QueuedEvent = {
 
 const SESSION_KEY = "carvio.analytics-session.v1";
 const LAST_ACTIVE_DAY_KEY = "carvio.analytics-last-active-day.v1";
+const ACQUISITION_RECORDED_KEY = "carvio.analytics-acquisition-recorded.v1";
 
 function makeSessionId() {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -89,6 +91,10 @@ export function ProductAnalytics() {
       sessionRef.current = data.session;
       if (!data.session) return;
       enqueue("session_started", { method: "authenticated" });
+      if (!window.localStorage.getItem(ACQUISITION_RECORDED_KEY)) {
+        enqueue("acquisition_attributed", { channel: acquisitionChannel(window.location.search, document.referrer) });
+        window.localStorage.setItem(ACQUISITION_RECORDED_KEY, "1");
+      }
       const today = localDateKey();
       const priorDay = window.localStorage.getItem(LAST_ACTIVE_DAY_KEY);
       if (priorDay && priorDay !== today) enqueue("return_visit", { method: "new_day" });

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { activeDurationBucket, localDateKey, sanitizeAnalyticsProperties } from "../lib/product-analytics.ts";
+import { acquisitionChannel, activeDurationBucket, localDateKey, sanitizeAnalyticsProperties } from "../lib/product-analytics.ts";
 
 test("analytics properties keep funnel dimensions and remove personal content", () => {
   assert.deepEqual(
@@ -15,6 +15,13 @@ test("analytics properties keep funnel dimensions and remove personal content", 
     }),
     { screen: "applications", status: "Applied", sourceType: "Company careers" },
   );
+});
+
+test("acquisition attribution remains coarse and never stores full URLs", () => {
+  assert.equal(acquisitionChannel("?utm_source=linkedin&utm_campaign=private-name", ""), "linkedin");
+  assert.equal(acquisitionChannel("?utm_source=whatsapp", ""), "whatsapp");
+  assert.equal(acquisitionChannel("", "https://www.google.com/search?q=carvio"), "search");
+  assert.equal(acquisitionChannel("", ""), "direct");
 });
 
 test("duration buckets retain only coarse engagement ranges", () => {
