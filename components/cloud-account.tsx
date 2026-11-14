@@ -174,6 +174,15 @@ export function CloudAccount({
   }, [session]);
 
   useEffect(() => {
+    const disableAutoSync = () => {
+      setAutoSync(false);
+      window.localStorage.setItem("carvio.cloud-autosync.v1", "off");
+    };
+    window.addEventListener("carvio:disable-cloud-autosync", disableAutoSync);
+    return () => window.removeEventListener("carvio:disable-cloud-autosync", disableAutoSync);
+  }, []);
+
+  useEffect(() => {
     if (!session || !autoSync || !remoteExists) return;
     const timeout = window.setTimeout(() => void saveToCloud(true), 1400);
     return () => window.clearTimeout(timeout);

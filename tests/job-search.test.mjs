@@ -114,6 +114,17 @@ test('captured URLs keep their source without inventing role or company', () => 
   for(const url of ['javascript:alert(1)','file:///tmp/test','not a url']) assert.throws(()=>captureJobLink(url));
 });
 
+test('known company ATS links are classified as company career pages', () => {
+  for (const url of [
+    'https://job-boards.greenhouse.io/acme/jobs/123',
+    'https://boards.greenhouse.io/acme/jobs/123',
+    'https://jobs.lever.co/acme/123',
+    'https://jobs.ashbyhq.com/acme/123',
+    'https://apply.workable.com/acme/j/123',
+    'https://acme.wd5.myworkdayjobs.com/en-US/jobs/job/123',
+  ]) assert.equal(captureJobLink(url).source, 'Company careers', url);
+});
+
 test('job link identity ignores tracking tags on either the old or incoming URL', () => {
   const source = 'https://il.linkedin.com/jobs/view/supply-chain-manager-wm-at-wolt-4474243974';
   const tracked = source + '?utm_source=carvio_qa&utm_campaign=launch&fbclid=example';
