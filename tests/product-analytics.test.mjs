@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { acquisitionChannel, activeDurationBucket, localDateKey, sanitizeAnalyticsProperties } from "../lib/product-analytics.ts";
+import { acquisitionChannel, activeDurationBucket, isReturningVisit, localDateKey, sanitizeAnalyticsProperties } from "../lib/product-analytics.ts";
 
 test("analytics properties keep funnel dimensions and remove personal content", () => {
   assert.deepEqual(
@@ -33,4 +33,10 @@ test("duration buckets retain only coarse engagement ranges", () => {
 test("return-visit day keys use the browser local calendar", () => {
   const local = new Date(2026, 10, 14, 23, 30);
   assert.equal(localDateKey(local), "2026-11-14");
+});
+
+test("return prompt appears only after a visit on an earlier local day", () => {
+  assert.equal(isReturningVisit(null, "2026-11-14"), false);
+  assert.equal(isReturningVisit("2026-11-14", "2026-11-14"), false);
+  assert.equal(isReturningVisit("2026-11-13", "2026-11-14"), true);
 });

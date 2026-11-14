@@ -52,6 +52,10 @@ export function localDateKey(date = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
+export function isReturningVisit(lastVisit: string | null, today = localDateKey()) {
+  return Boolean(lastVisit && lastVisit !== today);
+}
+
 export function emitProductEvent(eventName: string, properties: Record<string, unknown> = {}) {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new CustomEvent(PRODUCT_EVENT_CHANNEL, {

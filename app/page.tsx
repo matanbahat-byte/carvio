@@ -21,7 +21,7 @@ import { googleJobSearch, officialSearchUrl, changeSearchRole, searchPreferences
 import { agendaEntries, scheduledTimestamp } from "@/lib/schedule";
 import { greetingForHour, meaningfulMomentum } from "@/lib/ux-context";
 import { clearLocalWorkspaceData } from "@/lib/local-data";
-import { emitProductEvent, localDateKey } from "@/lib/product-analytics";
+import { emitProductEvent, isReturningVisit, localDateKey } from "@/lib/product-analytics";
 import { extractJobRequirements, splitRequirementText, uniqueRequirements, requirementCategory } from "@/lib/job-requirements";
 import { ChangeEvent, FormEvent, Fragment, ReactNode, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import {
@@ -1502,7 +1502,7 @@ export default function Home() {
       setDailyMood(checkIn.date === new Date().toISOString().slice(0, 10) ? checkIn.mood : "");
       const today = localDateKey();
       const lastVisit = window.localStorage.getItem(WORKSPACE_LAST_VISIT_KEY);
-      setReturningVisit(Boolean(lastVisit && lastVisit !== today));
+      setReturningVisit(isReturningVisit(lastVisit, today));
       window.localStorage.setItem(WORKSPACE_LAST_VISIT_KEY, today);
       workspaceStorage().removeItem(LANDING_KEY);
       setShowLanding(landingVisibleForUrl(window.location.search));
