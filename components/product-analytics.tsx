@@ -53,11 +53,19 @@ export function ProductAnalytics() {
     const flush = async () => {
       if (flushingRef.current || !sessionRef.current || !queueRef.current.length) return;
       flushingRef.current = true;
-      const pending = queueRef.current.splice(0, 25);
-      const rows = pending.map((event) => ({ ...event, user_id: sessionRef.current!.user.id }));
-      const { error } = await supabase.from("product_events").insert(rows);
-      if (error) queueRef.current = [...pending, ...queueRef.current].slice(-100);
-      flushingRef.current = false;
+      try {
+        while (sessionRef.current && queueRef.current.length) {
+          const pending = queueRef.current.splice(0, 25);
+          const rows = pending.map((event) => ({ ...event, user_id: sessionRef.current!.user.id }));
+          const { error } = await supabase.from("product_events").insert(rows);
+          if (error) {
+            queueRef.current = [...pending, ...queueRef.current].slice(-100);
+            break;
+          }
+        }
+      } finally {
+        flushingRef.current = false;
+      }
     };
 
     const recordHeartbeat = () => {
@@ -72,7 +80,9 @@ export function ProductAnalytics() {
       const detail = (event as CustomEvent<{ eventName?: unknown; properties?: unknown }>).detail;
       if (!detail || typeof detail.eventName !== "string") return;
       enqueue(detail.eventName, detail.properties && typeof detail.properties === "object" ? detail.properties as Record<string, unknown> : {});
-      if (queueRef.current.length >= 5) void flush();
+      // Retention actions are relatively rare and should not wait for five
+      // more events or a heartbeat that may never happen if the tab closes.
+      void flush();
     };
 
     const onVisibilityChange = () => {

@@ -1447,6 +1447,7 @@ export default function Home() {
   const [actionEvents, setActionEvents] = useState<ActionEvent[]>([]);
   const productSessionRef = useRef("");
   const lastProductEventRef = useRef<{ name: ProductEventName; targetId: string } | null>(null);
+  const returnCardTrackedRef = useRef(false);
   const messageDraftRef = useRef<HTMLTextAreaElement | null>(null);
   const todayOverflowRef = useRef<HTMLDivElement | null>(null);
 
@@ -1605,6 +1606,12 @@ export default function Home() {
     if (!hydrated || showLanding) return;
     emitProductEvent("screen_viewed", { screen: activeView });
   }, [activeView, hydrated, showLanding]);
+
+  useEffect(() => {
+    if (!hydrated || !returningVisit || returnCardTrackedRef.current || (!applications.length && !contacts.length)) return;
+    returnCardTrackedRef.current = true;
+    emitProductEvent("return_card_viewed", { screen: "home" });
+  }, [applications.length, contacts.length, hydrated, returningVisit]);
 
   useEffect(() => {
     if (hydrated && dailyMood) workspaceStorage().setItem(CHECKIN_KEY, JSON.stringify({ date: new Date().toISOString().slice(0, 10), mood: dailyMood }));
@@ -2489,6 +2496,7 @@ export default function Home() {
   function completeApplicationAction(application: Application) {
     setApplications((items) => items.map((item) => item.id === application.id ? { ...item, nextStep: "", nextStepDue: "", lastActivityAt: new Date().toISOString(), trafficLight: item.trafficLight === "red" ? "yellow" : item.trafficLight } : item));
     recordActionEvent("application_action_completed", application.id, { company: application.company, status: application.status });
+    emitProductEvent("next_action_prompt_opened", { status: application.status });
     const options = completionLoopOptions(application.status, language);
     setWorkspaceApplicationId(null);
     setQuickUpdateId(null);
@@ -2500,8 +2508,14 @@ export default function Home() {
     if (!nextActionLoop?.nextAction.trim() || !nextActionLoop.due) return;
     setApplications((items) => items.map((item) => item.id === nextActionLoop.applicationId ? { ...item, nextStep: nextActionLoop.nextAction.trim(), nextStepDue: nextActionLoop.due, lastActivityAt: new Date().toISOString(), trafficLight: item.trafficLight === "red" ? "yellow" : item.trafficLight } : item));
     recordActionEvent("follow_up_planned", nextActionLoop.applicationId, { method: "completion_loop" });
+    emitProductEvent("next_action_scheduled", { method: "completion_loop" });
     setNextActionLoop(null);
     setNotice(language === "he" ? "הפעולה הבאה נקבעה ותחכה לכם בסקירה." : "Your next move is scheduled and waiting in Overview.");
+  }
+
+  function dismissCompletionLoop() {
+    emitProductEvent("next_action_prompt_dismissed", { method: "completion_loop" });
+    setNextActionLoop(null);
   }
 
   function snoozeApplication(application: Application, days = 2) {
@@ -3706,7 +3720,7 @@ export default function Home() {
               </div>
             </div>
           </div>
-          {returningVisit && (applications.length > 0 || contacts.length > 0) && <section className="returning-user-card" aria-label={language === "he" ? "המשך מהביקור הקודם" : "Continue from your last visit"}><div><span>{language === "he" ? "טוב שחזרתם" : "Welcome back"}</span><strong>{language === "he" ? "הפעולה שקבעתם מחכה לכם כאן." : "The next move you saved is waiting for you."}</strong><small>{homepageAction.title}</small></div><button onClick={() => { setReturningVisit(false); executeTodayPrimaryAction(); }} type="button">{language === "he" ? "המשך מהמקום שבו עצרתי" : "Continue where I left off"}<ArrowUpRight className="h-4 w-4" /></button><button aria-label={language === "he" ? "סגירת הודעת החזרה" : "Dismiss welcome back message"} onClick={() => setReturningVisit(false)} type="button"><X className="h-4 w-4" /></button></section>}
+          {returningVisit && (applications.length > 0 || contacts.length > 0) && <section className="returning-user-card" aria-label={language === "he" ? "המשך מהביקור הקודם" : "Continue from your last visit"}><div><span>{language === "he" ? "טוב שחזרתם" : "Welcome back"}</span><strong>{language === "he" ? "הפעולה שקבעתם מחכה לכם כאן." : "The next move you saved is waiting for you."}</strong><small>{homepageAction.title}</small></div><button onClick={() => { emitProductEvent("return_card_continued", { screen: "home" }); setReturningVisit(false); executeTodayPrimaryAction(); }} type="button">{language === "he" ? "המשך מהמקום שבו עצרתי" : "Continue where I left off"}<ArrowUpRight className="h-4 w-4" /></button><button aria-label={language === "he" ? "סגירת הודעת החזרה" : "Dismiss welcome back message"} onClick={() => { emitProductEvent("return_card_dismissed", { screen: "home" }); setReturningVisit(false); }} type="button"><X className="h-4 w-4" /></button></section>}
           {(applications.length > 0 || contacts.length > 0) && <section className="dashboard-v2-today" aria-labelledby="dashboard-v2-today-title">
             <button className="text-button" type="button" onClick={() => navigateToSection("preferences")}>{language === "he" ? "שינוי המטרה" : "Change goal"}</button>
             <div className="dashboard-v2-today-layout">
@@ -4486,14 +4500,14 @@ export default function Home() {
         </div>
       </Modal>}
 
-      {nextActionLoop && nextActionLoopApplication && <Modal title={language === "he" ? "מעולה. מה הצעד הבא?" : "Nice work. What comes next?"} description={`${nextActionLoopApplication.role} · ${nextActionLoopApplication.company}`} onClose={() => setNextActionLoop(null)} closeLabel={language === "he" ? "סגירת בחירת הפעולה הבאה" : "Close next-action choice"}>
+      {nextActionLoop && nextActionLoopApplication && <Modal title={language === "he" ? "מעולה. מה הצעד הבא?" : "Nice work. What comes next?"} description={`${nextActionLoopApplication.role} · ${nextActionLoopApplication.company}`} onClose={dismissCompletionLoop} closeLabel={language === "he" ? "סגירת בחירת הפעולה הבאה" : "Close next-action choice"}>
         <div className="completion-loop">
           <div className="completion-loop-success"><CheckCircle2 className="h-5 w-5" /><span><strong>{language === "he" ? "הפעולה הושלמה" : "Action completed"}</strong><small>{nextActionLoop.completedAction || (language === "he" ? "ההתקדמות נשמרה" : "Your progress is saved")}</small></span></div>
           <fieldset><legend>{language === "he" ? "בחרו פעולה אחת" : "Choose one next move"}</legend><div className="completion-loop-options">{nextActionLoopOptions.map((option) => <button aria-pressed={nextActionLoop.nextAction === option} className={nextActionLoop.nextAction === option ? "is-selected" : ""} key={option} onClick={() => setNextActionLoop((current) => current ? { ...current, nextAction: option } : current)} type="button">{option}</button>)}</div></fieldset>
           <Field label={language === "he" ? "או כתבו פעולה משלכם" : "Or write your own"}><input autoFocus className="form-control" onChange={(event) => setNextActionLoop((current) => current ? { ...current, nextAction: event.target.value } : current)} value={nextActionLoop.nextAction} /></Field>
           <Field label={language === "he" ? "מתי ממשיכים?" : "When will you continue?"}><input className="form-control" onChange={(event) => setNextActionLoop((current) => current ? { ...current, due: event.target.value } : current)} type="datetime-local" value={nextActionLoop.due} /></Field>
           <p>{language === "he" ? "הפעולה תופיע בסקירה כשתחזרו." : "This move will be waiting in Overview when you return."}</p>
-          <div className="modal-actions"><button className="secondary-button" onClick={() => setNextActionLoop(null)} type="button">{language === "he" ? "לא עכשיו" : "Not now"}</button><button className="primary-button" disabled={!nextActionLoop.nextAction.trim() || !nextActionLoop.due} onClick={saveCompletionLoopAction} type="button"><CalendarPlus className="h-4 w-4" />{language === "he" ? "קביעת הפעולה הבאה" : "Schedule next move"}</button></div>
+          <div className="modal-actions"><button className="secondary-button" onClick={dismissCompletionLoop} type="button">{language === "he" ? "לא עכשיו" : "Not now"}</button><button className="primary-button" disabled={!nextActionLoop.nextAction.trim() || !nextActionLoop.due} onClick={saveCompletionLoopAction} type="button"><CalendarPlus className="h-4 w-4" />{language === "he" ? "קביעת הפעולה הבאה" : "Schedule next move"}</button></div>
         </div>
       </Modal>}
 
