@@ -47,24 +47,35 @@ export function rankNextActions({applications, contacts, recoveryEntries, dailyM
     const actions: NextBestAction[] = [];
 
     const day = 86400000;
+    const calendarDayOffset = (value: string) => {
+      if (!value) return null;
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return null;
+      const current = new Date(now);
+      const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+      const targetDay = dateOnly
+        ? Date.UTC(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
+        : Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+      const currentDay = Date.UTC(current.getFullYear(), current.getMonth(), current.getDate());
+      return Math.round((targetDay - currentDay) / day);
+    };
     const daysSince = (value: string) => {
       const timestamp = value ? Date.parse(value) : Number.NaN;
       return Number.isFinite(timestamp) ? Math.max(0, Math.floor((now - timestamp) / day)) : 0;
     };
-    const daysUntil = (value: string) => {
-      const timestamp = value ? Date.parse(value) : Number.NaN;
-      return Number.isFinite(timestamp) ? Math.ceil((timestamp - now) / day) : null;
-    };
+    const daysUntil = calendarDayOffset;
     applications.forEach((item) => {
       const eventAt = item.eventDateTime ? new Date(item.eventDateTime).getTime() : 0;
       const activityAt = item.lastActivityAt || item.appliedDate;
       const staleDays = daysSince(activityAt);
       const dueDays = daysUntil(item.nextStepDue);
       if (!isClosedApplicationStatus(item.status) && item.nextStep.trim() && !item.nextStepDue) actions.push({ id: `app-undated-${item.id}`, score: 70, label: item.nextStep, detail: language === "he" ? `${item.role} ב־${item.company} · פעולה ששמרתם, ללא תאריך יעד.` : `${item.role} at ${item.company} · Your saved action, with no due date.`, target: "applications", kind: language === "he" ? "הצעד שבחרתם" : "Your next move", applicationId: item.id, intent: "open" });
-      const overdueDays = dueDays !== null && dueDays < 0 ? Math.abs(dueDays) : 0;
+      const dueTimestamp = item.nextStepDue ? Date.parse(item.nextStepDue) : Number.NaN;
+      const dateOnlyDue = /^\d{4}-\d{2}-\d{2}$/.test(item.nextStepDue);
+      const overdueDays = dueDays !== null && (dueDays < 0 || (!dateOnlyDue && dueDays === 0 && Number.isFinite(dueTimestamp) && dueTimestamp < now)) ? Math.max(1, Math.abs(dueDays)) : 0;
       const hasContact = Boolean(item.contactName || item.linkedContactIds?.length || contacts.some((contact) => contact.linkedApplicationId === item.id || contact.company.trim().toLowerCase() === item.company.trim().toLowerCase()));
       if (!isClosedApplicationStatus(item.status) && eventAt >= now && eventAt - now <= 72 * 60 * 60 * 1000) actions.push({ id: `app-event-${item.id}`, score: 140 - ((eventAt - now) / 3600000), label: language === "he" ? `הכנה ל${item.eventType || "ראיון"} עבור ${item.company}` : `Prepare for your ${item.eventType || "interview"} at ${item.company}`, detail: language === "he" ? `המועד הוא ${formatDate(item.eventDateTime, true)}. עברו על סיפורי STAR והשאלות שלכם.` : `It is scheduled for ${formatDate(item.eventDateTime, true)}. Review your STAR stories and questions.`, target: "applications", kind: language === "he" ? "פגישה קרובה" : "Meeting soon", applicationId: item.id, intent: "open" });
-      if (!isClosedApplicationStatus(item.status) && dueDays !== null && dueDays >= 0 && dueDays <= 7) actions.push({ id: `app-upcoming-${item.id}`, score: item.status === "Offer" ? 132 - dueDays : 104 - dueDays, label: item.nextStep || (language === "he" ? `הצעד הבא עבור ${item.company}` : `Next step for ${item.company}`), detail: language === "he" ? `${item.role} · היעד הוא ${formatDate(item.nextStepDue)}` : `${item.role} · due ${formatDate(item.nextStepDue)}`, target: "applications", kind: language === "he" ? "יעד קרוב" : "Due soon", applicationId: item.id, intent: "open" });
+      if (!isClosedApplicationStatus(item.status) && overdueDays === 0 && dueDays !== null && dueDays >= 0 && dueDays <= 7) actions.push({ id: `app-upcoming-${item.id}`, score: item.status === "Offer" ? 132 - dueDays : 104 - dueDays, label: item.nextStep || (language === "he" ? `הצעד הבא עבור ${item.company}` : `Next step for ${item.company}`), detail: language === "he" ? `${item.role} · היעד הוא ${formatDate(item.nextStepDue)}` : `${item.role} · due ${formatDate(item.nextStepDue)}`, target: "applications", kind: dueDays === 0 ? (language === "he" ? "היום" : "Today") : dueDays === 1 ? (language === "he" ? "מחר" : "Tomorrow") : (language === "he" ? "יעד קרוב" : "Due soon"), applicationId: item.id, intent: "open" });
       if (!isClosedApplicationStatus(item.status) && overdueDays > 0 && overdueDays <= 21) actions.push({ id: `app-due-${item.id}`, score: 125 - Math.min(18, overdueDays / 2), label: item.nextStep || (language === "he" ? `פעולת המשך עבור ${item.company}` : `Follow up with ${item.company}`), detail: language === "he" ? `${item.role} · היעד חלף לפני ${overdueDays} ימים` : `${item.role} · due ${overdueDays} days ago`, target: "applications", kind: language === "he" ? "נדרש עכשיו" : "Needs action", applicationId: item.id, intent: "message" });
       const reviewAge = staleReviewAge(item, now);
       if (reviewAge !== null) actions.push({ id: `app-review-${item.id}`, score: 82 + (item.priority === "High" ? 8 : 0), label: language === "he" ? `בדיקה או ארכוב של ${item.company}` : `Review or archive ${item.company}`, detail: language === "he" ? `לא תועדה פעילות כבר ${reviewAge} ימים. בדקו אם התהליך עדיין פעיל.` : `No activity has been recorded for ${reviewAge} days. Check whether this process is still active.`, target: "applications", kind: language === "he" ? "בדיקת סטטוס" : "Status check", applicationId: item.id, intent: "open" });

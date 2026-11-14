@@ -188,7 +188,12 @@ export function captureJobLink(value: string) {
   const host = url.hostname.toLowerCase().replace(/^www\./, "");
   const linkedIn = host === "linkedin.com" || host.endsWith(".linkedin.com");
   const indeed = /(^|\.)indeed\.[a-z.]+$/.test(host);
-  return { jobUrl: url.toString(), source: linkedIn ? "LinkedIn" : indeed ? "Indeed" : "Other", company: "", role: "" };
+  const companyCareerHosts = [
+    "boards.greenhouse.io", "job-boards.greenhouse.io", "jobs.lever.co",
+    "jobs.ashbyhq.com", "apply.workable.com",
+  ];
+  const companyCareers = companyCareerHosts.some((domain) => host === domain || host.endsWith(`.${domain}`)) || host.endsWith(".myworkdayjobs.com");
+  return { jobUrl: url.toString(), source: linkedIn ? "LinkedIn" : indeed ? "Indeed" : companyCareers ? "Company careers" : "Other", company: "", role: "" };
 }
 
 export function googleJobSearch(profile: SearchProfile, language: Language = "en", options: { careerPages?: boolean; anyTime?: boolean } = {}) {

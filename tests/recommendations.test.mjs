@@ -22,6 +22,18 @@ test('Interview and Offer dates take precedence over undated actions',()=>{
  assert.ok(rank([app(),app('Interview',{eventDateTime:'2026-10-31T10:00:00Z',eventType:'Interview'})])[0].id.startsWith('app-event-'));
  assert.ok(rank([app(),app('Offer',{nextStepDue:'2026-10-31'})])[0].id.startsWith('app-upcoming-'));
 });
+test('tomorrow is labeled explicitly instead of appearing as today',()=>{
+ const action=rank([app('Considering',{nextStepDue:'2026-10-31T10:00:00Z'})])[0];
+ assert.equal(action.kind,'Tomorrow');
+ const hebrew=rank([app('Considering',{nextStepDue:'2026-10-31T10:00:00Z'})],{language:'he'})[0];
+ assert.equal(hebrew.kind,'מחר');
+});
+test('a date-only deadline remains due today until the local calendar day ends',()=>{
+ const localNow=new Date(2026,9,30,20,0).getTime();
+ const action=rankNextActions({applications:[app('Considering',{nextStepDue:'2026-10-30'})],contacts:[],recoveryEntries:[],dailyMood:'',language:'en',now:localNow})[0];
+ assert.equal(action.id,'app-upcoming-Considering');
+ assert.equal(action.kind,'Today');
+});
 test('closed records never emit ordinary overdue actions',()=>{
  for(const status of ['Rejected','Withdrawn','Accepted']) assert.equal(rank([app(status,{nextStepDue:'2026-10-29'})]).some(x=>x.id.startsWith('app-due-')),false);
 });
