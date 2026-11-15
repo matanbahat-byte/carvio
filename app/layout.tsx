@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { ProductAnalytics } from "@/components/product-analytics";
 import "./globals.css";
 
@@ -39,6 +40,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         {children}
         <ProductAnalytics />
+        <Analytics />
       </body>
     </html>
   );
