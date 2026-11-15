@@ -6,6 +6,7 @@ import { ArrowUpRight, CheckCircle2, Cloud, CloudOff, Download, LoaderCircle, Lo
 import type { Session } from "@supabase/supabase-js";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { authErrorMessage } from "@/lib/supabase/auth-feedback";
+import { emitProductEvent } from "@/lib/product-analytics";
 
 export type CloudWorkspacePayload = {
   schemaVersion: 1;
@@ -23,6 +24,14 @@ export type CloudWorkspacePayload = {
 };
 
 type SyncState = "idle" | "saving" | "saved" | "error";
+
+export type CloudAccountStatus = {
+  configured: boolean;
+  email: string;
+  syncState: SyncState;
+  remoteExists: boolean | null;
+  autoSync: boolean;
+};
 
 function GoogleMark() {
   return <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M21.6 12.23c0-.71-.06-1.23-.2-1.77H12v3.4h5.52a4.7 4.7 0 0 1-2.05 3.08l-.02.11 2.98 2.31.2.02c1.83-1.7 2.97-4.19 2.97-7.15Z" fill="#4285F4"/><path d="M12 22c2.69 0 4.94-.88 6.59-2.62l-3.16-2.44c-.85.58-1.98.98-3.43.98a5.95 5.95 0 0 1-5.63-4.11l-.1.01-3.1 2.4-.04.1A9.95 9.95 0 0 0 12 22Z" fill="#34A853"/><path d="M6.37 13.81A6.18 6.18 0 0 1 6.04 12c0-.63.12-1.24.32-1.81v-.12L3.22 7.63l-.1.05A10.04 10.04 0 0 0 2 12c0 1.56.36 3.03 1.13 4.32l3.24-2.51Z" fill="#FBBC05"/><path d="M12 6.08c1.88 0 3.15.81 3.88 1.48l2.78-2.71C16.95 3.26 14.69 2 12 2a9.95 9.95 0 0 0-8.87 5.68l3.23 2.51A5.97 5.97 0 0 1 12 6.08Z" fill="#EA4335"/></svg>;
@@ -123,10 +132,12 @@ export function CloudAccount({
   language,
   workspace,
   onRestore,
+  onStatusChange,
 }: {
   language: "en" | "he";
   workspace: CloudWorkspacePayload;
   onRestore: (workspace: CloudWorkspacePayload) => void;
+  onStatusChange?: (status: CloudAccountStatus) => void;
 }) {
   const configured = isSupabaseConfigured();
   const supabaseRef = useRef(createClient());
@@ -150,10 +161,35 @@ export function CloudAccount({
   const [autoSync, setAutoSync] = useState(false);
 
   useEffect(() => {
+    const openAccount = (event: Event) => {
+      const entryPoint = event instanceof CustomEvent && typeof event.detail?.entryPoint === "string"
+        ? event.detail.entryPoint
+        : "unknown";
+      setOpen(true);
+      emitProductEvent("cloud_account_opened", { method: entryPoint });
+    };
+    window.addEventListener("carvio:open-cloud-account", openAccount);
+    return () => window.removeEventListener("carvio:open-cloud-account", openAccount);
+  }, []);
+
+  useEffect(() => {
+    onStatusChange?.({
+      configured,
+      email: session?.user.email || "",
+      syncState,
+      remoteExists,
+      autoSync,
+    });
+  }, [autoSync, configured, onStatusChange, remoteExists, session, syncState]);
+
+  useEffect(() => {
     const supabase = supabaseRef.current;
     if (!supabase) return;
     supabase.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => setSession(nextSession));
+    const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      setSession(nextSession);
+      if (event === "SIGNED_IN" && nextSession) emitProductEvent("cloud_sign_in_completed", { method: "email_link" });
+    });
     return () => data.subscription.unsubscribe();
   }, []);
 
@@ -203,6 +239,7 @@ export function CloudAccount({
     });
     if (error) throw error;
     setSyncState("idle");
+    emitProductEvent("cloud_sign_in_link_requested", { method: "email_link" });
     setMessage(language === "he" ? "בדקו את תיבת הדואר והספאם ופתחו את הקישור באותו דפדפן." : "Check your inbox and spam folder, then open the link in this same browser.");
     } catch (error) {
       setSyncState("error");
@@ -280,6 +317,7 @@ export function CloudAccount({
         event.preventDefault();
         event.stopPropagation();
         setOpen((current) => !current);
+        if (!open) emitProductEvent("cloud_account_opened", { method: "hero" });
       }}
       type="button"
     >

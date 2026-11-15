@@ -41,6 +41,7 @@ import {
   CircleHelp,
   Copy,
   Clock3,
+  Cloud,
   Compass,
   Download,
   ExternalLink,
@@ -82,7 +83,7 @@ import {
   WandSparkles,
   Wrench,
 } from "lucide-react";
-import { CloudAccount, WelcomeAccountAccess, type CloudWorkspacePayload } from "@/components/cloud-account";
+import { CloudAccount, WelcomeAccountAccess, type CloudAccountStatus, type CloudWorkspacePayload } from "@/components/cloud-account";
 
 const APPLICATIONS_KEY = "carvio.applications.v1";
 const CONTACTS_KEY = "carvio.contacts.v1";
@@ -1405,6 +1406,13 @@ export default function Home() {
   const [contactSort, setContactSort] = useState<ContactSort>("next-action");
   const [expandedContactId, setExpandedContactId] = useState<string | null>(null);
   const [showMobileMore, setShowMobileMore] = useState(false);
+  const [cloudAccountStatus, setCloudAccountStatus] = useState<CloudAccountStatus>({
+    configured: false,
+    email: "",
+    syncState: "idle",
+    remoteExists: null,
+    autoSync: false,
+  });
   const [showApplicationFilters, setShowApplicationFilters] = useState(false);
   const [showContactFilters, setShowContactFilters] = useState(false);
   const [searchStep, setSearchStep] = useState<1 | 2 | 3>(1);
@@ -1450,6 +1458,11 @@ export default function Home() {
   const returnCardTrackedRef = useRef(false);
   const messageDraftRef = useRef<HTMLTextAreaElement | null>(null);
   const todayOverflowRef = useRef<HTMLDivElement | null>(null);
+
+  const openCloudAccount = useCallback((entryPoint: "mobile_more" | "settings") => {
+    setShowMobileMore(false);
+    window.dispatchEvent(new CustomEvent("carvio:open-cloud-account", { detail: { entryPoint } }));
+  }, []);
 
   useEffect(() => {
     if (!activeCalendarMenu) return;
@@ -3712,7 +3725,7 @@ export default function Home() {
               <span>{language === "he" ? "זה מה שחשוב היום." : "Here’s what matters today."}</span>
             </div>
             <div className="hero-utility-actions">
-              {!demoMode && <CloudAccount language={language} onRestore={restoreCloudWorkspace} workspace={cloudWorkspace} />}
+              {!demoMode && <CloudAccount language={language} onRestore={restoreCloudWorkspace} onStatusChange={setCloudAccountStatus} workspace={cloudWorkspace} />}
               <button aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`} className="hero-icon-button" onClick={() => selectTheme(theme === "light" ? "dark" : "light")} title={theme === "light" ? copy.dark : copy.light} type="button">{theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}</button>
               <div className="relative">
                 <button aria-expanded={showAppearance} aria-haspopup="dialog" aria-label={language === "he" ? "צבעים ונגישות" : "Colors and accessibility"} className="hero-icon-button" onClick={() => setShowAppearance((current) => !current)} title={language === "he" ? "צבעים ונגישות" : "Colors & accessibility"} type="button"><Palette className="h-4 w-4" /></button>
@@ -4432,6 +4445,16 @@ export default function Home() {
         </section>
 
         <section className={`calm-view panel ${activeView !== "more" || insightPanel !== "preferences" ? "calm-view-hidden" : ""}`} id="preferences">
+          {!demoMode && <button className="account-sync-card" onClick={() => openCloudAccount("settings")} type="button">
+            <span className="account-sync-icon"><Cloud className="h-5 w-5" /></span>
+            <span>
+              <strong>{language === "he" ? "חשבון וסנכרון בענן" : "Account and cloud sync"}</strong>
+              <small>{cloudAccountStatus.email
+                ? (language === "he" ? `מחוברים: ${cloudAccountStatus.email}${cloudAccountStatus.autoSync ? " · סנכרון אוטומטי פעיל" : ""}` : `Signed in: ${cloudAccountStatus.email}${cloudAccountStatus.autoSync ? " · Automatic sync on" : ""}`)
+                : (language === "he" ? "התחברות במייל לגיבוי ושחזור בין מכשירים" : "Sign in with email to back up and restore across devices")}</small>
+            </span>
+            <ArrowUpRight className="h-5 w-5" />
+          </button>}
           <UsageIntentPicker intent={userProfile.usageIntent} language={language} onChange={selectUsageGoal} />
           <div className="section-heading"><div><p className="eyebrow text-cyan-300">{copy.preferences}</p><h2 className="section-title">{copy.preferencesTitle}</h2></div><span className="text-3xl" aria-hidden="true">⚙️</span></div>
           <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -4464,7 +4487,7 @@ export default function Home() {
         <button aria-expanded={showMobileMore} className={activeView === "tools" || activeView === "more" ? "calm-mobile-tab-active" : ""} onClick={() => setShowMobileMore((current) => !current)} type="button"><Menu className="h-5 w-5" /><span>{language === "he" ? "עוד" : "More"}</span></button>
         <button aria-label={language === "he" ? "הוספה מהירה" : "Quick add"} className="calm-quick-add" onClick={() => setShowQuickAdd(true)} type="button"><Plus className="h-5 w-5" /></button>
       </nav>
-      {showMobileMore && <div className="mobile-more-menu"><button onClick={() => { setShowMobileMore(false); setShowCommandBar(true); }} type="button"><Search className="h-5 w-5" /><span><strong>{language === "he" ? "חיפוש או מעבר מהיר" : "Search or jump"}</strong><small>{language === "he" ? "חיפוש בכל סביבת העבודה" : "Search across your workspace"}</small></span></button><button onClick={() => switchView("tools")} type="button"><Wrench className="h-5 w-5" /><span><strong>{copy.tools}</strong><small>{language === "he" ? "הודעות, פוסטים וקורות חיים" : "Messages, posts and CV"}</small></span></button><button onClick={() => switchView("more")} type="button"><BarChart3 className="h-5 w-5" /><span><strong>{copy.insights}</strong><small>{language === "he" ? "תובנות והפעולה הבאה" : "Insights and next actions"}</small></span></button><button onClick={() => navigateToSection("preferences")} type="button"><Settings className="h-5 w-5" /><span><strong>{language === "he" ? "הגדרות וגיבוי" : "Settings and backup"}</strong><small>{language === "he" ? "שפה, תצוגה והמידע שלכם" : "Language, appearance and your data"}</small></span></button></div>}
+      {showMobileMore && <div className="mobile-more-menu"><button onClick={() => { setShowMobileMore(false); setShowCommandBar(true); }} type="button"><Search className="h-5 w-5" /><span><strong>{language === "he" ? "חיפוש או מעבר מהיר" : "Search or jump"}</strong><small>{language === "he" ? "חיפוש בכל סביבת העבודה" : "Search across your workspace"}</small></span></button><button onClick={() => switchView("tools")} type="button"><Wrench className="h-5 w-5" /><span><strong>{copy.tools}</strong><small>{language === "he" ? "הודעות, פוסטים וקורות חיים" : "Messages, posts and CV"}</small></span></button><button onClick={() => switchView("more")} type="button"><BarChart3 className="h-5 w-5" /><span><strong>{copy.insights}</strong><small>{language === "he" ? "תובנות והפעולה הבאה" : "Insights and next actions"}</small></span></button>{!demoMode && <button onClick={() => openCloudAccount("mobile_more")} type="button"><Cloud className="h-5 w-5" /><span><strong>{language === "he" ? "חשבון וסנכרון בענן" : "Account and cloud sync"}</strong><small>{cloudAccountStatus.email ? (language === "he" ? `מחוברים: ${cloudAccountStatus.email}` : `Signed in: ${cloudAccountStatus.email}`) : (language === "he" ? "כניסה במייל וגיבוי בין מכשירים" : "Email sign-in and cross-device backup")}</small></span></button>}<button onClick={() => navigateToSection("preferences")} type="button"><Settings className="h-5 w-5" /><span><strong>{language === "he" ? "הגדרות וגיבוי" : "Settings and backup"}</strong><small>{language === "he" ? "שפה, תצוגה והמידע שלכם" : "Language, appearance and your data"}</small></span></button></div>}
 
       {notice && <div aria-atomic="true" aria-live="polite" className="toast" role="status"><CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-300" /><span>{notice}</span>{offerClosureUndo && <button className="toast-undo" onClick={undoOfferClosure} type="button">{language === "he" ? "ביטול" : "Undo"}</button>}<button aria-label={language === "he" ? "סגירת ההודעה" : "Dismiss notification"} className="ml-1 rounded-full p-1 text-slate-400 transition hover:bg-white/10 hover:text-white" onClick={() => { setNotice(""); setOfferClosureUndo(null); }} type="button"><X className="h-4 w-4" /></button></div>}
 
