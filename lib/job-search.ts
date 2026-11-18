@@ -3,6 +3,7 @@ type Language = "he" | "en";
 export type SearchProfile = {
   role: string;
   filterRole: string;
+  alternativeRoles?: string;
   location: string;
   country: string;
   radius: string;
@@ -47,6 +48,7 @@ export function sanitizeSearchProfile(profile: SearchProfile): SearchProfile {
   return {
     ...profile,
     role: normalizeSearchText(profile.role),
+    alternativeRoles: selectedRoleAlternatives(profile).join(", "),
     filterRole: normalizeSearchText(profile.filterRole),
     location: normalizeSearchText(profile.location),
     country: normalizeSearchText(profile.country),
@@ -79,7 +81,7 @@ export function migrateSearchProfile(stored: Partial<SearchProfile>): SearchProf
 }
 
 export function changeSearchRole(profile: SearchProfile, role: string): SearchProfile {
-  return { ...profile, role, filterRole: profile.filterRole || profile.role || role };
+  return { ...profile, role, alternativeRoles: "", filterRole: profile.filterRole || profile.role || role };
 }
 
 export function searchPreferencesNeedReview(profile: SearchProfile) {
@@ -109,9 +111,36 @@ export function linkedInRoleTerms(role: string) {
   return Array.from(new Set(terms.filter(Boolean)));
 }
 
+// Suggestions are opt-in: adjacent roles can have different responsibilities.
+export function suggestedRoleAlternatives(role: string): string[] {
+  const families = [
+    ["Supply Chain Director", "Director of Supply Chain", "Head of Supply Chain", "מנהל שרשרת אספקה", "מנהלת שרשרת אספקה"],
+    ["Global Planning Director", "Director of Planning", "Head of Planning", "S&OP Director"],
+    ["HR Business Partner", "HRBP", "Human Resources Business Partner", "People Business Partner"],
+    ["Senior HR Business Partner", "Senior HRBP", "Senior Human Resources Business Partner", "Senior People Business Partner"],
+    ["Talent Acquisition Manager", "Recruitment Manager", "Recruiting Manager", "מנהל גיוס", "מנהלת גיוס"],
+    ["Software Engineer", "Software Developer", "מפתח תוכנה", "מפתחת תוכנה"],
+    ["Data Analyst", "אנליסט נתונים", "אנליסטית נתונים"],
+  ];
+  const normalized = normalizeSearchText(role).toLocaleLowerCase();
+  return (families.find(terms => terms.some(term => term.toLocaleLowerCase() === normalized)) || [])
+    .filter(term => term.toLocaleLowerCase() !== normalized);
+}
+
+export function selectedRoleAlternatives(profile: Pick<SearchProfile, "role" | "alternativeRoles">): string[] {
+  const primary = normalizeSearchText(profile.role).toLocaleLowerCase();
+  const seen = new Set([primary]);
+  return (profile.alternativeRoles || "").split(",").map(term => normalizeSearchText(term).replace(/["“”]/g, ""))
+    .filter(term => { const key = term.toLocaleLowerCase(); if (!term || seen.has(key)) return false; seen.add(key); return true; }).slice(0, 4);
+}
+
+function searchRoleTerms(profile: SearchProfile) {
+  return [...new Set([...linkedInRoleTerms(profile.role), ...selectedRoleAlternatives(profile)])];
+}
+
 export function linkedInKeywordQuery(profile: SearchProfile) {
   const quote = (value: string) => `"${value.replace(/["“”]/g, "").trim()}"`;
-  const roleTerms = linkedInRoleTerms(profile.role);
+  const roleTerms = searchRoleTerms(profile);
   const roleQuery = roleTerms.length > 1
     ? `(${roleTerms.map(quote).join(" OR ")})`
     : quote(roleTerms[0] || profile.role);
@@ -173,6 +202,17 @@ export function jobLinkIdentity(value: string) {
   }
   if (url.protocol !== "https:" && url.protocol !== "http:") return null;
 
+  const host = url.hostname.toLowerCase().replace(/^www\./, "");
+  // One LinkedIn posting has many country hosts, slugs and referral parameters.
+  if (host === "linkedin.com" || host.endsWith(".linkedin.com")) {
+    const posting = url.pathname.match(/^\/jobs\/view\/(?:[^/]*-)?(\d+)\/?$/);
+    if (posting) return `https://www.linkedin.com/jobs/view/${posting[1]}`;
+  }
+  if (/(^|\.)indeed\.[a-z.]+$/.test(host)) {
+    const posting = url.searchParams.get("jk");
+    if (posting && /^[a-zA-Z0-9]+$/.test(posting)) return `https://www.indeed.com/viewjob?jk=${posting}`;
+  }
+
   // Compare without tracking tags while keeping the saved source link intact.
   const params = url.searchParams;
   for (const name of new Set(params.keys())) {
@@ -206,7 +246,9 @@ export function googleJobSearch(profile: SearchProfile, language: Language = "en
   // A role in normal page text is valid: do not require an exact phrase in its HTML title.
   // Location words are also unquoted because job boards format cities/countries differently.
   const careerTerms = '(careers OR "join our team" OR site:jobs.lever.co OR site:boards.greenhouse.io OR site:job-boards.greenhouse.io OR site:jobs.ashbyhq.com OR site:myworkdayjobs.com OR site:apply.workable.com)';
-  const query = [text(clean.role), options.careerPages ? careerTerms : jobTerms, text(clean.city), text(clean.country), ...requiredSkills, text(clean.industry), text(clean.workModel), ...exclusions, options.careerPages ? "-site:linkedin.com -site:indeed.com" : ""].filter(Boolean).join(" ");
+  const roleTerms = selectedRoleAlternatives(clean);
+  const roleQuery = roleTerms.length ? `(${[clean.role, ...roleTerms].map(quote).join(" OR ")})` : text(clean.role);
+  const query = [roleQuery, options.careerPages ? careerTerms : jobTerms, text(clean.city), text(clean.country), ...requiredSkills, text(clean.industry), text(clean.workModel), ...exclusions, options.careerPages ? "-site:linkedin.com -site:indeed.com" : ""].filter(Boolean).join(" ");
   const params = new URLSearchParams({ q: query, hl: language === "he" ? "he" : "en" });
   const codes: Record<string, string> = { Netherlands: "nl", Israel: "il", "United Kingdom": "gb", Germany: "de", France: "fr", Spain: "es", Portugal: "pt", Belgium: "be", Canada: "ca", "United States": "us" };
   if (codes[clean.country]) params.set("gl", codes[clean.country]);
@@ -288,6 +330,7 @@ export function searchFilterSummary(profile: SearchProfile, source: "linkedin" |
   const notApplied: string[] = [];
   const add = (name: string, value: string, supported = true) => { if (value) (supported ? applied : notApplied).push(`${name}: ${value}`); };
   add(source === "google" ? (he ? "מילות התפקיד" : "Role keywords") : (he ? "ביטוי תפקיד (כולל חלופות מוצגות בשאילתה)" : "Role phrase (aliases shown in query)"), profile.role);
+  add(he ? "טייטלים נוספים שנבחרו" : "Selected alternative titles", selectedRoleAlternatives(profile).join(", "));
   add(he ? "מיקום מבוקש" : "Requested location", [profile.location, profile.country].filter(Boolean).join(", "));
   add(he ? "רדיוס" : "Radius", `${profile.radius} km`, source !== "google");
   add(he ? "מועד פרסום" : "Date posted", localizedSearchFilter(profile.datePosted, language), ["Past 24 hours", "Past week", "Past month", "Any time"].includes(profile.datePosted));
@@ -309,7 +352,9 @@ export function jobSearchSources(profile: SearchProfile, language: Language = "e
   const exclusions = clean.exclude.split(",").map((term) => normalizeSearchText(term).replace(/^-+/, "")).filter(Boolean);
   const supplement = skills.map(quote);
   const negative = exclusions.map((term) => `-${quote(term)}`);
-  const indeedQuery = [quote(clean.role), ...supplement.map((term) => `AND ${term}`), ...negative, clean.workModel ? `AND ${quote(clean.workModel)}` : ""].filter(Boolean).join(" ");
+  const indeedRoles = [clean.role, ...selectedRoleAlternatives(clean)];
+  const indeedRoleQuery = indeedRoles.length > 1 ? `(${indeedRoles.map(quote).join(" OR ")})` : quote(clean.role);
+  const indeedQuery = [indeedRoleQuery, ...supplement.map((term) => `AND ${term}`), ...negative, clean.workModel ? `AND ${quote(clean.workModel)}` : ""].filter(Boolean).join(" ");
   const google = googleJobSearch(profile, language);
   const indeedAge = clean.datePosted === "Past 24 hours" ? "1" : clean.datePosted === "Past week" ? "7" : clean.datePosted === "Past month" ? "30" : "";
   const linkedInAge = clean.datePosted === "Past 24 hours" ? "r86400" : clean.datePosted === "Past week" ? "r604800" : clean.datePosted === "Past month" ? "r2592000" : "";

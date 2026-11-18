@@ -30,10 +30,10 @@ test('Hebrew roles and unknown countries encode safely without invented country 
  const url=new URL(googleJobSearch({...profile,role:'מנהל/ת משאבי אנוש',location:'באר שבע',country:'New Zealand'},'he').url);
  assert.ok(url.searchParams.get('q').includes('מנהל/ת משאבי אנוש'));assert.ok(url.searchParams.get('q').includes('באר שבע'));assert.equal(url.searchParams.has('gl'),false);
 });
-test('both visible providers are identified by ID, with Google and career links in both languages',()=>{
+test('all search routes are identified by ID, with Google and career links in both languages',()=>{
  for(const language of ['en','he']) {
   const html=renderToStaticMarkup(createElement(SearchSourceCards,{sources:jobSearchSources(profile,language).reverse(),profile,language,careerUrl:officialSearchUrl(profile,language),anyTimeUrl:googleJobSearch(profile,language,{anyTime:true}).url,onCopy:()=>{},onOpen:()=>{},filterNotice:()=>null}));
-  assert.equal((html.match(/<article/g)||[]).length,2);assert.ok(html.indexOf('data-search-source="linkedin"')<html.indexOf('data-search-source="google"'));
+  assert.equal((html.match(/<article/g)||[]).length,4);assert.match(html,/data-search-source="indeed"/);assert.match(html,/data-search-source="careers"/);assert.ok(html.indexOf('data-search-source="linkedin"')<html.indexOf('data-search-source="google"'));
   assert.match(html,/search-route-1/);assert.match(html,/search-career-pages/);assert.match(html,/search-google-anytime/);
   assert.ok(html.includes(language==='he'?'חיפוש ב־Google':'Search Google'));
   assert.match(html,/target="_blank"/);assert.match(html,/noopener noreferrer/);
