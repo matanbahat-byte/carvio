@@ -10861,3 +10861,15 @@ html[data-carvio-theme="light"] {
 @media (min-width: 768px) {
   .calm-desktop-nav { top: calc(var(--carvio-language-top) + 3.25rem); }
 }
+
+/* Multi-source discovery: preserve readable touch targets in Hebrew and English. */
+.search-title-alternatives { margin-block: 1.25rem; padding: 1rem; border: 1px solid var(--cv-border-strong); border-radius: 1rem; min-width: 0; }
+.search-title-alternatives legend { font-weight: 650; padding-inline: .4rem; }
+.search-title-alternatives label { display: block; font-size: .875rem; margin-block: .75rem .4rem; }
+.search-title-chips { display: flex; flex-wrap: wrap; gap: .5rem; margin-block: .75rem; }
+.search-title-chips button { min-height: 44px; white-space: normal; overflow-wrap: anywhere; }
+.search-title-chips button:disabled { opacity: .5; }
+.search-return-capture { display: grid; gap: .75rem; padding: 1rem; margin-block: 1rem; border: 1px solid var(--cv-border-strong); border-radius: 1rem; background: var(--cv-surface); }
+.search-return-capture p { margin-block-start: .4rem; font-size: .875rem; }
+.search-return-capture input { min-width: 0; }
+.search-source-open { min-height: 44px; }
