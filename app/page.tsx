@@ -3032,6 +3032,9 @@ export default function Home() {
     setSearchOutcome("unreviewed");
     setOpenedSearchSource("");
     setShowSearchResults(true);
+    // CARVIO generates outbound source links; it does not fetch job listings here.
+    emitProductEvent("search_submitted", { method: "standard" });
+    emitProductEvent("search_sources_presented", { count: 4 });
     setSearchStep(3);
     window.setTimeout(() => {
       const results = document.getElementById("search-results");
@@ -3047,6 +3050,8 @@ export default function Home() {
     setSearchOutcome("unreviewed");
     setOpenedSearchSource("");
     setShowSearchResults(true);
+    emitProductEvent("search_submitted", { method: "broadened" });
+    emitProductEvent("search_sources_presented", { count: 4 });
     setNotice(language === "he" ? "החיפוש המעודכן מוכן. שם התפקיד נשאר ללא שינוי." : "The updated search is ready. The target role remains unchanged.");
     window.setTimeout(() => document.getElementById("search-results")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
   }
