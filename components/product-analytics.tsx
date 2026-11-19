@@ -68,7 +68,7 @@ export function ProductAnalytics() {
           // Mark attribution only after Supabase acknowledges the insert.
           // A failed insert remains eligible for retry instead of silently losing the channel.
           if (pending.some((event) => event.event_name === "acquisition_attributed")) {
-            window.localStorage.setItem(ACQUISITION_RECORDED_KEY, "1");
+            window.localStorage.setItem(`${ACQUISITION_RECORDED_KEY}:${rows[0].user_id}`, "1");
             window.sessionStorage.removeItem(PENDING_CHANNEL_KEY);
             acquisitionQueued = false;
           }
@@ -112,11 +112,12 @@ export function ProductAnalytics() {
     const currentChannel = acquisitionChannel(window.location.search, document.referrer);
     // Preserve a coarse first-touch channel through OAuth/email redirects.
     // Never persist UTM parameters, full referrers, or campaign identifiers.
-    if (!window.localStorage.getItem(ACQUISITION_RECORDED_KEY) && !window.sessionStorage.getItem(PENDING_CHANNEL_KEY)) {
+    if (!window.sessionStorage.getItem(PENDING_CHANNEL_KEY)) {
       window.sessionStorage.setItem(PENDING_CHANNEL_KEY, currentChannel);
     }
-    const recordAcquisitionIfNeeded = () => {
-      if (window.localStorage.getItem(ACQUISITION_RECORDED_KEY) || acquisitionQueued) return;
+    const recordAcquisitionIfNeeded = (userId: string) => {
+      // A browser can host multiple accounts: attribution must be scoped per user.
+      if (window.localStorage.getItem(`${ACQUISITION_RECORDED_KEY}:${userId}`) || acquisitionQueued) return;
       acquisitionQueued = true;
       const landingChannel = window.sessionStorage.getItem(PENDING_CHANNEL_KEY) || currentChannel;
       enqueue("acquisition_attributed", { channel: landingChannel });
@@ -126,7 +127,7 @@ export function ProductAnalytics() {
       sessionRef.current = data.session;
       if (!data.session) return;
       enqueue("session_started", { method: "authenticated" });
-      recordAcquisitionIfNeeded();
+      recordAcquisitionIfNeeded(data.session.user.id);
       const today = localDateKey();
       const priorDay = window.localStorage.getItem(LAST_ACTIVE_DAY_KEY);
       if (priorDay && priorDay !== today) enqueue("return_visit", { method: "new_day" });
@@ -137,7 +138,7 @@ export function ProductAnalytics() {
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       sessionRef.current = session;
       if (session) {
-        recordAcquisitionIfNeeded();
+        recordAcquisitionIfNeeded(session.user.id);
         void flush();
       }
     });
