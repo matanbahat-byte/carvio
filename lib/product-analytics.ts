@@ -25,6 +25,8 @@ export function acquisitionChannel(search = "", referrer = "") {
   if (/linkedin/.test(source)) return "linkedin";
   if (/facebook|fb\b|instagram|meta/.test(source)) return "meta";
   if (/whatsapp|wa\.me/.test(source)) return "whatsapp";
+  // Campaign partner links use a coarse category, never a partner name or full URL.
+  if (/\bcommunity\b/.test(tagged)) return "community";
   if (/google|bing|duckduckgo|search/.test(source)) return "search";
   return referrer || tagged.trim() ? "referral" : "direct";
 }
