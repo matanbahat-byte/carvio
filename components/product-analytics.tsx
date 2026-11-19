@@ -51,6 +51,8 @@ export function ProductAnalytics() {
       }];
     };
 
+    let acquisitionQueued = false;
+
     const flush = async () => {
       if (flushingRef.current || !sessionRef.current || !queueRef.current.length) return;
       flushingRef.current = true;
@@ -62,6 +64,13 @@ export function ProductAnalytics() {
           if (error) {
             queueRef.current = [...pending, ...queueRef.current].slice(-100);
             break;
+          }
+          // Mark attribution only after Supabase acknowledges the insert.
+          // A failed insert remains eligible for retry instead of silently losing the channel.
+          if (pending.some((event) => event.event_name === "acquisition_attributed")) {
+            window.localStorage.setItem(ACQUISITION_RECORDED_KEY, "1");
+            window.sessionStorage.removeItem(PENDING_CHANNEL_KEY);
+            acquisitionQueued = false;
           }
         }
       } finally {
@@ -107,11 +116,10 @@ export function ProductAnalytics() {
       window.sessionStorage.setItem(PENDING_CHANNEL_KEY, currentChannel);
     }
     const recordAcquisitionIfNeeded = () => {
-      if (window.localStorage.getItem(ACQUISITION_RECORDED_KEY)) return;
+      if (window.localStorage.getItem(ACQUISITION_RECORDED_KEY) || acquisitionQueued) return;
+      acquisitionQueued = true;
       const landingChannel = window.sessionStorage.getItem(PENDING_CHANNEL_KEY) || currentChannel;
       enqueue("acquisition_attributed", { channel: landingChannel });
-      window.localStorage.setItem(ACQUISITION_RECORDED_KEY, "1");
-      window.sessionStorage.removeItem(PENDING_CHANNEL_KEY);
     };
 
     supabase.auth.getSession().then(({ data }) => {
