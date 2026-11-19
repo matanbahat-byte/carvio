@@ -97,14 +97,20 @@ export function ProductAnalytics() {
     }, 15_000);
     const heartbeatTimer = window.setInterval(recordHeartbeat, 60_000);
 
+    // Capture the landing channel before authentication redirects change the URL.
+    // Store only a coarse channel; never persist raw referrers or UTM parameters.
+    const landingChannel = acquisitionChannel(window.location.search, document.referrer);
+    const recordAcquisitionIfNeeded = () => {
+      if (window.localStorage.getItem(ACQUISITION_RECORDED_KEY)) return;
+      enqueue("acquisition_attributed", { channel: landingChannel });
+      window.localStorage.setItem(ACQUISITION_RECORDED_KEY, "1");
+    };
+
     supabase.auth.getSession().then(({ data }) => {
       sessionRef.current = data.session;
       if (!data.session) return;
       enqueue("session_started", { method: "authenticated" });
-      if (!window.localStorage.getItem(ACQUISITION_RECORDED_KEY)) {
-        enqueue("acquisition_attributed", { channel: acquisitionChannel(window.location.search, document.referrer) });
-        window.localStorage.setItem(ACQUISITION_RECORDED_KEY, "1");
-      }
+      recordAcquisitionIfNeeded();
       const today = localDateKey();
       const priorDay = window.localStorage.getItem(LAST_ACTIVE_DAY_KEY);
       if (priorDay && priorDay !== today) enqueue("return_visit", { method: "new_day" });
@@ -114,7 +120,10 @@ export function ProductAnalytics() {
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       sessionRef.current = session;
-      if (session) void flush();
+      if (session) {
+        recordAcquisitionIfNeeded();
+        void flush();
+      }
     });
 
     return () => {
