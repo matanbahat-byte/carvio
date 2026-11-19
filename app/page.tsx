@@ -4234,6 +4234,17 @@ export default function Home() {
         </section>
 
         <section className={`calm-view panel overflow-hidden job-search-panel ${activeView !== "search" ? "calm-view-hidden" : ""}`} id="job-search">
+          <aside aria-label={language === "he" ? "אתגר חיפוש עבודה ב־7 דקות" : "7-minute job search reset"} className="mb-5 rounded-2xl border border-sky-400/30 bg-sky-500/10 p-4 sm:p-5">
+            <p className="text-xs font-semibold uppercase tracking-wider text-sky-300">{language === "he" ? "אתגר 7 הדקות · מתחילים כאן" : "7-minute reset · start here"}</p>
+            <h3 className="mt-2 text-lg font-semibold text-slate-100">{language === "he" ? "מחיפוש מפוזר לצעד אחד ברור" : "From scattered tabs to one clear next step"}</h3>
+            <p className="mt-1 text-sm leading-6 text-slate-300">{language === "he" ? "בחרו תפקיד, פתחו אתר משרות אחד לפחות, ושמרו הזדמנות למעקב. CARVIO פותח קישורים למקורות — המשרות עצמן מוצגות באתרים שלהם." : "Choose a role, open at least one job source, and save an opportunity to track. CARVIO opens source websites; job listings remain on those sites."}</p>
+            <ol className="mt-3 grid gap-2 text-sm text-slate-200 sm:grid-cols-3">
+              <li className="rounded-xl bg-slate-950/30 px-3 py-2"><span className="font-semibold text-sky-300">01</span> {language === "he" ? "הגדירו תפקיד וחפשו" : "Set a role and search"}</li>
+              <li className="rounded-xl bg-slate-950/30 px-3 py-2"><span className="font-semibold text-sky-300">02</span> {language === "he" ? "פתחו מקור משרות" : "Open a job source"}</li>
+              <li className="rounded-xl bg-slate-950/30 px-3 py-2"><span className="font-semibold text-sky-300">03</span> {language === "he" ? "שמרו הזדמנות להמשך" : "Save an opportunity to track"}</li>
+            </ol>
+            <p className="mt-3 text-xs text-slate-400">{language === "he" ? "7 דקות הן הזמנה להתנסות, לא הבטחה למשך הפעולה או למציאת משרה." : "Seven minutes is an invitation to try, not a guarantee of completion time or finding a job."}</p>
+          </aside>
           <div className="job-search-heading">
             <div>
               <p className="eyebrow flex items-center gap-2 text-sky-300"><span className="emoji-bounce">✨</span> {language === "he" ? "חיפוש משרות" : "Job search"}</p>
