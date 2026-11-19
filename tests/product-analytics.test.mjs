@@ -20,6 +20,9 @@ test("analytics properties keep funnel dimensions and remove personal content", 
 test("acquisition attribution remains coarse and never stores full URLs", () => {
   assert.equal(acquisitionChannel("?utm_source=linkedin&utm_campaign=private-name", ""), "linkedin");
   assert.equal(acquisitionChannel("?utm_source=whatsapp", ""), "whatsapp");
+  assert.equal(acquisitionChannel("?workspace=1&utm_source=community&utm_medium=referral&utm_campaign=job_search_reset", ""), "community");
+  assert.equal(acquisitionChannel("?utm_source=linkedin&utm_medium=organic_social&utm_campaign=job_search_reset", ""), "linkedin");
+  assert.equal(acquisitionChannel("?utm_source=facebook&utm_medium=organic_social&utm_campaign=job_search_reset", ""), "meta");
   assert.equal(acquisitionChannel("", "https://www.google.com/search?q=carvio"), "search");
   assert.equal(acquisitionChannel("", ""), "direct");
 });
