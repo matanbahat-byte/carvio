@@ -21,6 +21,7 @@ type QueuedEvent = {
 const SESSION_KEY = "carvio.analytics-session.v1";
 const LAST_ACTIVE_DAY_KEY = "carvio.analytics-last-active-day.v1";
 const ACQUISITION_RECORDED_KEY = "carvio.analytics-acquisition-recorded.v1";
+const PENDING_CHANNEL_KEY = "carvio.analytics-pending-channel.v1";
 
 function makeSessionId() {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -99,11 +100,18 @@ export function ProductAnalytics() {
 
     // Capture the landing channel before authentication redirects change the URL.
     // Store only a coarse channel; never persist raw referrers or UTM parameters.
-    const landingChannel = acquisitionChannel(window.location.search, document.referrer);
+    const currentChannel = acquisitionChannel(window.location.search, document.referrer);
+    // Preserve a coarse first-touch channel through OAuth/email redirects.
+    // Never persist UTM parameters, full referrers, or campaign identifiers.
+    if (!window.localStorage.getItem(ACQUISITION_RECORDED_KEY) && !window.sessionStorage.getItem(PENDING_CHANNEL_KEY)) {
+      window.sessionStorage.setItem(PENDING_CHANNEL_KEY, currentChannel);
+    }
     const recordAcquisitionIfNeeded = () => {
       if (window.localStorage.getItem(ACQUISITION_RECORDED_KEY)) return;
+      const landingChannel = window.sessionStorage.getItem(PENDING_CHANNEL_KEY) || currentChannel;
       enqueue("acquisition_attributed", { channel: landingChannel });
       window.localStorage.setItem(ACQUISITION_RECORDED_KEY, "1");
+      window.sessionStorage.removeItem(PENDING_CHANNEL_KEY);
     };
 
     supabase.auth.getSession().then(({ data }) => {
