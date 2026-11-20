@@ -34,3 +34,8 @@ test('Software Engineering role family includes Software Engineer titles without
  const jobs=[job('1','Software Engineer Team Leader','Tel Aviv','2026-11-19T00:00:00Z'),job('2','Enterprise Account Manager','Anywhere in the United States','2026-11-19T00:00:00Z')];
  assert.deepEqual(searchPreviewJobs(jobs,{now,query:'Software Engineering',location:'Israel'}).map(x=>x.id),['1']);
 });
+
+test('simple job country city search applies all three fields together',()=>{
+ const jobs=[job('1','Software Engineer','Tel Aviv, Israel','2026-11-19T00:00:00Z'),job('2','Sales Manager','Tel Aviv, Israel','2026-11-19T00:00:00Z'),job('3','Software Engineer','London, UK','2026-11-19T00:00:00Z'),job('4','Software Engineer','Haifa, Israel','2026-11-19T00:00:00Z')];
+ assert.deepEqual(searchPreviewJobs(jobs,{now,query:'Software Engineer',country:'Israel',city:'Tel Aviv'}).map(x=>x.id),['1']);
+});
