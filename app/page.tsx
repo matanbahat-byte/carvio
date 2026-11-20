@@ -3036,6 +3036,8 @@ export default function Home() {
     setSubmittedSearchProfile(snapshot);
     setSearchOutcome("unreviewed");
     setOpenedSearchSource("");
+    setSmartCaptureUrl("");
+    setSmartCaptureError("");
     setShowSearchResults(true);
     // CARVIO generates outbound source links; it does not fetch job listings here.
     emitProductEvent("search_submitted", { method: "standard" });
@@ -3054,6 +3056,8 @@ export default function Home() {
     setSubmittedSearchProfile(Object.freeze(next));
     setSearchOutcome("unreviewed");
     setOpenedSearchSource("");
+    setSmartCaptureUrl("");
+    setSmartCaptureError("");
     setShowSearchResults(true);
     emitProductEvent("search_submitted", { method: "broadened" });
     emitProductEvent("search_sources_presented", { count: jobSearchSources(next, language).length });
