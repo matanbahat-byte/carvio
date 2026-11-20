@@ -66,15 +66,17 @@ export default async function AtsPreview({ searchParams }: { searchParams: Promi
       <p className="mt-3 text-xs text-slate-500">Pilot only: sources are not licensed for production reuse yet; do not treat coverage as comprehensive. Matching prioritizes job titles and then publication recency; a few exact role searches include related title aliases. Employer links are not independently verified. </p>
       <p className="mt-3 text-xs text-slate-500">By default, postings older than 180 days or missing a valid publication date are hidden. Israel includes common Israeli city-name aliases; other locations use literal text matching. Remote-work eligibility is not inferred. The employer may change or close postings independently.</p>
       <p className="mt-5 text-sm text-slate-600" role="status">{availableSources ? `${jobs.length} matching jobs from ${allJobs.length} unique fetched postings · ${availableSources}/${boards.length} sources responding` : "Sources temporarily unavailable — no live results. Please retry later."}</p>
+      {availableSources < boards.length && <p role="alert" className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">Partial coverage: {boards.length - availableSources} employer source(s) did not respond. Missing jobs are possible; retry later.</p>}
       <div className="mt-5 space-y-3">
         {jobs.map(job => <article key={job.id} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-semibold">{job.title}</h2>
           <p className="mt-1 text-sm text-slate-600">{job.company} · {job.location || "Location not supplied"}</p>
+          <p className="mt-2 text-xs font-medium text-indigo-700">{q ? titleMatches(job.title, q) ? job.title.toLocaleLowerCase().includes(q.toLocaleLowerCase()) ? "Match: job title" : "Match: related job title" : "Match: employer or location" : "Sorted by newest publication date"}</p>
           <p className="mt-2 text-xs text-slate-500">{job.postedAt ? `Published: ${job.postedAt.slice(0,10)}` : "Publication date unavailable"}</p>
           <a href={job.url} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-sm font-semibold text-indigo-700 underline">View original job / apply</a>
         </article>)}
       </div>
-      {availableSources > 0 && jobs.length === 0 && <p className="mt-5 text-sm text-slate-600">No matches on this employer board. Try another keyword.</p>}
+      {availableSources > 0 && jobs.length === 0 && <p className="mt-5 text-sm text-slate-600">No matches across the currently responding employer boards. Try a broader keyword, another location or All dates. This does not mean no such jobs exist elsewhere.</p>}
     </main>
   );
 }
