@@ -1,15 +1,24 @@
 name: CARVIO public browser smoke
 on:
   pull_request:
-    paths:
-      - '.github/workflows/browser-smoke.yml'
-      - 'tests/browser-smoke.mjs'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
+  unit-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
   public-smoke:
     runs-on: ubuntu-24.04
     timeout-minutes: 12
