@@ -13,6 +13,16 @@ const boards: readonly PublicBoard[] = [
 ];
 const getJobs = createCachedBoardFetcher();
 const israelPlaces = /\b(israel|tel[ -]?aviv|herzliya|haifa|jerusalem|petah[ -]?tikva|ramat[ -]?gan|raanana|rishon[ -]?lezion|netanya|beer[ -]?sheva|bnei[ -]?brak|hod[ -]?hasharon|kfar[ -]?saba|yokneam|re\u1e25ovot)\b/i;
+const roleAliases: Record<string, string[]> = {
+  "hr business partner": ["hrbp", "people partner", "human resources business partner", "people business partner"],
+  "supply chain manager": ["supply chain lead", "supply chain director", "head of supply chain", "supply chain planning manager"],
+  "software engineer": ["software developer", "backend engineer", "frontend engineer", "full stack engineer", "full-stack engineer"],
+};
+function titleMatches(title: string, query: string) {
+  const normalized = query.toLocaleLowerCase().trim();
+  const haystack = title.toLocaleLowerCase();
+  return haystack.includes(normalized) || (roleAliases[normalized] ?? []).some(alias => haystack.includes(alias));
+}
 function matchesLocation(actual: string, requested: string) {
   if (requested.trim().toLocaleLowerCase() === "israel") return israelPlaces.test(actual);
   return actual.toLocaleLowerCase().includes(requested.toLocaleLowerCase());
@@ -30,7 +40,7 @@ export default async function AtsPreview({ searchParams }: { searchParams: Promi
   const allJobs = dedupePublicJobs(results.flatMap(result => result.jobs));
   const availableSources = results.filter(result => result.status === "ok").length;
   const jobs = allJobs.filter(job => {
-    if (q && ![job.title, job.company, job.location].some(v => v.toLocaleLowerCase().includes(q.toLocaleLowerCase()))) return false;
+    if (q && !titleMatches(job.title, q) && ![job.company, job.location].some(v => v.toLocaleLowerCase().includes(q.toLocaleLowerCase()))) return false;
     if (location && !matchesLocation(job.location, location)) return false;
     if (age !== "all") {
       const published = job.postedAt ? Date.parse(job.postedAt) : NaN;
@@ -39,7 +49,7 @@ export default async function AtsPreview({ searchParams }: { searchParams: Promi
     return true;
   }).sort((a, b) => {
     // A title match is more relevant than a company or location-only match.
-    const relevance = (job: typeof a) => !q ? 0 : job.title.toLocaleLowerCase().includes(q.toLocaleLowerCase()) ? 2 : job.company.toLocaleLowerCase().includes(q.toLocaleLowerCase()) ? 1 : 0;
+    const relevance = (job: typeof a) => !q ? 0 : titleMatches(job.title, q) ? 2 : job.company.toLocaleLowerCase().includes(q.toLocaleLowerCase()) ? 1 : 0;
     return relevance(b) - relevance(a) || (Date.parse(b.postedAt ?? "") || 0) - (Date.parse(a.postedAt ?? "") || 0);
   });
   return (
@@ -53,7 +63,7 @@ export default async function AtsPreview({ searchParams }: { searchParams: Promi
         <input name="location" defaultValue={location} placeholder="Location (e.g. London)" aria-label="Location contains" maxLength={80} className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-3" />
         <select name="age" defaultValue={age} aria-label="Maximum posting age" className="rounded-lg border border-slate-300 bg-white px-2 py-3"><option value="90">Last 90 days</option><option value="180">Last 180 days</option><option value="all">All dates</option></select>
       </form>
-      <p className="mt-3 text-xs text-slate-500">Pilot only: sources are not licensed for production reuse yet; do not treat coverage as comprehensive. Matching prioritizes job titles and then publication recency. Employer links are not independently verified. </p>
+      <p className="mt-3 text-xs text-slate-500">Pilot only: sources are not licensed for production reuse yet; do not treat coverage as comprehensive. Matching prioritizes job titles and then publication recency; a few exact role searches include related title aliases. Employer links are not independently verified. </p>
       <p className="mt-3 text-xs text-slate-500">By default, postings older than 180 days or missing a valid publication date are hidden. Israel includes common Israeli city-name aliases; other locations use literal text matching. Remote-work eligibility is not inferred. The employer may change or close postings independently.</p>
       <p className="mt-5 text-sm text-slate-600" role="status">{availableSources ? `${jobs.length} matching jobs from ${allJobs.length} unique fetched postings · ${availableSources}/${boards.length} sources responding` : "Sources temporarily unavailable — no live results. Please retry later."}</p>
       <div className="mt-5 space-y-3">
