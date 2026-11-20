@@ -52,6 +52,7 @@ try {
       assert.ok(destinations.some((url) => isHost(url, "linkedin.com")), name + ": LinkedIn search link missing");
       assert.ok(destinations.some((url) => isHost(url, "google.com") || isHost(url, "indeed.com")), name + ": alternative search source missing");
       assert.ok(destinations.every((url) => url.startsWith("https://")), name + ": search sources must use HTTPS");
+      assert.ok(destinations.every((url) => ["linkedin.com", "google.com", "indeed.com"].some((host) => isHost(url, host))), name + ": unexpected or deceptive search source hostname");
       // Source links need discernible labels for keyboard and screen-reader users.
       const sourceLabels = await searchCards.evaluateAll((links) => links.map((a) =>
         (a.getAttribute("aria-label") || a.innerText || a.getAttribute("title") || "").trim()
