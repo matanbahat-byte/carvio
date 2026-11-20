@@ -11,6 +11,15 @@ function httpsUrl(value: unknown, host: string) {
     return url.href;
   } catch { return null; }
 }
+function safeEmployerApplicationUrl(value: string, id: string) {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:" || url.username || url.password || url.port || !url.hostname.includes(".") || url.hostname === "localhost") return null;
+    if (/^(?:localhost|127\\.|10\\.|192\\.168\\.|172\\.(?:1[6-9]|2\\d|3[01])\\.)/.test(url.hostname)) return null;
+    // Greenhouse embeds the posting identifier in employer-hosted URLs as gh_jid.
+    return url.searchParams.get("gh_jid") === id ? url.href : null;
+  } catch { return null; }
+}
 function postingDate(value: unknown): string | null {
   if (typeof value !== "string" && typeof value !== "number") return null;
   const timestamp = typeof value === "number" ? value : Date.parse(value);
@@ -44,8 +53,11 @@ export function normalizePublicBoardJobs(board: PublicBoard, payload: unknown): 
     const loc = job.location && typeof job.location === "object" ? (job.location as Record<string, unknown>).name : "";
     const categories = job.categories && typeof job.categories === "object" ? job.categories as Record<string, unknown> : null;
     const location = text(board.provider === "lever" ? categories?.location : loc);
+    // Greenhouse can publish an employer-hosted application URL, not just a greenhouse.io URL.
+    // Only accept that link when its posting ID matches the API record; do not infer trust from hostname alone.
+    const greenhouseUrl = typeof job.absolute_url === "string" ? job.absolute_url : "";
     const url = board.provider === "greenhouse"
-      ? httpsUrl(job.absolute_url, "greenhouse.io")
+      ? (httpsUrl(greenhouseUrl, "greenhouse.io") || safeEmployerApplicationUrl(greenhouseUrl, id))
       : httpsUrl(job.hostedUrl, "lever.co");
     if (!id || !title || !url || seen.has(url)) continue;
     seen.add(url);
