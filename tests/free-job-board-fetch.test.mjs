@@ -15,3 +15,15 @@ test('fails closed on invalid board, non-JSON, oversized and failing response',a
   assert.equal((await fetchPublicBoardJobs(board,{fetcher:async()=>response('x'.repeat(2_000_001))})).status,'unavailable');
   assert.equal((await fetchPublicBoardJobs(board,{fetcher:async()=>{throw Error('offline')}})).status,'unavailable');
 });
+
+test('rejects oversized content-length before consuming response body',async()=>{
+  const result=await fetchPublicBoardJobs(board,{fetcher:async()=>new Response('{}',{headers:{'content-type':'application/json','content-length':'2000001'}})});
+  assert.equal(result.status,'unavailable');
+});
+test('rejects oversized streaming response before fully buffering it',async()=>{
+  let emitted=0;
+  const stream=new ReadableStream({pull(controller){emitted++;controller.enqueue(new Uint8Array(1_000_001));if(emitted===3)controller.close();}});
+  const result=await fetchPublicBoardJobs(board,{fetcher:async()=>new Response(stream,{headers:{'content-type':'application/json'}})});
+  assert.equal(result.status,'unavailable');
+  assert.ok(emitted<=3);
+});
