@@ -64,3 +64,12 @@ test('rejects Lever links belonging to a different board or region',()=>{
   assert.deepEqual(normalizePublicBoardJobs(lever,records).map(x=>x.title),['Correct']);
   assert.equal(normalizePublicBoardJobs({...lever,region:'eu'},[{id:'d',text:'EU role',hostedUrl:'https://jobs.eu.lever.co/sample-company/d'}]).length,1);
 });
+
+test('deduplicates tracked URLs for one ATS posting without collapsing distinct employers',()=>{
+ const jobs=[
+  {id:'lever:acme:123',provider:'lever',title:'Planner',company:'Acme',location:'',postedAt:null,url:'https://jobs.lever.co/acme/123?utm_source=site'},
+  {id:'lever:acme:123',provider:'lever',title:'Planner',company:'Acme',location:'',postedAt:null,url:'https://jobs.lever.co/acme/123?utm_source=email'},
+  {id:'lever:other:123',provider:'lever',title:'Planner',company:'Other',location:'',postedAt:null,url:'https://jobs.lever.co/other/123'}
+ ];
+ assert.deepEqual(dedupePublicJobs(jobs).map(j=>j.id),['lever:acme:123','lever:other:123']);
+});
