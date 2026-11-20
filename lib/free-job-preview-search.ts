@@ -3,6 +3,10 @@ import type { PublicJob } from "./free-job-sources.ts";
 const aliases: Record<string, string[]> = {
   "hr business partner": ["hrbp", "people partner", "human resources business partner", "people business partner"],
   "supply chain manager": ["supply chain lead", "supply chain director", "head of supply chain", "supply chain planning manager"],
+  "supply chain director": ["director of supply chain", "head of supply chain", "global supply chain director", "supply chain lead", "director, supply chain"],
+  "director of supply chain": ["supply chain director", "head of supply chain", "global supply chain director"],
+  "head of supply chain": ["supply chain director", "director of supply chain", "global supply chain director"],
+  "מנהל שרשרת אספקה בכיר": ["supply chain director", "director of supply chain", "head of supply chain"],
   "software engineer": ["software developer", "backend engineer", "frontend engineer", "full stack engineer", "full-stack engineer"],
   "מהנדס תוכנה": ["software engineer", "software developer", "backend engineer", "frontend engineer", "full stack engineer", "full-stack engineer"],
   "מפתח תוכנה": ["software engineer", "software developer", "backend developer", "frontend developer", "full stack developer", "full-stack developer"],
