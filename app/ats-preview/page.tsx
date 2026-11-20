@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { ArrowUpLeft, BriefcaseBusiness, MapPin, Search, Sparkles, ExternalLink, CheckCircle2 } from "lucide-react";
 import { createCachedBoardFetcher } from "@/lib/free-job-board-cache";
 import { dedupePublicJobs } from "@/lib/free-job-sources";
+import { emptySearchProfile, jobSearchSources, suggestedRoleAlternatives } from "@/lib/job-search";
 import { searchPreviewJobs, titleMatches } from "@/lib/free-job-preview-search";
 import type { PublicBoard } from "@/lib/free-job-sources";
 
@@ -30,6 +31,9 @@ export default async function AtsPreview({ searchParams }: { searchParams: Promi
   const jobs = searchPreviewJobs(allJobs, { query: q, location, country, city, age });
   const countryWideJobs = city && jobs.length === 0 ? searchPreviewJobs(allJobs, { query: q, country, age }) : [];
   const broaderRoleJobs = q && jobs.length === 0 ? searchPreviewJobs(allJobs, { country, city, age }) : [];
+  const searchCountry = /^(ישראל|israel)$/i.test(country) ? "Israel" : /^(גרמניה|germany)$/i.test(country) ? "Germany" : /^(הולנד|netherlands)$/i.test(country) ? "Netherlands" : country;
+  const searchRoutes = q ? jobSearchSources({ ...emptySearchProfile, role: q, country: searchCountry, location: city || location, datePosted: "Past month" }, "he") : [];
+  const roleAlternatives = q ? suggestedRoleAlternatives(q).slice(0, 3) : [];
   return (
     <main lang="he" dir="rtl" className="ats-pilot-light min-h-screen bg-[#f7f8ff] text-[#18223c]">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[550px] overflow-hidden" aria-hidden="true">
@@ -93,6 +97,12 @@ export default async function AtsPreview({ searchParams }: { searchParams: Promi
             <div className="rounded-[24px] border border-dashed border-[#dcd7fb] bg-white/60 px-6 py-10 text-center"><Sparkles className="mx-auto mb-3 text-[#7e68ed]" size={28} /><h2 className="text-xl font-bold">מוכנים לגלות מה מחכה לכם?</h2><p className="mt-2 text-sm text-[#7b849b]">מזינים משרה ומדינה ולוחצים על חיפוש משרות כדי לראות תוצאות.</p></div>
           )}
         </section>
+        {hasSearch && q && <section aria-label="חיפוש במקורות נוספים" className="mx-auto mt-8 max-w-5xl rounded-[24px] border border-[#dedcf5] bg-white p-5 shadow-sm sm:p-7">
+          <div className="mb-3 flex items-center gap-2"><Search size={19} className="text-[#6248ed]" /><h2 className="text-lg font-extrabold">עוד מקומות לחפש בהם</h2></div>
+          <p className="text-sm leading-7 text-[#65708a]">החיפוש הישיר שלנו מכסה כרגע חמישה מעסיקים בלבד. הקישורים הבאים פותחים חיפוש באתרים חיצוניים עם התפקיד והמיקום שבחרת. אלה <strong>קישורי חיפוש, לא משרות שנמצאו או אומתו ב־CARVIO.</strong></p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">{searchRoutes.map(route => <a key={route.id} href={route.url} target="_blank" rel="noopener noreferrer" className="flex min-h-14 items-center justify-between gap-2 rounded-2xl border border-[#e4e1f6] bg-[#faf9ff] px-4 py-3 text-sm font-bold text-[#6048d8] transition hover:border-[#b9adff] hover:bg-[#f1edff]"><span>{route.name}</span><ExternalLink size={17} aria-hidden="true" /></a>)}</div>
+          {roleAlternatives.length > 0 && <p className="mt-4 text-xs leading-6 text-[#75809a]">תפקידים קרובים שכדאי לנסות בנפרד: {roleAlternatives.join(" · ")}</p>}
+        </section>}
         <footer className="mx-auto mt-12 max-w-5xl border-t border-[#e7e7f3] pt-5 text-center text-xs leading-6 text-[#8991a7]">סביבת ניסוי בלבד · כיסוי המעסיקים חלקי · מקורות המשרות טרם אושרו לשימוש ציבורי · קישורי המשרות לא אומתו בנפרד · משרות עשויות להיסגר מאז פרסומן · מוצגות משרות מ־180 הימים האחרונים</footer>
       </div>
     </main>
