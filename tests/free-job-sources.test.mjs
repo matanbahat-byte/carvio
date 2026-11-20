@@ -49,3 +49,8 @@ test('accepts employer-hosted Greenhouse job only when gh_jid matches API record
   assert.equal(jobs.length,1);
   assert.equal(jobs[0].url,'https://careers.example.org/apply?gh_jid=321');
 });
+
+test('uses official EU Lever API host only for explicit EU region',()=>{
+  assert.equal(publicBoardEndpoint({...lever,region:'eu'}),'https://api.eu.lever.co/v0/postings/sample-company?mode=json');
+  assert.throws(()=>publicBoardEndpoint({...lever,region:'other'}),/Invalid board/);
+});
