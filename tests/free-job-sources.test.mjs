@@ -19,13 +19,13 @@ test('normalizes Greenhouse listings and rejects missing or foreign-host links',
   assert.equal(jobs.length,1);
   assert.equal(jobs[0].title,'HR Business Partner');
   assert.equal(jobs[0].location,'Tel Aviv');
-  assert.equal(jobs[0].postedAt,'2026-11-20T08:00:00.000Z');
+  assert.equal(jobs[0].postedAt,null); // updated_at is not publication time
 });
 test('normalizes Lever listings without inventing fields',()=>{
   const jobs=normalizePublicBoardJobs(lever,[{id:'abc',text:'Supply Chain Manager',hostedUrl:'https://jobs.lever.co/sample-company/abc',categories:{location:'Berlin'}},{id:'bad',text:'Bad',hostedUrl:'javascript:alert(1)'}]);
   assert.equal(jobs.length,1);
   assert.equal(jobs[0].title,'Supply Chain Manager');
-  assert.equal(jobs[0].location,'');
+  assert.equal(jobs[0].location,'Berlin');
   assert.equal(jobs[0].postedAt,null);
 });
 test('deduplicates identical links without dropping distinct postings',()=>{
