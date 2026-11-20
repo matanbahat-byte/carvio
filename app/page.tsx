@@ -3735,6 +3735,12 @@ export default function Home() {
             <p className="mt-1 text-sm text-slate-300">{language === "he" ? `יש לכם ${applications.length} הזדמנויות שמורות. פתחו את המעקב ובחרו את הצעד הבא — בלי להתחיל חיפוש מחדש.` : `You have ${applications.length} saved opportunities. Open your tracker and choose your next step — no need to start searching again.`}</p>
             <button className="primary-button mt-3" type="button" onClick={() => switchView("applications")}>{language === "he" ? "המשך למעקב המשרות" : "Continue tracking jobs"}<ArrowRight className="h-4 w-4" /></button>
           </section>}
+          {applications.length === 0 && contacts.length > 0 && <section aria-label={language === "he" ? "המשך קשרים מקצועיים" : "Resume your professional connections"} className="mb-4 rounded-2xl border border-sky-400/25 bg-sky-500/10 p-4 sm:p-5">
+            <p className="text-xs font-semibold text-sky-300">{language === "he" ? "ממשיכים מהנקודה שבה עצרתם" : "Pick up where you left off"}</p>
+            <h2 className="mt-2 text-lg font-semibold text-slate-100">{language === "he" ? "הקשרים המקצועיים שלכם מחכים" : "Your professional connections are waiting"}</h2>
+            <p className="mt-1 text-sm text-slate-300">{language === "he" ? `שמרתם ${contacts.length} אנשי קשר. חזרו לרשת הקשרים כדי לבחור למי לפנות או עם מי להמשיך שיחה.` : `You saved ${contacts.length} contacts. Return to your network to choose who to reach out to or follow up with.`}</p>
+            <button className="primary-button mt-3" type="button" onClick={() => switchView("networking")}>{language === "he" ? "המשך לניהול קשרים" : "Continue networking"}<ArrowRight className="h-4 w-4" /></button>
+          </section>}
           <div className="carvio-hero-top">
             <div className="dashboard-v2-greeting">
               <p>{greetingForHour(language, new Date().getHours())}{userProfile.name ? `, ${userProfile.name}` : ""}</p>
