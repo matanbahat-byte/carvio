@@ -38,7 +38,7 @@ try {
     // Public outbound links must be syntactically valid and use safe protocols.
     const badLinks = await page.locator('a[href]').evaluateAll((anchors) =>
       anchors.map((anchor) => anchor.getAttribute("href") || "")
-        .filter((href) => !href.startsWith("#") && !href.startsWith("/") && !/^https?:\\/\\//i.test(href) && !/^mailto:/i.test(href) && !/^tel:/i.test(href))
+        .filter((href) => !href.startsWith("#") && !href.startsWith("/") && !href.startsWith("http://") && !href.startsWith("https://") && !href.startsWith("mailto:") && !href.startsWith("tel:"))
     );
     assert.deepEqual(badLinks, [], name + ": unexpected public link protocols");
     console.log("PASS " + name + " reload + public link protocol checks");
