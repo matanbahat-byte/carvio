@@ -1865,6 +1865,15 @@ export default function Home() {
     return applications.map((application) => ({ application, age: staleReviewAge(application, now) })).filter((item): item is { application: Application; age: number } => item.age !== null).sort((a, b) => b.age - a.age);
   }, [applications]);
 
+  // Count only opportunities actually recorded this week; do not infer applications sent.
+  const weeklySavedOpportunities = useMemo(() => {
+    const weekAgo = Date.now() - 7 * 86400000;
+    return applications.filter((item) => {
+      const timestamp = Date.parse(item.capturedAt || item.appliedDate || "");
+      return Number.isFinite(timestamp) && timestamp >= weekAgo && timestamp <= Date.now();
+    }).length;
+  }, [applications]);
+
   const primaryActionApplication = nextBestActions[0]?.applicationId
     ? applications.find((item) => item.id === nextBestActions[0].applicationId) || null
     : null;
@@ -3765,11 +3774,12 @@ export default function Home() {
             </div>
           </div>
           {returningVisit && (applications.length > 0 || contacts.length > 0) && <section className="returning-user-card" aria-label={language === "he" ? "המשך מהביקור הקודם" : "Continue from your last visit"}><div><span>{language === "he" ? "טוב שחזרתם" : "Welcome back"}</span><strong>{language === "he" ? "הפעולה שקבעתם מחכה לכם כאן." : "The next move you saved is waiting for you."}</strong><small>{homepageAction.title}</small></div><button onClick={() => { emitProductEvent("return_card_continued", { screen: "home" }); setReturningVisit(false); executeTodayPrimaryAction(); }} type="button">{language === "he" ? "המשך מהמקום שבו עצרתי" : "Continue where I left off"}<ArrowUpRight className="h-4 w-4" /></button><button aria-label={language === "he" ? "סגירת הודעת החזרה" : "Dismiss welcome back message"} onClick={() => { emitProductEvent("return_card_dismissed", { screen: "home" }); setReturningVisit(false); }} type="button"><X className="h-4 w-4" /></button></section>}
+          {weeklySavedOpportunities > 0 && <section className="search-return-capture" aria-label={language === "he" ? "התקדמות בשבעת הימים האחרונים" : "Progress in the last seven days"}><strong>{language === "he" ? "התקדמתם השבוע" : "Your progress this week"}</strong><p>{language === "he" ? `נשמרו ${weeklySavedOpportunities} הזדמנויות בשבעת הימים האחרונים. זה צעד ממשי בתהליך.` : `${weeklySavedOpportunities} opportunities recorded in the last seven days. That's real progress.`}</p><small>{language === "he" ? "מבוסס על תאריכי המשרות השמורות בלבד, לא על הגשות שבוצעו." : "Based on saved job dates only, not submitted applications."}</small></section>}
           {(applications.length > 0 || contacts.length > 0) && <section className="dashboard-v2-today" aria-labelledby="dashboard-v2-today-title">
             <button className="text-button" type="button" onClick={() => navigateToSection("preferences")}>{language === "he" ? "שינוי המטרה" : "Change goal"}</button>
             <div className="dashboard-v2-today-layout">
               <div className="dashboard-v2-today-content">
-                <p className="dashboard-v2-label"><Zap className="h-4 w-4" />{language === "he" ? "הפעולה הבאה" : "Next move"}</p>
+                <p className="dashboard-v2-label"><Zap className="h-4 w-4" />{language === "he" ? "10 דקות להתקדמות · הפעולה הבאה" : "10-minute momentum · Next move"}</p>
                 <div className="dashboard-v2-today-copy">
                   <span>{nextBestActions[0]?.kind || todayFocus.eyebrow}</span>
                   <h1 id="dashboard-v2-today-title">{todayActionPresentation.headline}</h1>
