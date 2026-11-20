@@ -1869,7 +1869,7 @@ export default function Home() {
   const weeklySavedOpportunities = useMemo(() => {
     const weekAgo = Date.now() - 7 * 86400000;
     return applications.filter((item) => {
-      const timestamp = Date.parse(item.capturedAt || item.appliedDate || "");
+      const timestamp = Date.parse(item.capturedAt || "");
       return Number.isFinite(timestamp) && timestamp >= weekAgo && timestamp <= Date.now();
     }).length;
   }, [applications]);
