@@ -69,6 +69,7 @@ export function normalizePublicBoardJobs(board: PublicBoard, payload: unknown): 
   if (!Array.isArray(records)) return [];
   const output: PublicJob[] = [];
   const seen = new Set<string>();
+  const seenIds = new Set<string>();
   for (const item of records.slice(0, 500)) {
     if (!item || typeof item !== "object") continue;
     const job = item as Record<string, unknown>;
@@ -83,8 +84,9 @@ export function normalizePublicBoardJobs(board: PublicBoard, payload: unknown): 
     const url = board.provider === "greenhouse"
       ? (officialGreenhousePostingUrl(greenhouseUrl, board, id) || safeEmployerApplicationUrl(greenhouseUrl, id))
       : leverPostingUrl(job.hostedUrl, board);
-    if (!id || !title || !url || seen.has(url)) continue;
+    if (!id || !title || !url || seen.has(url) || seenIds.has(id)) continue;
     seen.add(url);
+    seenIds.add(id);
     // updated_at is not a posting date; never mislabel it as one.
     const date = board.provider === "greenhouse" ? job.first_published : job.createdAt;
     output.push({id:`${board.provider}:${board.token}:${id}`,title,company:board.company,location,url,provider:board.provider,postedAt:postingDate(date)});
