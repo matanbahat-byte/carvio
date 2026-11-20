@@ -10873,3 +10873,19 @@ html[data-carvio-theme="light"] {
 .search-return-capture p { margin-block-start: .4rem; font-size: .875rem; }
 .search-return-capture input { min-width: 0; }
 .search-source-open { min-height: 44px; }
+
+
+/* Isolate the light ATS pilot from workspace theme and mobile forced-dark defaults. */
+.ats-pilot-light { color-scheme: light; background: #f7f8ff !important; color: #18223c !important; }
+.ats-pilot-light section[aria-label="חיפוש משרות"] { background: #fff !important; border-color: #fff !important; color: #18223c !important; }
+.ats-pilot-light section[aria-label="חיפוש משרות"] input { color-scheme: light; background: #fafaff !important; color: #18223c !important; border-color: #e6e8f3 !important; }
+.ats-pilot-light section[aria-label="חיפוש משרות"] input::placeholder { color: #858fa8 !important; }
+.ats-pilot-light section[aria-label="חיפוש משרות"] label { color: #293451 !important; }
+.ats-pilot-light section[aria-label="חיפוש משרות"] button[type="submit"] { background: #6248ed !important; color: #fff !important; }
+.ats-pilot-light section[aria-label="תוצאות החיפוש"] article { background: #fff !important; color: #202b49 !important; }
+@media (max-width: 767px) {
+  .ats-pilot-light section[aria-label="חיפוש משרות"] { padding: 1.1rem !important; border-radius: 1.5rem; }
+  .ats-pilot-light section[aria-label="חיפוש משרות"] form { gap: .65rem; }
+  .ats-pilot-light section[aria-label="חיפוש משרות"] label { margin: 0 !important; gap: .3rem; }
+  .ats-pilot-light section[aria-label="חיפוש משרות"] input { margin: 0 !important; min-height: 3rem; }
+}
