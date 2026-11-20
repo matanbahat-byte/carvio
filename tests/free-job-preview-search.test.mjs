@@ -23,3 +23,9 @@ test('ranks title matches before company/location and then by recency',()=>{
  const jobs=[job('1','Analyst','Sales','2026-11-19T00:00:00Z'),job('2','Sales Manager','London','2026-10-01T00:00:00Z'),job('3','Sales Lead','London','2026-11-01T00:00:00Z')];
  assert.deepEqual(searchPreviewJobs(jobs,{now,query:'Sales'}).map(x=>x.id),['3','2','1']);
 });
+
+test('role queries do not match company or location alone',()=>{
+ const jobs=[job('1','Accountant','Tel Aviv','2026-11-19T00:00:00Z'),job('2','Senior People Partner','Tel Aviv','2026-11-18T00:00:00Z')];
+ jobs[0].company='HR Business Partner Consulting';
+ assert.deepEqual(searchPreviewJobs(jobs,{now,query:'HR Business Partner'}).map(x=>x.id),['2']);
+});
