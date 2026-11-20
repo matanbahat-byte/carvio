@@ -57,6 +57,22 @@ try {
         (a.getAttribute("aria-label") || a.innerText || a.getAttribute("title") || "").trim()
       ));
       assert.ok(sourceLabels.every((label) => label.length > 0), name + ": unlabeled external search link");
+      // Returning to CARVIO after visiting an external search source must preserve a usable workspace.
+      // Simulate the return with a reload; do not navigate to providers or write user data.
+      await page.reload({ waitUntil: "domcontentloaded", timeout: 45000 });
+      await page.locator("body").waitFor({ state: "visible", timeout: 15000 });
+      const returnedBody = await page.locator("body").innerText();
+      assert.ok(returnedBody.trim().length > 80, name + ": empty workspace after returning from search");
+      assert.ok(!/application error: a client-side exception has occurred/i.test(returnedBody), name + ": client error after search return");
+      assert.deepEqual(exceptions, [], name + ": browser exception after search return");
+      const returnEntry = page.locator(".first-job-decision-actions button").filter({ hasText: /search|לחיפוש/i });
+      const returnRole = page.locator('input[list="carvio-role-options"]');
+      assert.ok(
+        (await returnEntry.count() > 0 && await returnEntry.first().isVisible()) ||
+        (await returnRole.count() > 0 && await returnRole.first().isVisible()),
+        name + ": search is no longer accessible after reload"
+      );
+      console.log("PASS " + name + " search return | workspace usable after reload");
       console.log("PASS " + name + " search | sources " + destinations.length);
     } else {
       throw new Error(name + ": search entry missing; refusing to silently skip the search journey");
