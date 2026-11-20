@@ -55,7 +55,7 @@ export default async function AtsPreview({ searchParams }: { searchParams: Promi
         {jobs.map(job => <article key={job.id} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-semibold">{job.title}</h2>
           <p className="mt-1 text-sm text-slate-600">{job.company} · {job.location || "מיקום לא צוין"}</p>
-          <p className="mt-2 text-xs font-medium text-indigo-700">{q ? titleMatches(job.title, q) ? job.title.toLocaleLowerCase().includes(q.toLocaleLowerCase()) ? "התאמה לשם המשרה" : "התאמה לתפקיד דומה" : "התאמה לחברה או למיקום" : "ממויין לפי תאריך פרסום"}</p>
+          <p className="mt-2 text-xs font-medium text-indigo-700">{q ? titleMatches(job.title, q) ? job.title.toLocaleLowerCase().includes(q.toLocaleLowerCase()) ? "התאמה לשם המשרה" : "התאמה לתפקיד דומה" : "התאמה לשם המשרה" : "ממויין לפי תאריך פרסום"}</p>
           <p className="mt-2 text-xs text-slate-500">{job.postedAt ? `פורסם: ${job.postedAt.slice(0,10)}` : "תאריך פרסום לא זמין"}</p>
           <a href={job.url} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-sm font-semibold text-indigo-700 underline">לצפייה במשרה ולהגשת מועמדות</a>
         </article>)}
