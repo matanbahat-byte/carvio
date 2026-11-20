@@ -54,3 +54,13 @@ test('uses official EU Lever API host only for explicit EU region',()=>{
   assert.equal(publicBoardEndpoint({...lever,region:'eu'}),'https://api.eu.lever.co/v0/postings/sample-company?mode=json');
   assert.throws(()=>publicBoardEndpoint({...lever,region:'other'}),/Invalid board/);
 });
+
+test('rejects Lever links belonging to a different board or region',()=>{
+  const records=[
+    {id:'a',text:'Wrong company',hostedUrl:'https://jobs.lever.co/other-company/a'},
+    {id:'b',text:'Wrong region',hostedUrl:'https://jobs.eu.lever.co/sample-company/b'},
+    {id:'c',text:'Correct',hostedUrl:'https://jobs.lever.co/sample-company/c'}
+  ];
+  assert.deepEqual(normalizePublicBoardJobs(lever,records).map(x=>x.title),['Correct']);
+  assert.equal(normalizePublicBoardJobs({...lever,region:'eu'},[{id:'d',text:'EU role',hostedUrl:'https://jobs.eu.lever.co/sample-company/d'}]).length,1);
+});
