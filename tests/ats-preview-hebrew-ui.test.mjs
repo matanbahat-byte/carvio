@@ -34,3 +34,9 @@ test('source diagnostics check exactly the same employer boards as the preview s
  assert.equal(extract(source).length,5);
  assert.deepEqual(extract(diagnostics),extract(source));
 });
+
+test('preview source diagnostics fetch independent employer boards concurrently',()=>{
+ const diagnostics=readFileSync(new URL('../app/ats-preview/source-check/route.ts',import.meta.url),'utf8');
+ assert.match(diagnostics,/await Promise\.all\(boards\.map\(async board => \{/);
+ assert.match(diagnostics,/timeoutMs: 2500/);
+});
