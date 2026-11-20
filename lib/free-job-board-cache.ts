@@ -13,6 +13,7 @@ export function createCachedBoardFetcher(options: {
   maxBoards?: number;
 } = {}) {
   const cache = new Map<string, Entry>();
+  const copyResult = (result: Result): Result => ({ ...result, jobs: result.jobs.map(job => ({ ...job })) });
   const pending = new Map<string, Promise<Result>>();
   const now = options.now ?? Date.now;
   const ttlMs = Math.min(15 * 60_000, Math.max(30_000, options.ttlMs ?? 5 * 60_000));
@@ -22,14 +23,14 @@ export function createCachedBoardFetcher(options: {
     try { key = publicBoardEndpoint(board) + "|" + board.company; }
     catch { return { jobs: [], status: "invalid" }; }
     const entry = cache.get(key);
-    if (entry && entry.expiresAt > now()) return { ...entry.result, jobs: [...entry.result.jobs] };
+    if (entry && entry.expiresAt > now()) return copyResult(entry.result);
     const existing = pending.get(key);
-    if (existing) return existing.then(result => ({ ...result, jobs: [...result.jobs] }));
+    if (existing) return existing.then(copyResult);
     const work = (async () => {
       const result = await fetchPublicBoardJobs(board, { fetcher: options.fetcher });
       if (result.status === "ok") {
         cache.delete(key);
-        cache.set(key, { expiresAt: now() + ttlMs, result });
+        cache.set(key, { expiresAt: now() + ttlMs, result: copyResult(result) });
         while (cache.size > maxBoards) cache.delete(cache.keys().next().value!);
       }
       return result;
@@ -37,7 +38,7 @@ export function createCachedBoardFetcher(options: {
     pending.set(key, work);
     try {
       const result = await work;
-      return { ...result, jobs: [...result.jobs] };
+      return copyResult(result);
     } finally { pending.delete(key); }
   };
 }

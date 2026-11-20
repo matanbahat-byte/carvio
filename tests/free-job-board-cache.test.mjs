@@ -30,3 +30,17 @@ test('invalid boards never reach network',async()=>{
  const get=createCachedBoardFetcher({fetcher:async()=>{throw Error('unexpected network');}});
  assert.equal((await get({...board,token:'../bad'})).status,'invalid');
 });
+
+test('caller mutation cannot poison cached job details',async()=>{
+ let calls=0;
+ const get=createCachedBoardFetcher({fetcher:async()=>{calls++;return response();}});
+ const first=await get(board);
+ first.jobs[0].title='Tampered';
+ first.jobs.push({...first.jobs[0],id:'fake'});
+ const second=await get(board);
+ assert.equal(calls,1);
+ assert.equal(second.jobs.length,1);
+ assert.equal(second.jobs[0].title,'Planner');
+ second.jobs[0].title='Also tampered';
+ assert.equal((await get(board)).jobs[0].title,'Planner');
+});
