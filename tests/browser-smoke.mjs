@@ -60,7 +60,9 @@ try {
       assert.ok(sourceLabels.every((label) => label.length > 0), name + ": unlabeled external search link");
       // Returning to CARVIO after visiting an external search source must preserve a usable workspace.
       // Simulate the return with a reload; do not navigate to providers or write user data.
-      await page.reload({ waitUntil: "domcontentloaded", timeout: 45000 });
+      const reloadResponse = await page.reload({ waitUntil: "domcontentloaded", timeout: 45000 });
+      assert.ok(reloadResponse, name + ": no HTTP response on search return");
+      assert.ok(reloadResponse.status() < 400, name + ": search return HTTP " + reloadResponse.status());
       await page.locator("body").waitFor({ state: "visible", timeout: 15000 });
       const returnedBody = await page.locator("body").innerText();
       assert.ok(returnedBody.trim().length > 80, name + ": empty workspace after returning from search");
