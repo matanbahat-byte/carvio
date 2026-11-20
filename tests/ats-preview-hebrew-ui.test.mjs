@@ -65,3 +65,9 @@ test('preview preserves original discovery routes without counting them as verif
  assert.match(source,/קישורי חיפוש, לא משרות שנמצאו או אומתו/);
  assert.match(source,/roleAlternatives\.join/);
 });
+
+test('original multi-platform discovery is visible before limited ATS results',()=>{
+ assert.ok(source.indexOf('חיפוש רחב — LinkedIn, Indeed ו־Google') > -1);
+ assert.ok(source.indexOf('חיפוש רחב — LinkedIn, Indeed ו־Google') < source.indexOf('aria-label="תוצאות החיפוש"'));
+ assert.ok(source.includes('משרות בחמשת אתרי המעסיקים'));
+});
