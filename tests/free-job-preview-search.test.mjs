@@ -46,3 +46,9 @@ test('Hebrew job, country and city match English ATS records',()=>{
  assert.equal(locationMatches('Haifa','חיפה'),true);
  assert.equal(locationMatches('London','ישראל'),false);
 });
+
+test('common Hebrew synonyms match English employer job titles',()=>{
+ const jobs=[job('1','Senior Software Developer','Tel Aviv','2026-11-19T00:00:00Z'),job('2','Product Manager','Tel Aviv','2026-11-19T00:00:00Z')];
+ assert.deepEqual(searchPreviewJobs(jobs,{now,query:'מפתח תוכנה',country:'ישראל',city:'תל אביב'}).map(x=>x.id),['1']);
+ assert.deepEqual(searchPreviewJobs(jobs,{now,query:'מנהלת מוצר',country:'ישראל',city:'תל אביב'}).map(x=>x.id),['2']);
+});
