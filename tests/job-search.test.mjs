@@ -159,3 +159,19 @@ test('search result pages cannot be mistaken for individual job opportunities', 
     'https://www.google.com/about/careers/applications/jobs/results/1234',
   ]) assert.equal(captureJobLink(url).jobUrl, url);
 });
+
+
+test('same LinkedIn and Indeed posting across country hosts and tracking tags has one identity', () => {
+  assert.equal(
+    jobLinkIdentity('https://il.linkedin.com/jobs/view/senior-manager-at-example-123456789/?utm_source=feed'),
+    jobLinkIdentity('https://www.linkedin.com/jobs/view/123456789/?trk=public_jobs'),
+  );
+  assert.equal(
+    jobLinkIdentity('https://uk.indeed.com/viewjob?jk=abc123&utm_campaign=alert'),
+    jobLinkIdentity('https://www.indeed.com/rc/clk?jk=abc123&from=search'),
+  );
+  assert.notEqual(
+    jobLinkIdentity('https://www.linkedin.com/jobs/view/123456789/'),
+    jobLinkIdentity('https://www.linkedin.com/jobs/view/123456780/'),
+  );
+});
