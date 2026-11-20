@@ -3729,6 +3729,12 @@ export default function Home() {
             </div>
             <figure aria-hidden="true"><Image alt="" fill priority sizes="(max-width: 700px) calc(100vw - 3rem), 360px" src="/carvio-next-action-recovery-v1.jpg" /></figure>
           </section>}
+          {applications.length > 0 && <section aria-label={language === "he" ? "המשך מהנקודה שבה עצרתם" : "Pick up where you left off"} className="mb-4 rounded-2xl border border-emerald-400/25 bg-emerald-500/10 p-4 sm:p-5">
+            <p className="text-xs font-semibold text-emerald-300">{language === "he" ? "ברוכים השבים · ממשיכים מכאן" : "Welcome back · pick up here"}</p>
+            <h2 className="mt-2 text-lg font-semibold text-slate-100">{language === "he" ? "ההזדמנויות ששמרתם מחכות לכם" : "Your saved opportunities are waiting"}</h2>
+            <p className="mt-1 text-sm text-slate-300">{language === "he" ? `יש לכם ${applications.length} הזדמנויות שמורות. פתחו את המעקב ובחרו את הצעד הבא — בלי להתחיל חיפוש מחדש.` : `You have ${applications.length} saved opportunities. Open your tracker and choose your next step — no need to start searching again.`}</p>
+            <button className="primary-button mt-3" type="button" onClick={() => switchView("applications")}>{language === "he" ? "המשך למעקב המשרות" : "Continue tracking jobs"}<ArrowRight className="h-4 w-4" /></button>
+          </section>}
           <div className="carvio-hero-top">
             <div className="dashboard-v2-greeting">
               <p>{greetingForHour(language, new Date().getHours())}{userProfile.name ? `, ${userProfile.name}` : ""}</p>
