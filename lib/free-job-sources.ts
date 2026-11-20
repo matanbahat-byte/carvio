@@ -11,6 +11,13 @@ function httpsUrl(value: unknown, host: string) {
     return url.href;
   } catch { return null; }
 }
+function postingDate(value: unknown): string | null {
+  if (typeof value !== "string" && typeof value !== "number") return null;
+  const timestamp = typeof value === "number" ? value : Date.parse(value);
+  if (!Number.isFinite(timestamp) || timestamp <= 0) return null;
+  const parsed = new Date(timestamp);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+}
 function text(value: unknown) { return typeof value === "string" ? value.trim() : ""; }
 function validBoard(board: PublicBoard) {
   return /^[a-zA-Z0-9_-]{1,100}$/.test(board.token) && Boolean(text(board.company));
@@ -43,8 +50,8 @@ export function normalizePublicBoardJobs(board: PublicBoard, payload: unknown): 
     if (!id || !title || !url || seen.has(url)) continue;
     seen.add(url);
     // updated_at is not a posting date; never mislabel it as one.
-    const date = text(board.provider === "greenhouse" ? job.first_published : job.createdAt);
-    output.push({id:`${board.provider}:${board.token}:${id}`,title,company:board.company,location,url,provider:board.provider,postedAt:date && !Number.isNaN(Date.parse(date)) ? new Date(date).toISOString() : null});
+    const date = board.provider === "greenhouse" ? job.first_published : job.createdAt;
+    output.push({id:`${board.provider}:${board.token}:${id}`,title,company:board.company,location,url,provider:board.provider,postedAt:postingDate(date)});
   }
   return output;
 }
