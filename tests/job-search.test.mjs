@@ -159,3 +159,13 @@ test('search result pages cannot be mistaken for individual job opportunities', 
     'https://www.google.com/about/careers/applications/jobs/results/1234',
   ]) assert.equal(captureJobLink(url).jobUrl, url);
 });
+
+
+test('LinkedIn collections are search pages, not individual postings', () => {
+  for (const url of [
+    'https://www.linkedin.com/jobs/collections/recommended/',
+    'https://www.linkedin.com/jobs/collections/top-applicant/?currentJobId=123',
+    'https://il.linkedin.com/jobs/collections',
+  ]) assert.throws(() => captureJobLink(url), /Search results URL is not a job listing/);
+  assert.equal(captureJobLink('https://www.linkedin.com/jobs/view/12345678/').source, 'LinkedIn');
+});
