@@ -5,10 +5,10 @@ import type { PublicBoard } from "@/lib/free-job-sources";
 export const dynamic = "force-dynamic";
 // Fixed source validation only. Not an ingestion or public search endpoint.
 const boards: readonly PublicBoard[] = [
+  { provider: "greenhouse", token: "greenhouse", company: "Greenhouse" },
   { provider: "lever", token: "walkme", company: "WalkMe" },
   { provider: "lever", token: "lendbuzz", company: "Lendbuzz" },
   { provider: "lever", token: "Zadara", company: "Zadara" },
-  { provider: "lever", token: "weloglobal", company: "Welo Global" },
   { provider: "lever", token: "airslate", company: "airSlate" },
 ];
 export async function GET() {
