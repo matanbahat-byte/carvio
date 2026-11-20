@@ -82,3 +82,17 @@ test('rejects official Greenhouse links for another board or posting ID',()=>{
  ];
  assert.deepEqual(normalizePublicBoardJobs(gh,{jobs:records}).map(j=>j.title),['Correct']);
 });
+
+test('normalization drops repeated ATS IDs even with distinct tracking URLs',()=>{
+ const leverJobs=normalizePublicBoardJobs(lever,[
+  {id:'123',text:'Engineer',hostedUrl:'https://jobs.lever.co/sample-company/123?source=a'},
+  {id:'123',text:'Engineer',hostedUrl:'https://jobs.lever.co/sample-company/123?source=b'},
+  {id:'124',text:'Designer',hostedUrl:'https://jobs.lever.co/sample-company/124'}
+ ]);
+ assert.deepEqual(leverJobs.map(job=>job.id),['lever:sample-company:123','lever:sample-company:124']);
+ const greenhouseJobs=normalizePublicBoardJobs(gh,{jobs:[
+  {id:55,title:'Analyst',absolute_url:'https://job-boards.greenhouse.io/sample-company/jobs/55?source=a'},
+  {id:55,title:'Analyst',absolute_url:'https://job-boards.greenhouse.io/sample-company/jobs/55?source=b'}
+ ]});
+ assert.equal(greenhouseJobs.length,1);
+});
