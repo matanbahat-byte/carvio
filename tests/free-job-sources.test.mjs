@@ -73,3 +73,12 @@ test('deduplicates tracked URLs for one ATS posting without collapsing distinct 
  ];
  assert.deepEqual(dedupePublicJobs(jobs).map(j=>j.id),['lever:acme:123','lever:other:123']);
 });
+
+test('rejects credentialed and custom-port official Greenhouse URLs',()=>{
+ const records=[
+  {id:41,title:'Credential URL',absolute_url:'https://user:pass@boards.greenhouse.io/sample-company/jobs/41'},
+  {id:42,title:'Custom port',absolute_url:'https://boards.greenhouse.io:8443/sample-company/jobs/42'},
+  {id:43,title:'Valid URL',absolute_url:'https://job-boards.greenhouse.io/sample-company/jobs/43'}
+ ];
+ assert.deepEqual(normalizePublicBoardJobs(gh,{jobs:records}).map(j=>j.title),['Valid URL']);
+});
