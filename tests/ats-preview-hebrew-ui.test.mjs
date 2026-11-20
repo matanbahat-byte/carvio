@@ -58,3 +58,10 @@ test('mobile preview uses isolated light colors and honest zero-result fallback'
  assert.match(source,/broaderRoleJobs\.length > 0/);
  assert.match(source,/לא בכל שוק העבודה/);
 });
+
+test('preview preserves original discovery routes without counting them as verified jobs',()=>{
+ assert.match(source,/jobSearchSources\(/);
+ assert.match(source,/searchRoutes\.map\(/);
+ assert.match(source,/קישורי חיפוש, לא משרות שנמצאו או אומתו/);
+ assert.match(source,/roleAlternatives\.join/);
+});
