@@ -74,11 +74,17 @@ export default async function AtsPreview({ searchParams }: { searchParams: Promi
           <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#f0f0f8] pt-4 text-xs text-[#76819a]"><CheckCircle2 size={15} className="text-[#16aa99]" /> ללא הרשמה כדי לחפש <span className="text-[#d1d4e1]">•</span> קישורים ישירים למשרות <span className="text-[#d1d4e1]">•</span> חיפוש בעברית ובאנגלית</div>
         </section>
 
+        {hasSearch && q && <section aria-label="חיפוש במקורות נוספים" className="mx-auto mt-8 max-w-5xl rounded-[24px] border border-[#dedcf5] bg-white p-5 shadow-sm sm:p-7">
+          <div className="mb-3 flex items-center gap-2"><Search size={19} className="text-[#6248ed]" /><h2 className="text-lg font-extrabold">חיפוש רחב — LinkedIn, Indeed ו־Google</h2></div>
+          <p className="text-sm leading-7 text-[#65708a]">זהו מסלול החיפוש הרחב שהיה קיים ב־CARVIO לפני הניסוי: LinkedIn, Indeed ו־Google. הקישורים פותחים את החיפוש באתרים עצמם עם התפקיד והמיקום שבחרת. אלה <strong>קישורי חיפוש, לא משרות שנמצאו או אומתו ב־CARVIO.</strong></p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">{searchRoutes.map(route => <a key={route.id} href={route.url} target="_blank" rel="noopener noreferrer" className="flex min-h-14 items-center justify-between gap-2 rounded-2xl border border-[#e4e1f6] bg-[#faf9ff] px-4 py-3 text-sm font-bold text-[#6048d8] transition hover:border-[#b9adff] hover:bg-[#f1edff]"><span>{route.name}</span><ExternalLink size={17} aria-hidden="true" /></a>)}</div>
+          {roleAlternatives.length > 0 && <p className="mt-4 text-xs leading-6 text-[#75809a]">תפקידים קרובים שכדאי לנסות בנפרד: {roleAlternatives.join(" · ")}</p>}
+        </section>}
         <section className="mx-auto mt-12 max-w-5xl" aria-label="תוצאות החיפוש">
           {hasSearch ? (
             <>
               <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-                <div><p className="mb-1 text-sm font-bold text-[#745be6]">ההזדמנות הבאה שלך</p><h2 className="text-2xl font-black sm:text-3xl">{availableSources ? jobs.length + " משרות מתאימות" : "המקורות לא זמינים כרגע"}</h2><p className="mt-2 text-sm text-[#7a849b]" role="status">החיפוש שלך: {[q,country || location,city].filter(Boolean).join(" · ")} {availableSources > 0 && " · " + availableSources + "/" + boards.length + " מקורות זמינים"}</p></div>
+                <div><p className="mb-1 text-sm font-bold text-[#745be6]">ההזדמנות הבאה שלך</p><h2 className="text-2xl font-black sm:text-3xl">{availableSources ? jobs.length + " משרות בחמשת אתרי המעסיקים" : "חמשת אתרי המעסיקים לא זמינים כרגע"}</h2><p className="mt-2 text-sm text-[#7a849b]" role="status">החיפוש שלך: {[q,country || location,city].filter(Boolean).join(" · ")} {availableSources > 0 && " · " + availableSources + "/" + boards.length + " מקורות זמינים"}</p></div>
                 <span className="rounded-full border border-[#d5efe8] bg-[#e9fbf5] px-3 py-2 text-xs font-bold text-[#128879]">{availableSources ? allJobs.length + " משרות נסרקו" : "נסו שוב בעוד רגע"}</span>
               </div>
               {availableSources < boards.length && <p role="alert" className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">כיסוי חלקי: {boards.length - availableSources} מקורות לא הגיבו. ייתכן שחסרות משרות.</p>}
@@ -97,12 +103,6 @@ export default async function AtsPreview({ searchParams }: { searchParams: Promi
             <div className="rounded-[24px] border border-dashed border-[#dcd7fb] bg-white/60 px-6 py-10 text-center"><Sparkles className="mx-auto mb-3 text-[#7e68ed]" size={28} /><h2 className="text-xl font-bold">מוכנים לגלות מה מחכה לכם?</h2><p className="mt-2 text-sm text-[#7b849b]">מזינים משרה ומדינה ולוחצים על חיפוש משרות כדי לראות תוצאות.</p></div>
           )}
         </section>
-        {hasSearch && q && <section aria-label="חיפוש במקורות נוספים" className="mx-auto mt-8 max-w-5xl rounded-[24px] border border-[#dedcf5] bg-white p-5 shadow-sm sm:p-7">
-          <div className="mb-3 flex items-center gap-2"><Search size={19} className="text-[#6248ed]" /><h2 className="text-lg font-extrabold">עוד מקומות לחפש בהם</h2></div>
-          <p className="text-sm leading-7 text-[#65708a]">החיפוש הישיר שלנו מכסה כרגע חמישה מעסיקים בלבד. הקישורים הבאים פותחים חיפוש באתרים חיצוניים עם התפקיד והמיקום שבחרת. אלה <strong>קישורי חיפוש, לא משרות שנמצאו או אומתו ב־CARVIO.</strong></p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">{searchRoutes.map(route => <a key={route.id} href={route.url} target="_blank" rel="noopener noreferrer" className="flex min-h-14 items-center justify-between gap-2 rounded-2xl border border-[#e4e1f6] bg-[#faf9ff] px-4 py-3 text-sm font-bold text-[#6048d8] transition hover:border-[#b9adff] hover:bg-[#f1edff]"><span>{route.name}</span><ExternalLink size={17} aria-hidden="true" /></a>)}</div>
-          {roleAlternatives.length > 0 && <p className="mt-4 text-xs leading-6 text-[#75809a]">תפקידים קרובים שכדאי לנסות בנפרד: {roleAlternatives.join(" · ")}</p>}
-        </section>}
         <footer className="mx-auto mt-12 max-w-5xl border-t border-[#e7e7f3] pt-5 text-center text-xs leading-6 text-[#8991a7]">סביבת ניסוי בלבד · כיסוי המעסיקים חלקי · מקורות המשרות טרם אושרו לשימוש ציבורי · קישורי המשרות לא אומתו בנפרד · משרות עשויות להיסגר מאז פרסומן · מוצגות משרות מ־180 הימים האחרונים</footer>
       </div>
     </main>
