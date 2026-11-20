@@ -64,3 +64,12 @@ test('rejects Lever links belonging to a different board or region',()=>{
   assert.deepEqual(normalizePublicBoardJobs(lever,records).map(x=>x.title),['Correct']);
   assert.equal(normalizePublicBoardJobs({...lever,region:'eu'},[{id:'d',text:'EU role',hostedUrl:'https://jobs.eu.lever.co/sample-company/d'}]).length,1);
 });
+
+test('rejects Greenhouse links with embedded credentials or nonstandard ports',()=>{
+  const jobs=normalizePublicBoardJobs(gh,{jobs:[
+    {id:91,title:'Credential URL',absolute_url:'https://user:secret@boards.greenhouse.io/sample-company/jobs/91'},
+    {id:92,title:'Port URL',absolute_url:'https://boards.greenhouse.io:8443/sample-company/jobs/92'},
+    {id:93,title:'Valid URL',absolute_url:'https://boards.greenhouse.io/sample-company/jobs/93'}
+  ]});
+  assert.deepEqual(jobs.map(job=>job.title),['Valid URL']);
+});
