@@ -2414,8 +2414,9 @@ export default function Home() {
     let captured: ReturnType<typeof captureJobLink>;
     try {
       captured = captureJobLink(smartCaptureUrl);
-    } catch {
-      setSmartCaptureError(language === "he" ? "יש להדביק קישור מלא שמתחיל ב־https:// או http://." : "Paste a complete https:// or http:// job URL.");
+    } catch (error) {
+      const searchPage = error instanceof Error && error.message === "Search results URL is not a job listing";
+      setSmartCaptureError(searchPage ? (language === "he" ? "זהו קישור לעמוד חיפוש, לא למשרה. פתחו מודעת משרה מסוימת והעתיקו את הקישור שלה." : "That link opens search results, not a job. Open a specific listing and copy its URL.") : (language === "he" ? "יש להדביק קישור מלא שמתחיל ב־https:// או http://." : "Paste a complete https:// or http:// job URL."));
       return;
     }
     if (openExistingCapture(captured.jobUrl)) return;
