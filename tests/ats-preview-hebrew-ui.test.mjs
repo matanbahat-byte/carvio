@@ -71,3 +71,10 @@ test('original multi-platform discovery is visible before limited ATS results',(
  assert.ok(source.indexOf('חיפוש רחב — LinkedIn, Indeed ו־Google') < source.indexOf('aria-label="תוצאות החיפוש"'));
  assert.ok(source.includes('משרות בחמשת אתרי המעסיקים'));
 });
+
+test('broad fallback does not silently apply date or employment restrictions',()=>{
+ assert.match(source,/const broadRoutes = q \? jobSearchSources\(/);
+ assert.match(source,/datePosted: "Any time", employmentType: ""/);
+ assert.match(source,/broadRoutes\.map\(/);
+ assert.match(source,/ללא הגבלת זמן וללא מסנן סוג העסקה/);
+});
