@@ -22,7 +22,8 @@ export default async function AtsPreview({ searchParams }: { searchParams: Promi
   const country = typeof params.country === "string" ? params.country.trim().slice(0, 80) : "";
   const city = typeof params.city === "string" ? params.city.trim().slice(0, 80) : "";
   const age = params.age === "all" ? "all" : params.age === "90" ? "90" : "180";
-  const results = await Promise.all(boards.map(board => getJobs(board)));
+  const hasSearch = Boolean(q || country || city || location);
+  const results = hasSearch ? await Promise.all(boards.map(board => getJobs(board))) : [];
   const allJobs = dedupePublicJobs(results.flatMap(result => result.jobs));
   const availableSources = results.filter(result => result.status === "ok").length;
   const jobs = searchPreviewJobs(allJobs, { query: q, location, country, city, age });
@@ -32,13 +33,13 @@ export default async function AtsPreview({ searchParams }: { searchParams: Promi
       <h1 className="mt-2 text-3xl font-bold">מוצאים את המשרה הבאה</h1>
       <p className="mt-3 text-sm text-slate-600">חיפוש משרות ממעסיקים נבחרים. סביבת ניסוי בלבד — הכיסוי עדיין חלקי.</p>
       <form method="get" className="mt-6 grid gap-3">
-        <label className="grid gap-1 text-sm font-semibold">Job title
+        <label className="grid gap-1 text-sm font-semibold">איזו משרה מחפשים?
           <input name="q" defaultValue={q} placeholder="למשל: מהנדס תוכנה" maxLength={80} className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 font-normal" />
         </label>
-        <label className="grid gap-1 text-sm font-semibold">Country
+        <label className="grid gap-1 text-sm font-semibold">מדינה
           <input name="country" defaultValue={country || (location.toLowerCase()==="israel" ? location : "")} placeholder="למשל: ישראל" maxLength={80} className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 font-normal" />
         </label>
-        <label className="grid gap-1 text-sm font-semibold">City (optional)
+        <label className="grid gap-1 text-sm font-semibold">עיר (לא חובה)
           <input name="city" defaultValue={city || (location && location.toLowerCase()!=="israel" ? location : "")} placeholder="למשל: תל אביב" maxLength={80} className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 font-normal" />
         </label>
         <input type="hidden" name="age" value="180" />
@@ -47,8 +48,9 @@ export default async function AtsPreview({ searchParams }: { searchParams: Promi
       {(q || country || city || location) && <p className="mt-4 text-sm font-medium text-slate-700" role="status">החיפוש שלך: {[q,country || location,city].filter(Boolean).join(" · ")}</p>}
       <p className="mt-3 text-xs text-slate-500">ניסוי בלבד: המקורות טרם אושרו לשימוש ציבורי, והקישורים למשרות לא אומתו בנפרד. </p>
       <p className="mt-3 text-xs text-slate-500">מוצגות משרות שפורסמו ב־180 הימים האחרונים. ייתכן שמשרות נסגרו מאז הפרסום.</p>
-      <p className="mt-5 text-sm text-slate-600" role="status">{availableSources ? `${jobs.length} משרות מתאימות מתוך ${allJobs.length} משרות שנאספו · ${availableSources}/${boards.length} מקורות פעילים` : "מקורות המשרות אינם זמינים כרגע. כדאי לנסות שוב."}</p>
-      {availableSources < boards.length && <p role="alert" className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">כיסוי חלקי: {boards.length - availableSources} מקורות לא הגיבו. ייתכן שחסרות משרות.</p>}
+      {!hasSearch && <p className="mt-5 text-sm text-slate-600">מזינים משרה ומיקום ולוחצים על חיפוש משרות כדי לראות תוצאות.</p>}
+      {hasSearch && <p className="mt-5 text-sm text-slate-600" role="status">{availableSources ? `${jobs.length} משרות מתאימות מתוך ${allJobs.length} משרות שנאספו · ${availableSources}/${boards.length} מקורות פעילים` : "מקורות המשרות אינם זמינים כרגע. כדאי לנסות שוב."}</p>}
+      {hasSearch && availableSources < boards.length && <p role="alert" className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">כיסוי חלקי: {boards.length - availableSources} מקורות לא הגיבו. ייתכן שחסרות משרות.</p>}
       <div className="mt-5 space-y-3">
         {jobs.map(job => <article key={job.id} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-semibold">{job.title}</h2>
