@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createCachedBoardFetcher } from "@/lib/free-job-board-cache";
 import { dedupePublicJobs } from "@/lib/free-job-sources";
+import { searchPreviewJobs, titleMatches } from "@/lib/free-job-preview-search";
 import type { PublicBoard } from "@/lib/free-job-sources";
 
 export const dynamic = "force-dynamic";
@@ -12,22 +13,6 @@ const boards: readonly PublicBoard[] = [
   { provider: "lever", token: "airslate", company: "airSlate" },
 ];
 const getJobs = createCachedBoardFetcher();
-const israelPlaces = /\b(israel|tel[ -]?aviv|herzliya|haifa|jerusalem|petah[ -]?tikva|ramat[ -]?gan|raanana|rishon[ -]?lezion|netanya|beer[ -]?sheva|bnei[ -]?brak|hod[ -]?hasharon|kfar[ -]?saba|yokneam|re\u1e25ovot)\b/i;
-const roleAliases: Record<string, string[]> = {
-  "hr business partner": ["hrbp", "people partner", "human resources business partner", "people business partner"],
-  "supply chain manager": ["supply chain lead", "supply chain director", "head of supply chain", "supply chain planning manager"],
-  "software engineer": ["software developer", "backend engineer", "frontend engineer", "full stack engineer", "full-stack engineer"],
-};
-function titleMatches(title: string, query: string) {
-  const normalized = query.toLocaleLowerCase().trim();
-  const haystack = title.toLocaleLowerCase();
-  return haystack.includes(normalized) || (roleAliases[normalized] ?? []).some(alias => haystack.includes(alias));
-}
-function matchesLocation(actual: string, requested: string) {
-  if (requested.trim().toLocaleLowerCase() === "israel") return israelPlaces.test(actual);
-  return actual.toLocaleLowerCase().includes(requested.toLocaleLowerCase());
-}
-
 export default async function AtsPreview({ searchParams }: { searchParams: Promise<{ q?: string; location?: string; age?: string }> }) {
   // Never expose the pilot in production or permit user-controlled ATS endpoints.
   if (process.env.VERCEL_ENV !== "preview") notFound();
@@ -35,23 +20,10 @@ export default async function AtsPreview({ searchParams }: { searchParams: Promi
   const q = typeof params.q === "string" ? params.q.trim().slice(0, 80) : "";
   const location = typeof params.location === "string" ? params.location.trim().slice(0, 80) : "";
   const age = params.age === "all" ? "all" : params.age === "90" ? "90" : "180";
-  const cutoff = Date.now() - Number(age === "all" ? 0 : age) * 86_400_000;
   const results = await Promise.all(boards.map(board => getJobs(board)));
   const allJobs = dedupePublicJobs(results.flatMap(result => result.jobs));
   const availableSources = results.filter(result => result.status === "ok").length;
-  const jobs = allJobs.filter(job => {
-    if (q && !titleMatches(job.title, q) && ![job.company, job.location].some(v => v.toLocaleLowerCase().includes(q.toLocaleLowerCase()))) return false;
-    if (location && !matchesLocation(job.location, location)) return false;
-    if (age !== "all") {
-      const published = job.postedAt ? Date.parse(job.postedAt) : NaN;
-      if (!Number.isFinite(published) || published < cutoff || published > Date.now() + 86_400_000) return false;
-    }
-    return true;
-  }).sort((a, b) => {
-    // A title match is more relevant than a company or location-only match.
-    const relevance = (job: typeof a) => !q ? 0 : titleMatches(job.title, q) ? 2 : job.company.toLocaleLowerCase().includes(q.toLocaleLowerCase()) ? 1 : 0;
-    return relevance(b) - relevance(a) || (Date.parse(b.postedAt ?? "") || 0) - (Date.parse(a.postedAt ?? "") || 0);
-  });
+  const jobs = searchPreviewJobs(allJobs, { query: q, location, age });
   return (
     <main className="mx-auto w-full max-w-3xl px-5 py-10 text-slate-900">
       <p className="text-sm font-semibold text-indigo-700">CARVIO · Preview only</p>
