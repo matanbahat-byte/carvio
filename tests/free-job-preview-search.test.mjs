@@ -29,3 +29,8 @@ test('role queries do not match company or location alone',()=>{
  jobs[0].company='HR Business Partner Consulting';
  assert.deepEqual(searchPreviewJobs(jobs,{now,query:'HR Business Partner'}).map(x=>x.id),['2']);
 });
+
+test('Software Engineering role family includes Software Engineer titles without sales roles',()=>{
+ const jobs=[job('1','Software Engineer Team Leader','Tel Aviv','2026-11-19T00:00:00Z'),job('2','Enterprise Account Manager','Anywhere in the United States','2026-11-19T00:00:00Z')];
+ assert.deepEqual(searchPreviewJobs(jobs,{now,query:'Software Engineering',location:'Israel'}).map(x=>x.id),['1']);
+});
