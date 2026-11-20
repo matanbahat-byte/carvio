@@ -141,3 +141,21 @@ test('job link identity preserves query and fragment identifiers used by job boa
   assert.equal(jobLinkIdentity(''), null);
   assert.equal(jobLinkIdentity('javascript:alert(1)'), null);
 });
+
+
+test('search result pages cannot be mistaken for individual job opportunities', () => {
+  for (const url of [
+    'https://www.linkedin.com/jobs/search/?keywords=designer',
+    'https://il.linkedin.com/jobs/search?keywords=designer',
+    'https://www.linkedin.com/jobs/',
+    'https://il.indeed.com/jobs?q=designer',
+    'https://www.indeed.com/?q=designer',
+    'https://www.google.com/search?q=designer+jobs',
+    'https://www.google.co.il/search?q=designer+jobs',
+  ]) assert.throws(() => captureJobLink(url), /Search results URL is not a job listing/, url);
+  for (const url of [
+    'https://www.linkedin.com/jobs/view/12345678',
+    'https://il.indeed.com/viewjob?jk=abc123',
+    'https://www.google.com/about/careers/applications/jobs/results/1234',
+  ]) assert.equal(captureJobLink(url).jobUrl, url);
+});
