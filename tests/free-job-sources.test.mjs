@@ -82,3 +82,11 @@ test('rejects official Greenhouse links for another board or posting ID',()=>{
  ];
  assert.deepEqual(normalizePublicBoardJobs(gh,{jobs:records}).map(j=>j.title),['Correct']);
 });
+
+test('rejects Lever posting URLs that point to a different job on the same board',()=>{
+ const records=[
+  {id:'expected',text:'Wrong posting',hostedUrl:'https://jobs.lever.co/sample-company/other'},
+  {id:'correct',text:'Correct posting',hostedUrl:'https://jobs.lever.co/sample-company/correct?utm_source=email'}
+ ];
+ assert.deepEqual(normalizePublicBoardJobs(lever,records).map(job=>job.title),['Correct posting']);
+});
