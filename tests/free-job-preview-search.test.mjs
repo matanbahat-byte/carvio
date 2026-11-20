@@ -52,3 +52,16 @@ test('common Hebrew synonyms match English employer job titles',()=>{
  assert.deepEqual(searchPreviewJobs(jobs,{now,query:'מפתח תוכנה',country:'ישראל',city:'תל אביב'}).map(x=>x.id),['1']);
  assert.deepEqual(searchPreviewJobs(jobs,{now,query:'מנהלת מוצר',country:'ישראל',city:'תל אביב'}).map(x=>x.id),['2']);
 });
+
+test('Netherlands and Germany country searches recognize city-only ATS locations without admitting unrelated remote jobs',()=>{
+ const jobs=[
+  job('nl','HR Business Partner','Amsterdam','2026-11-19T00:00:00Z'),
+  job('de','HR Business Partner','Berlin','2026-11-19T00:00:00Z'),
+  job('us','HR Business Partner','Remote - US','2026-11-19T00:00:00Z'),
+  job('other','HR Business Partner','London','2026-11-19T00:00:00Z')
+ ];
+ assert.deepEqual(searchPreviewJobs(jobs,{now,query:'HR Business Partner',country:'Netherlands',city:'Amsterdam'}).map(x=>x.id),['nl']);
+ assert.deepEqual(searchPreviewJobs(jobs,{now,query:'HR Business Partner',country:'הולנד',city:'Amsterdam'}).map(x=>x.id),['nl']);
+ assert.deepEqual(searchPreviewJobs(jobs,{now,query:'HR Business Partner',country:'גרמניה',city:'Berlin'}).map(x=>x.id),['de']);
+ assert.equal(locationMatches('Remote - US','Netherlands'),false);
+});
