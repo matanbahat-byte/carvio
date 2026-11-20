@@ -26,6 +26,22 @@ try {
     assert.ok(/carvio/i.test(body + " " + (await page.title())), name + ": CARVIO branding missing");
     assert.ok(!/application error: a client-side exception has occurred/i.test(body), name + ": Next.js client error");
     assert.deepEqual(exceptions, [], name + ": uncaught browser exceptions");
+    // Exercise real browser navigation without writing user data.
+    const initialUrl = page.url();
+    await page.reload({ waitUntil: "domcontentloaded", timeout: 45000 });
+    await page.locator("body").waitFor({ state: "visible", timeout: 15000 });
+    assert.ok(page.url().startsWith(new URL(initialUrl).origin), name + ": reload navigated away from CARVIO");
+    assert.ok((await page.locator("body").innerText()).trim().length > 80, name + ": reload lost page content");
+    assert.ok(!/application error: a client-side exception has occurred/i.test(await page.locator("body").innerText()), name + ": reload caused client error");
+    assert.deepEqual(exceptions, [], name + ": browser exception after reload");
+
+    // Public outbound links must be syntactically valid and use safe protocols.
+    const badLinks = await page.locator('a[href]').evaluateAll((anchors) =>
+      anchors.map((anchor) => anchor.getAttribute("href") || "")
+        .filter((href) => !href.startsWith("#") && !href.startsWith("/") && !/^https?:\\/\\//i.test(href) && !/^mailto:/i.test(href) && !/^tel:/i.test(href))
+    );
+    assert.deepEqual(badLinks, [], name + ": unexpected public link protocols");
+    console.log("PASS " + name + " reload + public link protocol checks");
     await page.screenshot({ path: output + "/" + name + ".png", fullPage: true });
     console.log("PASS " + name + " | HTTP " + response.status() + " | title: " + await page.title());
     await context.close();
