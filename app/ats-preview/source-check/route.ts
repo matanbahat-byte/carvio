@@ -16,9 +16,11 @@ export async function GET() {
   const checks = [];
   for (const board of boards) {
     const result = await fetchPublicBoardJobs(board, { timeoutMs: 2500, maxResults: 100 });
-    checks.push({ company: board.company, provider: board.provider, status: result.status, count: result.jobs.length,
-      israel: result.jobs.filter(job => /israel|tel aviv|herzliya|haifa|jerusalem|petah tikva|ramat gan/i.test(job.location)).length,
-      europe: result.jobs.filter(job => /europe|london|united kingdom|ireland|germany|netherlands|spain|portugal|france|poland|berlin|amsterdam|dublin|paris|warsaw|madrid|lisbon/i.test(job.location)).length });
+    const now = Date.now();
+    const recent = result.jobs.filter(job => { const ts = job.postedAt ? Date.parse(job.postedAt) : NaN; return Number.isFinite(ts) && ts <= now + 86_400_000 && ts >= now - 180 * 86_400_000; });
+    checks.push({ company: board.company, provider: board.provider, status: result.status, count: result.jobs.length, recent180Days: recent.length, missingOrOldDates: result.jobs.length - recent.length,
+      israel: recent.filter(job => /israel|tel aviv|herzliya|haifa|jerusalem|petah tikva|ramat gan/i.test(job.location)).length,
+      europe: recent.filter(job => /europe|london|united kingdom|ireland|germany|netherlands|spain|portugal|france|poland|berlin|amsterdam|dublin|paris|warsaw|madrid|lisbon/i.test(job.location)).length });
   }
-  return Response.json({ note: "Preview-only source diagnostics. Counts do not establish posting reuse permission or link validity.", checks }, { headers: { "Cache-Control": "private, max-age=0, s-maxage=300" } });
+  return Response.json({ note: "Preview-only source diagnostics. Israel/Europe counts are on recent postings only and use location-text heuristics. Counts do not establish posting reuse permission or link validity.", checks }, { headers: { "Cache-Control": "private, max-age=0, s-maxage=300" } });
 }
