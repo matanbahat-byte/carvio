@@ -2482,6 +2482,10 @@ export default function Home() {
 
   function finishCapturedSave(application: Application) {
     setApplicationDraft(application);
+    // The saved listing lives in applicationDraft; clear the quick-entry field
+    // so the next job can be pasted without accidentally reusing the old URL.
+    setSmartCaptureUrl("");
+    setSmartCaptureError("");
     setSearchOutcome("found");
     setLastCapturedApplicationId(application.id);
     setSmartCaptureSavedId(application.id);
