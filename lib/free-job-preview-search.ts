@@ -18,9 +18,11 @@ export function locationMatches(actual: string, requested: string): boolean {
   if (!needle) return true;
   return needle === "israel" ? israelPlaces.test(actual) : actual.toLocaleLowerCase().includes(needle);
 }
-export function searchPreviewJobs(jobs: PublicJob[], options: {query?:string;location?:string;age?: "90"|"180"|"all";now?:number}): PublicJob[] {
+export function searchPreviewJobs(jobs: PublicJob[], options: {query?:string;location?:string;country?:string;city?:string;age?: "90"|"180"|"all";now?:number}): PublicJob[] {
   const query=(options.query ?? "").trim().slice(0,80);
   const location=(options.location ?? "").trim().slice(0,80);
+  const country=(options.country ?? "").trim().slice(0,80);
+  const city=(options.city ?? "").trim().slice(0,80);
   const age=options.age ?? "180";
   const now=options.now ?? Date.now();
   const cutoff=now - Number(age === "all" ? 0 : age)*86_400_000;
@@ -31,6 +33,8 @@ export function searchPreviewJobs(jobs: PublicJob[], options: {query?:string;loc
     const otherMatch = !isRoleQuery && [job.company,job.location].some(v=>v.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
     if (query && !titleMatch && !otherMatch) return false;
     if (!locationMatches(job.location,location)) return false;
+    if (!locationMatches(job.location,country)) return false;
+    if (city && !job.location.toLocaleLowerCase().includes(city.toLocaleLowerCase())) return false;
     if (age !== "all") {
       const published=job.postedAt ? Date.parse(job.postedAt) : NaN;
       if (!Number.isFinite(published) || published < cutoff || published > now+86_400_000) return false;
