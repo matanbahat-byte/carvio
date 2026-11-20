@@ -1,0 +1,36 @@
+name: CARVIO public browser smoke
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/browser-smoke.yml'
+      - 'tests/browser-smoke.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm install --no-save --package-lock=false playwright@1.58.2
+      - run: npx playwright install --with-deps chromium
+      - name: Check public desktop and mobile experience (read-only)
+        run: node tests/browser-smoke.mjs
+        env:
+          CARVIO_BASE_URL: https://carvio-pi.vercel.app/?workspace=1
+      - name: Upload browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: carvio-browser-smoke
+          path: artifacts/browser-smoke/
+          if-no-files-found: ignore
+          retention-days: 3
