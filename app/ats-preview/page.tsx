@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { ArrowUpLeft, BriefcaseBusiness, MapPin, Search, Sparkles, ExternalLink, CheckCircle2 } from "lucide-react";
 import { createCachedBoardFetcher } from "@/lib/free-job-board-cache";
 import { dedupePublicJobs } from "@/lib/free-job-sources";
 import { searchPreviewJobs, titleMatches } from "@/lib/free-job-preview-search";
@@ -28,39 +29,69 @@ export default async function AtsPreview({ searchParams }: { searchParams: Promi
   const availableSources = results.filter(result => result.status === "ok").length;
   const jobs = searchPreviewJobs(allJobs, { query: q, location, country, city, age });
   return (
-    <main lang="he" dir="rtl" className="mx-auto w-full max-w-3xl px-5 py-10 text-slate-900">
-      <p className="text-sm font-semibold text-indigo-700">CARVIO · סביבת ניסוי</p>
-      <h1 className="mt-2 text-3xl font-bold">מוצאים את המשרה הבאה</h1>
-      <p className="mt-3 text-sm text-slate-600">חיפוש משרות ממעסיקים נבחרים. סביבת ניסוי בלבד — הכיסוי עדיין חלקי.</p>
-      <form method="get" className="mt-6 grid gap-3">
-        <label className="grid gap-1 text-sm font-semibold">איזו משרה מחפשים?
-          <input name="q" defaultValue={q} placeholder="למשל: מהנדס תוכנה" maxLength={80} className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 font-normal" />
-        </label>
-        <label className="grid gap-1 text-sm font-semibold">מדינה
-          <input name="country" defaultValue={country || (location.toLowerCase()==="israel" ? location : "")} placeholder="למשל: ישראל" maxLength={80} className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 font-normal" />
-        </label>
-        <label className="grid gap-1 text-sm font-semibold">עיר (לא חובה)
-          <input name="city" defaultValue={city || (location && location.toLowerCase()!=="israel" ? location : "")} placeholder="למשל: תל אביב" maxLength={80} className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 font-normal" />
-        </label>
-        <input type="hidden" name="age" value="180" />
-        <button type="submit" className="w-full rounded-lg bg-indigo-700 px-5 py-4 text-base font-semibold text-white">חיפוש משרות</button>
-      </form>
-      {(q || country || city || location) && <p className="mt-4 text-sm font-medium text-slate-700" role="status">החיפוש שלך: {[q,country || location,city].filter(Boolean).join(" · ")}</p>}
-      <p className="mt-3 text-xs text-slate-500">ניסוי בלבד: המקורות טרם אושרו לשימוש ציבורי, והקישורים למשרות לא אומתו בנפרד. </p>
-      <p className="mt-3 text-xs text-slate-500">מוצגות משרות שפורסמו ב־180 הימים האחרונים. ייתכן שמשרות נסגרו מאז הפרסום.</p>
-      {!hasSearch && <p className="mt-5 text-sm text-slate-600">מזינים משרה ומיקום ולוחצים על חיפוש משרות כדי לראות תוצאות.</p>}
-      {hasSearch && <p className="mt-5 text-sm text-slate-600" role="status">{availableSources ? `${jobs.length} משרות מתאימות מתוך ${allJobs.length} משרות שנאספו · ${availableSources}/${boards.length} מקורות פעילים` : "מקורות המשרות אינם זמינים כרגע. כדאי לנסות שוב."}</p>}
-      {hasSearch && availableSources < boards.length && <p role="alert" className="mt-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">כיסוי חלקי: {boards.length - availableSources} מקורות לא הגיבו. ייתכן שחסרות משרות.</p>}
-      <div className="mt-5 space-y-3">
-        {jobs.map(job => <article key={job.id} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-semibold">{job.title}</h2>
-          <p className="mt-1 text-sm text-slate-600">{job.company} · {job.location || "מיקום לא צוין"}</p>
-          <p className="mt-2 text-xs font-medium text-indigo-700">{q ? titleMatches(job.title, q) ? job.title.toLocaleLowerCase().includes(q.toLocaleLowerCase()) ? "התאמה לשם המשרה" : "התאמה לתפקיד דומה" : "התאמה לשם המשרה" : "ממויין לפי תאריך פרסום"}</p>
-          <p className="mt-2 text-xs text-slate-500">{job.postedAt ? `פורסם: ${job.postedAt.slice(0,10)}` : "תאריך פרסום לא זמין"}</p>
-          <a href={job.url} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-sm font-semibold text-indigo-700 underline">לצפייה במשרה ולהגשת מועמדות</a>
-        </article>)}
+    <main lang="he" dir="rtl" className="min-h-screen bg-[#f7f8ff] text-[#18223c]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[550px] overflow-hidden" aria-hidden="true">
+        <div className="absolute -top-48 -right-32 h-[500px] w-[500px] rounded-full bg-[#dcd6ff] opacity-70 blur-[110px]" />
+        <div className="absolute top-16 -left-28 h-[400px] w-[400px] rounded-full bg-[#c5f2ed] opacity-60 blur-[100px]" />
       </div>
-      {availableSources > 0 && jobs.length === 0 && <p className="mt-5 text-sm text-slate-600">לא נמצאו משרות מתאימות אצל המעסיקים שנבדקו. נסו שם תפקיד רחב יותר או עיר אחרת.</p>}
+      <div className="relative mx-auto max-w-6xl px-4 pb-20 pt-6 sm:px-8">
+        <header className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5" dir="ltr">
+            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#6248ed] text-white shadow-lg shadow-violet-200"><Sparkles size={21} /></span>
+            <span className="text-xl font-black tracking-tight">CARVIO<span className="text-[#735bf2]">.</span></span>
+          </div>
+          <span className="rounded-full border border-violet-200 bg-white/80 px-3 py-1.5 text-xs font-bold text-[#6550bd]">✦ סביבת ניסוי</span>
+        </header>
+
+        <section className="mx-auto max-w-3xl pb-8 pt-14 text-center sm:pt-20">
+          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#e4dfff] bg-white/80 px-4 py-2 text-xs font-bold text-[#6851d8] shadow-sm">
+            <Sparkles size={15} /> פחות חיפושים. יותר הזדמנויות.
+          </div>
+          <h1 className="text-4xl font-black leading-[1.2] tracking-tight sm:text-6xl">המשרה הבאה שלך <span className="bg-gradient-to-l from-[#6248ed] to-[#16b6a8] bg-clip-text text-transparent">מתחילה כאן.</span></h1>
+          <p className="mx-auto mt-5 max-w-xl text-base leading-8 text-[#68738c] sm:text-lg">תפקיד, מדינה, ואולי גם עיר. זה כל מה שצריך כדי לגלות משרות ממעסיקים אמיתיים.</p>
+        </section>
+
+        <section aria-label="חיפוש משרות" className="mx-auto max-w-5xl rounded-[28px] border border-white bg-white/95 p-4 shadow-[0_22px_70px_rgba(74,60,142,0.12)] sm:p-6">
+          <form method="get" className="grid items-end gap-3 md:grid-cols-[1.35fr_1fr_1fr_auto]">
+            <label className="grid gap-2 text-sm font-bold text-[#293451]">איזו משרה מחפשים?
+              <span className="relative block"><BriefcaseBusiness aria-hidden="true" size={19} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#938db2]" /><input name="q" defaultValue={q} placeholder="למשל: מהנדס תוכנה" maxLength={80} className="w-full rounded-2xl border border-[#e6e8f3] bg-[#fafaff] py-3.5 pl-3 pr-11 font-normal outline-none transition focus:border-[#806af2] focus:bg-white focus:ring-4 focus:ring-violet-100" /></span>
+            </label>
+            <label className="grid gap-2 text-sm font-bold text-[#293451]">מדינה
+              <span className="relative block"><MapPin aria-hidden="true" size={19} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#938db2]" /><input name="country" defaultValue={country || (location.toLowerCase()==="israel" ? location : "")} placeholder="למשל: ישראל" maxLength={80} className="w-full rounded-2xl border border-[#e6e8f3] bg-[#fafaff] py-3.5 pl-3 pr-11 font-normal outline-none transition focus:border-[#806af2] focus:bg-white focus:ring-4 focus:ring-violet-100" /></span>
+            </label>
+            <label className="grid gap-2 text-sm font-bold text-[#293451]">עיר <span className="font-normal text-[#8b94a9]">(לא חובה)</span>
+              <span className="relative block"><MapPin aria-hidden="true" size={19} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#938db2]" /><input name="city" defaultValue={city || (location && location.toLowerCase()!=="israel" ? location : "")} placeholder="למשל: תל אביב" maxLength={80} className="w-full rounded-2xl border border-[#e6e8f3] bg-[#fafaff] py-3.5 pl-3 pr-11 font-normal outline-none transition focus:border-[#806af2] focus:bg-white focus:ring-4 focus:ring-violet-100" /></span>
+            </label>
+            <input type="hidden" name="age" value="180" />
+            <button type="submit" className="flex min-h-[51px] items-center justify-center gap-2 rounded-2xl bg-[#6248ed] px-6 py-3.5 font-bold text-white shadow-lg shadow-violet-200 transition hover:-translate-y-0.5 hover:bg-[#5239d6] focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-violet-300"><Search size={19} /> חיפוש משרות</button>
+          </form>
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#f0f0f8] pt-4 text-xs text-[#76819a]"><CheckCircle2 size={15} className="text-[#16aa99]" /> ללא הרשמה כדי לחפש <span className="text-[#d1d4e1]">•</span> קישורים ישירים למשרות <span className="text-[#d1d4e1]">•</span> חיפוש בעברית ובאנגלית</div>
+        </section>
+
+        <section className="mx-auto mt-12 max-w-5xl" aria-label="תוצאות החיפוש">
+          {hasSearch ? (
+            <>
+              <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+                <div><p className="mb-1 text-sm font-bold text-[#745be6]">ההזדמנות הבאה שלך</p><h2 className="text-2xl font-black sm:text-3xl">{availableSources ? jobs.length + " משרות מתאימות" : "המקורות לא זמינים כרגע"}</h2><p className="mt-2 text-sm text-[#7a849b]" role="status">החיפוש שלך: {[q,country || location,city].filter(Boolean).join(" · ")} {availableSources > 0 && " · " + availableSources + "/" + boards.length + " מקורות זמינים"}</p></div>
+                <span className="rounded-full border border-[#d5efe8] bg-[#e9fbf5] px-3 py-2 text-xs font-bold text-[#128879]">{availableSources ? allJobs.length + " משרות נסרקו" : "נסו שוב בעוד רגע"}</span>
+              </div>
+              {availableSources < boards.length && <p role="alert" className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">כיסוי חלקי: {boards.length - availableSources} מקורות לא הגיבו. ייתכן שחסרות משרות.</p>}
+              <div className="grid gap-4 md:grid-cols-2">
+                {jobs.map(job => <article key={job.id} className="group flex flex-col rounded-[22px] border border-[#e9eaf4] bg-white p-5 shadow-[0_8px_28px_rgba(44,38,92,0.04)] transition duration-200 hover:-translate-y-1 hover:border-[#cbc2ff] hover:shadow-[0_16px_40px_rgba(76,60,147,0.12)] sm:p-6">
+                  <div className="mb-4 flex items-start justify-between gap-3"><span className="rounded-xl bg-[#f1edff] px-3 py-1.5 text-xs font-bold text-[#684bd5]">{q ? titleMatches(job.title, q) && !job.title.toLocaleLowerCase().includes(q.toLocaleLowerCase()) ? "תפקיד דומה" : "התאמה לתפקיד" : "משרה חדשה"}</span><span className="text-xs text-[#929ab0]">{job.postedAt ? "פורסם " + job.postedAt.slice(0,10) : "תאריך לא זמין"}</span></div>
+                  <h3 dir="auto" className="text-xl font-extrabold leading-snug text-[#202b49]">{job.title}</h3>
+                  <p dir="auto" className="mt-3 flex items-center gap-2 text-sm text-[#65708a]"><BriefcaseBusiness size={16} className="shrink-0 text-[#9887e9]" /> {job.company}</p>
+                  <p dir="auto" className="mt-2 flex items-center gap-2 text-sm text-[#65708a]"><MapPin size={16} className="shrink-0 text-[#9887e9]" /> {job.location || "מיקום לא צוין"}</p>
+                  <div className="mt-auto pt-6"><a href={job.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#f1eeff] px-4 py-2.5 text-sm font-extrabold text-[#6248ed] transition group-hover:bg-[#6248ed] group-hover:text-white">לצפייה במשרה <ArrowUpLeft size={17} aria-hidden="true" /><ExternalLink size={14} aria-hidden="true" /></a></div>
+                </article>)}
+              </div>
+              {availableSources > 0 && jobs.length === 0 && <div className="rounded-[22px] border border-[#e6e8f3] bg-white p-10 text-center"><Search className="mx-auto mb-3 text-[#9b8af3]" size={32} /><h3 className="text-xl font-bold">לא מצאנו התאמה הפעם</h3><p className="mt-2 text-sm text-[#7b849b]">הכיסוי עדיין מצומצם. נסו תפקיד רחב יותר או עיר אחרת.</p></div>}
+            </>
+          ) : (
+            <div className="rounded-[24px] border border-dashed border-[#dcd7fb] bg-white/60 px-6 py-10 text-center"><Sparkles className="mx-auto mb-3 text-[#7e68ed]" size={28} /><h2 className="text-xl font-bold">מוכנים לגלות מה מחכה לכם?</h2><p className="mt-2 text-sm text-[#7b849b]">מזינים משרה ומדינה ולוחצים על חיפוש משרות כדי לראות תוצאות.</p></div>
+          )}
+        </section>
+        <footer className="mx-auto mt-12 max-w-5xl border-t border-[#e7e7f3] pt-5 text-center text-xs leading-6 text-[#8991a7]">סביבת ניסוי בלבד · כיסוי המעסיקים חלקי · מקורות המשרות טרם אושרו לשימוש ציבורי · קישורי המשרות לא אומתו בנפרד · משרות עשויות להיסגר מאז פרסומן · מוצגות משרות מ־180 הימים האחרונים</footer>
+      </div>
     </main>
-  );
-}
+  );}
