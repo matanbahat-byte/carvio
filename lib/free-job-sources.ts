@@ -35,13 +35,15 @@ export function normalizePublicBoardJobs(board: PublicBoard, payload: unknown): 
     const id = String(job.id ?? "").trim();
     const title = text(job.title ?? job.text);
     const loc = job.location && typeof job.location === "object" ? (job.location as Record<string, unknown>).name : "";
-    const location = text(loc);
+    const categories = job.categories && typeof job.categories === "object" ? job.categories as Record<string, unknown> : null;
+    const location = text(board.provider === "lever" ? categories?.location : loc);
     const url = board.provider === "greenhouse"
       ? httpsUrl(job.absolute_url, "greenhouse.io")
       : httpsUrl(job.hostedUrl, "lever.co");
     if (!id || !title || !url || seen.has(url)) continue;
     seen.add(url);
-    const date = text(job.updated_at ?? job.createdAt);
+    // updated_at is not a posting date; never mislabel it as one.
+    const date = text(board.provider === "greenhouse" ? job.first_published : job.createdAt);
     output.push({id:`${board.provider}:${board.token}:${id}`,title,company:board.company,location,url,provider:board.provider,postedAt:date && !Number.isNaN(Date.parse(date)) ? new Date(date).toISOString() : null});
   }
   return output;
