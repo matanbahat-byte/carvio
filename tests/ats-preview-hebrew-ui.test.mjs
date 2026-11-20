@@ -26,3 +26,11 @@ test('ATS pilot only fetches fixed employer boards and warns about partial cover
  assert.match(source,/המקורות טרם אושרו לשימוש ציבורי/);
  assert.match(source,/rel="noopener noreferrer"/);
 });
+
+test('source diagnostics check exactly the same employer boards as the preview search',()=>{
+ const diagnostics=readFileSync(new URL('../app/ats-preview/source-check/route.ts',import.meta.url),'utf8');
+ const pattern=/\{ provider: "(greenhouse|lever)", token: "([^"]+)", company: "([^"]+)" \}/g;
+ const extract=(text)=>[...text.matchAll(pattern)].map(match=>match[0]).sort();
+ assert.equal(extract(source).length,5);
+ assert.deepEqual(extract(diagnostics),extract(source));
+});
