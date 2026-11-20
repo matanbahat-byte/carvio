@@ -4345,7 +4345,8 @@ export default function Home() {
           {openedSearchSource && searchOutcome !== "found" && <section className="search-return-capture" aria-label={language === "he" ? "שמירה לאחר החיפוש" : "Save after searching"}>
             <div><strong>{language === "he" ? `מצאתם משהו ב־${openedSearchSource}?` : `Found something on ${openedSearchSource}?`}</strong><p>{language === "he" ? "הדביקו קישור למודעה. נבדוק אם כבר שמרתם אותה, ואז תוכלו לאשר את הפרטים." : "Paste the listing URL. We will check whether you already saved it, then let you review the details."}</p></div>
             <label htmlFor="search-return-url">{language === "he" ? "קישור למשרה שמצאתם" : "Link to the job you found"}</label>
-            <input id="search-return-url" type="url" className="form-control" value={smartCaptureUrl} onChange={(event) => { setSmartCaptureUrl(event.target.value); setSmartCaptureError(""); }} placeholder="https://…" />
+            <p id="search-return-url-hint" className="text-sm text-slate-300">{language === "he" ? "העתיקו את כתובת מודעת המשרה עצמה, לא את עמוד תוצאות החיפוש." : "Copy the individual job listing URL, not the search results page."}</p>
+            <input id="search-return-url" type="url" aria-describedby="search-return-url-hint" className="form-control" value={smartCaptureUrl} onChange={(event) => { setSmartCaptureUrl(event.target.value); setSmartCaptureError(""); }} placeholder="https://…" />
             <button className="primary-button" type="button" disabled={!smartCaptureUrl.trim()} onClick={() => { setSmartCaptureStep("link"); setShowSmartCapture(true); smartCaptureApplication(); }}>{language === "he" ? "בדיקה ושמירה ב־CARVIO" : "Review and save to CARVIO"}</button>
           </section>}
           <div className="search-outcome-panel mb-4" role="region" aria-label={language === "he" ? "הצעד הבא בחיפוש" : "Your next search step"}>
