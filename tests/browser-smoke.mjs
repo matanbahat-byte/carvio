@@ -26,6 +26,27 @@ try {
     assert.ok(/carvio/i.test(body + " " + (await page.title())), name + ": CARVIO branding missing");
     assert.ok(!/application error: a client-side exception has occurred/i.test(body), name + ": Next.js client error");
     assert.deepEqual(exceptions, [], name + ": uncaught browser exceptions");
+    // Exercise the public search flow without opening external sites or writing user data.
+    const searchEntry = page.locator(".first-job-decision-actions button").filter({ hasText: /search|לחיפוש/i });
+    if (await searchEntry.count() && await searchEntry.first().isVisible()) {
+      await searchEntry.first().click();
+      const roleInput = page.locator('input[list="carvio-role-options"]');
+      await roleInput.waitFor({ state: "visible", timeout: 10000 });
+      await roleInput.fill("Supply Chain Manager");
+      const countrySelect = page.locator(".search-form-grid select").first();
+      await countrySelect.selectOption({ label: "Israel" });
+      const launch = page.locator(".search-launch-button");
+      assert.ok(await launch.isEnabled(), name + ": search launch disabled after valid role and country");
+      await launch.click();
+      const searchCards = page.locator("a[href*='linkedin.com'], a[href*='indeed.com'], a[href*='google.com']");
+      await searchCards.first().waitFor({ state: "attached", timeout: 10000 });
+      const destinations = await searchCards.evaluateAll((links) => links.map((a) => a.href));
+      assert.ok(destinations.some((url) => url.includes("linkedin.com")), name + ": LinkedIn search link missing");
+      assert.ok(destinations.some((url) => url.includes("google.com") || url.includes("indeed.com")), name + ": alternative search source missing");
+      console.log("PASS " + name + " search | sources " + destinations.length);
+    } else {
+      console.log("SKIP " + name + " search journey: first-job search entry not shown");
+    }
     await page.screenshot({ path: output + "/" + name + ".png", fullPage: true });
     console.log("PASS " + name + " | HTTP " + response.status() + " | title: " + await page.title());
     await context.close();
