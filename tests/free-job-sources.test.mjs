@@ -29,7 +29,7 @@ test('normalizes Lever listings without inventing fields',()=>{
   assert.equal(jobs[0].postedAt,null);
 });
 test('deduplicates identical links without dropping distinct postings',()=>{
-  const jobs=normalizePublicBoardJobs(gh,{jobs:[{id:1,title:'A',absolute_url:'https://boards.greenhouse.io/demo/jobs/1'},{id:1,title:'A',absolute_url:'https://boards.greenhouse.io/demo/jobs/1'},{id:2,title:'B',absolute_url:'https://boards.greenhouse.io/demo/jobs/2'}]});
+  const jobs=normalizePublicBoardJobs(gh,{jobs:[{id:1,title:'A',absolute_url:'https://boards.greenhouse.io/sample-company/jobs/1'},{id:1,title:'A',absolute_url:'https://boards.greenhouse.io/sample-company/jobs/1'},{id:2,title:'B',absolute_url:'https://boards.greenhouse.io/sample-company/jobs/2'}]});
   assert.equal(dedupePublicJobs([...jobs,...jobs]).length,2);
 });
 
@@ -72,4 +72,13 @@ test('deduplicates tracked URLs for one ATS posting without collapsing distinct 
   {id:'lever:other:123',provider:'lever',title:'Planner',company:'Other',location:'',postedAt:null,url:'https://jobs.lever.co/other/123'}
  ];
  assert.deepEqual(dedupePublicJobs(jobs).map(j=>j.id),['lever:acme:123','lever:other:123']);
+});
+
+test('rejects official Greenhouse links for another board or posting ID',()=>{
+ const records=[
+  {id:51,title:'Other board',absolute_url:'https://job-boards.greenhouse.io/other-company/jobs/51'},
+  {id:52,title:'Other posting',absolute_url:'https://job-boards.greenhouse.io/sample-company/jobs/999'},
+  {id:53,title:'Correct',absolute_url:'https://job-boards.greenhouse.io/sample-company/jobs/53'}
+ ];
+ assert.deepEqual(normalizePublicBoardJobs(gh,{jobs:records}).map(j=>j.title),['Correct']);
 });
