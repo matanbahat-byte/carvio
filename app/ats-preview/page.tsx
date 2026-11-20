@@ -28,8 +28,10 @@ export default async function AtsPreview({ searchParams }: { searchParams: Promi
   const allJobs = dedupePublicJobs(results.flatMap(result => result.jobs));
   const availableSources = results.filter(result => result.status === "ok").length;
   const jobs = searchPreviewJobs(allJobs, { query: q, location, country, city, age });
+  const countryWideJobs = city && jobs.length === 0 ? searchPreviewJobs(allJobs, { query: q, country, age }) : [];
+  const broaderRoleJobs = q && jobs.length === 0 ? searchPreviewJobs(allJobs, { country, city, age }) : [];
   return (
-    <main lang="he" dir="rtl" className="min-h-screen bg-[#f7f8ff] text-[#18223c]">
+    <main lang="he" dir="rtl" className="ats-pilot-light min-h-screen bg-[#f7f8ff] text-[#18223c]">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[550px] overflow-hidden" aria-hidden="true">
         <div className="absolute -top-48 -right-32 h-[500px] w-[500px] rounded-full bg-[#dcd6ff] opacity-70 blur-[110px]" />
         <div className="absolute top-16 -left-28 h-[400px] w-[400px] rounded-full bg-[#c5f2ed] opacity-60 blur-[100px]" />
@@ -85,7 +87,7 @@ export default async function AtsPreview({ searchParams }: { searchParams: Promi
                   <div className="mt-auto pt-6"><a href={job.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#f1eeff] px-4 py-2.5 text-sm font-extrabold text-[#6248ed] transition group-hover:bg-[#6248ed] group-hover:text-white">לצפייה במשרה <ArrowUpLeft size={17} aria-hidden="true" /><ExternalLink size={14} aria-hidden="true" /></a></div>
                 </article>)}
               </div>
-              {availableSources > 0 && jobs.length === 0 && <div className="rounded-[22px] border border-[#e6e8f3] bg-white p-10 text-center"><Search className="mx-auto mb-3 text-[#9b8af3]" size={32} /><h3 className="text-xl font-bold">לא מצאנו התאמה הפעם</h3><p className="mt-2 text-sm text-[#7b849b]">הכיסוי עדיין מצומצם. נסו תפקיד רחב יותר או עיר אחרת.</p></div>}
+              {availableSources > 0 && jobs.length === 0 && <div className="rounded-[22px] border border-[#e6e8f3] bg-white p-10 text-center"><Search className="mx-auto mb-3 text-[#9b8af3]" size={32} /><h3 className="text-xl font-bold">לא מצאנו התאמה הפעם</h3><p className="mt-2 text-sm text-[#7b849b]">הכיסוי עדיין מצומצם. נסו להסיר את העיר או להרחיב את שם התפקיד. כרגע אנחנו מחפשים רק בחמישה מעסיקים, לא בכל שוק העבודה.</p>{countryWideJobs.length > 0 && <a className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-[#6248ed] px-5 py-2.5 text-sm font-bold text-white" href={"?"+new URLSearchParams({q,country,age}).toString()}>הצג {countryWideJobs.length} משרות בכל המדינה</a>}{countryWideJobs.length === 0 && broaderRoleJobs.length > 0 && <p className="mt-3 text-sm text-[#65708a]">יש {broaderRoleJobs.length} משרות אחרות במיקום שבחרת, אך הן אינן תואמות לשם התפקיד.</p>}</div>}
             </>
           ) : (
             <div className="rounded-[24px] border border-dashed border-[#dcd7fb] bg-white/60 px-6 py-10 text-center"><Sparkles className="mx-auto mb-3 text-[#7e68ed]" size={28} /><h2 className="text-xl font-bold">מוכנים לגלות מה מחכה לכם?</h2><p className="mt-2 text-sm text-[#7b849b]">מזינים משרה ומדינה ולוחצים על חיפוש משרות כדי לראות תוצאות.</p></div>
