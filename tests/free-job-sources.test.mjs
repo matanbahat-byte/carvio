@@ -39,3 +39,13 @@ test('parses real Lever millisecond timestamps and Greenhouse published dates',(
   const greenhouseJobs=normalizePublicBoardJobs(gh,{jobs:[{id:20,title:'Designer',absolute_url:'https://boards.greenhouse.io/sample-company/jobs/20',first_published:'2026-11-19T09:00:00Z',updated_at:'2026-11-20T09:00:00Z'}]});
   assert.equal(greenhouseJobs[0].postedAt,'2026-11-19T09:00:00.000Z');
 });
+
+test('accepts employer-hosted Greenhouse job only when gh_jid matches API record',()=>{
+  const jobs=normalizePublicBoardJobs(gh,{jobs:[
+    {id:321,title:'Planner',absolute_url:'https://careers.example.org/apply?gh_jid=321'},
+    {id:322,title:'Wrong ID',absolute_url:'https://careers.example.org/apply?gh_jid=999'},
+    {id:323,title:'Insecure',absolute_url:'http://careers.example.org/apply?gh_jid=323'}
+  ]});
+  assert.equal(jobs.length,1);
+  assert.equal(jobs[0].url,'https://careers.example.org/apply?gh_jid=321');
+});
