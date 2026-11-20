@@ -6,22 +6,36 @@ export const dynamic = "force-dynamic";
 const board: PublicBoard = { provider: "greenhouse", token: "greenhouse", company: "Greenhouse" };
 const getJobs = createCachedBoardFetcher();
 
-export default async function AtsPreview({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+export default async function AtsPreview({ searchParams }: { searchParams: Promise<{ q?: string; location?: string; age?: string }> }) {
   // Never expose the pilot in production or permit user-controlled ATS endpoints.
   if (process.env.VERCEL_ENV !== "preview") notFound();
   const params = await searchParams;
   const q = typeof params.q === "string" ? params.q.trim().slice(0, 80) : "";
+  const location = typeof params.location === "string" ? params.location.trim().slice(0, 80) : "";
+  const age = params.age === "all" ? "all" : params.age === "90" ? "90" : "180";
+  const cutoff = Date.now() - Number(age === "all" ? 0 : age) * 86_400_000;
   const result = await getJobs(board);
-  const jobs = result.jobs.filter(job => !q || [job.title, job.company, job.location].some(v => v.toLocaleLowerCase().includes(q.toLocaleLowerCase())));
+  const jobs = result.jobs.filter(job => {
+    if (q && ![job.title, job.company, job.location].some(v => v.toLocaleLowerCase().includes(q.toLocaleLowerCase()))) return false;
+    if (location && !job.location.toLocaleLowerCase().includes(location.toLocaleLowerCase())) return false;
+    if (age !== "all") {
+      const published = job.postedAt ? Date.parse(job.postedAt) : NaN;
+      if (!Number.isFinite(published) || published < cutoff || published > Date.now() + 86_400_000) return false;
+    }
+    return true;
+  }).sort((a, b) => (Date.parse(b.postedAt ?? "") || 0) - (Date.parse(a.postedAt ?? "") || 0));
   return (
     <main className="mx-auto w-full max-w-3xl px-5 py-10 text-slate-900">
       <p className="text-sm font-semibold text-indigo-700">CARVIO · Preview only</p>
       <h1 className="mt-2 text-3xl font-bold">Live employer jobs — test pilot</h1>
       <p className="mt-3 text-sm text-slate-600">Read-only experiment with one fixed Greenhouse employer board. This is not the full CARVIO search engine; Israel coverage is not guaranteed. Links open at the employer.</p>
-      <form method="get" className="mt-6 flex gap-2">
+      <form method="get" className="mt-6 flex flex-wrap gap-2">
         <input name="q" defaultValue={q} placeholder="Try: engineer, London, sales" aria-label="Filter jobs" maxLength={80} className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-4 py-3" />
         <button type="submit" className="rounded-lg bg-indigo-700 px-5 py-3 font-semibold text-white">Filter</button>
+        <input name="location" defaultValue={location} placeholder="Location (e.g. London)" aria-label="Location contains" maxLength={80} className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-3" />
+        <select name="age" defaultValue={age} aria-label="Maximum posting age" className="rounded-lg border border-slate-300 bg-white px-2 py-3"><option value="90">Last 90 days</option><option value="180">Last 180 days</option><option value="all">All dates</option></select>
       </form>
+      <p className="mt-3 text-xs text-slate-500">By default, postings older than 180 days or missing a valid publication date are hidden. Location is an exact text filter, not a country or remote-work classifier. The employer may change or close postings independently.</p>
       <p className="mt-5 text-sm text-slate-600" role="status">{result.status === "ok" ? `${jobs.length} matching jobs from ${result.jobs.length} fetched postings` : "Source temporarily unavailable — no live results. Please retry later."}</p>
       <div className="mt-5 space-y-3">
         {jobs.map(job => <article key={job.id} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
