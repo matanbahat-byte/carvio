@@ -7,7 +7,7 @@ function httpsUrl(value: unknown, host: string) {
   if (typeof value !== "string") return null;
   try {
     const url = new URL(value);
-    if (url.protocol !== "https:" || (url.hostname !== host && !url.hostname.endsWith("." + host))) return null;
+    if (url.protocol !== "https:" || url.username || url.password || url.port || (url.hostname !== host && !url.hostname.endsWith("." + host))) return null;
     return url.href;
   } catch { return null; }
 }
