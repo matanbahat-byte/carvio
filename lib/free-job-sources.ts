@@ -11,6 +11,19 @@ function httpsUrl(value: unknown, host: string) {
     return url.href;
   } catch { return null; }
 }
+function officialGreenhousePostingUrl(value: unknown, board: PublicBoard, id: string) {
+  const safe = httpsUrl(value, "greenhouse.io");
+  if (!safe) return null;
+  const url = new URL(safe);
+  const segments = url.pathname.split("/").filter(Boolean).map(segment => {
+    try { return decodeURIComponent(segment).toLowerCase(); } catch { return ""; }
+  });
+  const token = board.token.toLowerCase();
+  const jobIndex = segments.lastIndexOf("jobs");
+  // Do not associate another employer's posting with this board.
+  if (!segments.includes(token) || jobIndex < 0 || segments[jobIndex + 1] !== id) return null;
+  return safe;
+}
 function safeEmployerApplicationUrl(value: string, id: string) {
   try {
     const url = new URL(value);
@@ -68,7 +81,7 @@ export function normalizePublicBoardJobs(board: PublicBoard, payload: unknown): 
     // Only accept that link when its posting ID matches the API record; do not infer trust from hostname alone.
     const greenhouseUrl = typeof job.absolute_url === "string" ? job.absolute_url : "";
     const url = board.provider === "greenhouse"
-      ? (httpsUrl(greenhouseUrl, "greenhouse.io") || safeEmployerApplicationUrl(greenhouseUrl, id))
+      ? (officialGreenhousePostingUrl(greenhouseUrl, board, id) || safeEmployerApplicationUrl(greenhouseUrl, id))
       : leverPostingUrl(job.hostedUrl, board);
     if (!id || !title || !url || seen.has(url)) continue;
     seen.add(url);
