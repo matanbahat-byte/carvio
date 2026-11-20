@@ -5,7 +5,7 @@ const aliases: Record<string, string[]> = {
   "supply chain manager": ["supply chain lead", "supply chain director", "head of supply chain", "supply chain planning manager"],
   "software engineer": ["software developer", "backend engineer", "frontend engineer", "full stack engineer", "full-stack engineer"],
 };
-const israelPlaces = /\\b(israel|tel[ -]?aviv|herzliya|haifa|jerusalem|petah[ -]?tikva|ramat[ -]?gan|raanana|rishon[ -]?lezion|netanya|beer[ -]?sheva|bnei[ -]?brak|hod[ -]?hasharon|kfar[ -]?saba|yokneam|rehovot)\\b/i;
+const israelPlaces = /\b(israel|tel[ -]?aviv|herzliya|haifa|jerusalem|petah[ -]?tikva|ramat[ -]?gan|raanana|rishon[ -]?lezion|netanya|beer[ -]?sheva|bnei[ -]?brak|hod[ -]?hasharon|kfar[ -]?saba|yokneam|rehovot)\b/i;
 export function titleMatches(title: string, query: string): boolean {
   const needle = query.toLocaleLowerCase().trim();
   if (!needle) return true;
