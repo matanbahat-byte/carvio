@@ -1,4 +1,4 @@
-import { normalizePublicBoardJobs, publicBoardEndpoint, type PublicBoard, type PublicJob } from "./free-job-sources";
+import { normalizePublicBoardJobs, publicBoardEndpoint, type PublicBoard, type PublicJob } from "./free-job-sources.ts";
 
 // Inactive server-side pilot utility. Not imported by a route or UI.
 // The caller must enforce an approved board allowlist, rate limits and usage rights.
