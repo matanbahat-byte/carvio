@@ -12,6 +12,11 @@ const boards: readonly PublicBoard[] = [
   { provider: "lever", token: "airslate", company: "airSlate" },
 ];
 const getJobs = createCachedBoardFetcher();
+const israelPlaces = /\b(israel|tel[ -]?aviv|herzliya|haifa|jerusalem|petah[ -]?tikva|ramat[ -]?gan|raanana|rishon[ -]?lezion|netanya|beer[ -]?sheva|bnei[ -]?brak|hod[ -]?hasharon|kfar[ -]?saba|yokneam|re\u1e25ovot)\b/i;
+function matchesLocation(actual: string, requested: string) {
+  if (requested.trim().toLocaleLowerCase() === "israel") return israelPlaces.test(actual);
+  return actual.toLocaleLowerCase().includes(requested.toLocaleLowerCase());
+}
 
 export default async function AtsPreview({ searchParams }: { searchParams: Promise<{ q?: string; location?: string; age?: string }> }) {
   // Never expose the pilot in production or permit user-controlled ATS endpoints.
@@ -26,7 +31,7 @@ export default async function AtsPreview({ searchParams }: { searchParams: Promi
   const availableSources = results.filter(result => result.status === "ok").length;
   const jobs = allJobs.filter(job => {
     if (q && ![job.title, job.company, job.location].some(v => v.toLocaleLowerCase().includes(q.toLocaleLowerCase()))) return false;
-    if (location && !job.location.toLocaleLowerCase().includes(location.toLocaleLowerCase())) return false;
+    if (location && !matchesLocation(job.location, location)) return false;
     if (age !== "all") {
       const published = job.postedAt ? Date.parse(job.postedAt) : NaN;
       if (!Number.isFinite(published) || published < cutoff || published > Date.now() + 86_400_000) return false;
@@ -49,7 +54,7 @@ export default async function AtsPreview({ searchParams }: { searchParams: Promi
         <select name="age" defaultValue={age} aria-label="Maximum posting age" className="rounded-lg border border-slate-300 bg-white px-2 py-3"><option value="90">Last 90 days</option><option value="180">Last 180 days</option><option value="all">All dates</option></select>
       </form>
       <p className="mt-3 text-xs text-slate-500">Pilot only: sources are not licensed for production reuse yet; do not treat coverage as comprehensive. Matching prioritizes job titles and then publication recency. Employer links are not independently verified. </p>
-      <p className="mt-3 text-xs text-slate-500">By default, postings older than 180 days or missing a valid publication date are hidden. Location is an exact text filter, not a country or remote-work classifier. The employer may change or close postings independently.</p>
+      <p className="mt-3 text-xs text-slate-500">By default, postings older than 180 days or missing a valid publication date are hidden. Israel includes common Israeli city-name aliases; other locations use literal text matching. Remote-work eligibility is not inferred. The employer may change or close postings independently.</p>
       <p className="mt-5 text-sm text-slate-600" role="status">{availableSources ? `${jobs.length} matching jobs from ${allJobs.length} unique fetched postings · ${availableSources}/${boards.length} sources responding` : "Sources temporarily unavailable — no live results. Please retry later."}</p>
       <div className="mt-5 space-y-3">
         {jobs.map(job => <article key={job.id} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
