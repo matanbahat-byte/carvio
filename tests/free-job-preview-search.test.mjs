@@ -19,9 +19,9 @@ test('freshness hides old, undated and future posts, all restores old posts',()=
  assert.deepEqual(searchPreviewJobs(jobs,{now,location:'Israel'}).map(x=>x.id),['1']);
  assert.equal(searchPreviewJobs(jobs,{now,age:'all'}).length,4);
 });
-test('ranks title matches before company/location and then by recency',()=>{
+test('ranks title matches by recency and excludes location-only matches',()=>{
  const jobs=[job('1','Analyst','Sales','2026-11-19T00:00:00Z'),job('2','Sales Manager','London','2026-10-01T00:00:00Z'),job('3','Sales Lead','London','2026-11-01T00:00:00Z')];
- assert.deepEqual(searchPreviewJobs(jobs,{now,query:'Sales'}).map(x=>x.id),['3','2','1']);
+ assert.deepEqual(searchPreviewJobs(jobs,{now,query:'Sales'}).map(x=>x.id),['3','2']);
 });
 
 test('role queries do not match company or location alone',()=>{
@@ -64,4 +64,10 @@ test('Netherlands and Germany country searches recognize city-only ATS locations
  assert.deepEqual(searchPreviewJobs(jobs,{now,query:'HR Business Partner',country:'הולנד',city:'Amsterdam'}).map(x=>x.id),['nl']);
  assert.deepEqual(searchPreviewJobs(jobs,{now,query:'HR Business Partner',country:'גרמניה',city:'Berlin'}).map(x=>x.id),['de']);
  assert.equal(locationMatches('Remote - US','Netherlands'),false);
+});
+
+test('unknown role terms never match only employer name or city',()=>{
+ const jobs=[job('a','Accountant','Designer City','2026-11-19T00:00:00Z'),job('b','Senior Designer','Berlin','2026-11-19T00:00:00Z')];
+ jobs[0].company='Designer Studio';
+ assert.deepEqual(searchPreviewJobs(jobs,{now,query:'Designer'}).map(x=>x.id),['b']);
 });
