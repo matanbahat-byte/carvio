@@ -41,8 +41,16 @@ try {
       const searchCards = page.locator("a[href*='linkedin.com'], a[href*='indeed.com'], a[href*='google.com']");
       await searchCards.first().waitFor({ state: "attached", timeout: 10000 });
       const destinations = await searchCards.evaluateAll((links) => links.map((a) => a.href));
-      assert.ok(destinations.some((url) => url.includes("linkedin.com")), name + ": LinkedIn search link missing");
-      assert.ok(destinations.some((url) => url.includes("google.com") || url.includes("indeed.com")), name + ": alternative search source missing");
+      const isHost = (url, host) => {
+        try {
+          const parsed = new URL(url);
+          return parsed.protocol === "https:" && (parsed.hostname === host || parsed.hostname.endsWith("." + host));
+        } catch {
+          return false;
+        }
+      };
+      assert.ok(destinations.some((url) => isHost(url, "linkedin.com")), name + ": LinkedIn search link missing");
+      assert.ok(destinations.some((url) => isHost(url, "google.com") || isHost(url, "indeed.com")), name + ": alternative search source missing");
       assert.ok(destinations.every((url) => url.startsWith("https://")), name + ": search sources must use HTTPS");
       // Source links need discernible labels for keyboard and screen-reader users.
       const sourceLabels = await searchCards.evaluateAll((links) => links.map((a) =>
