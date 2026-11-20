@@ -1,6 +1,6 @@
 // Opt-in foundation for free, public employer job boards. No live requests or credentials.
 // Do not enable in the UI until board permission, coverage and runtime limits are verified.
-export type PublicBoard = { provider: "greenhouse" | "lever"; token: string; company: string };
+export type PublicBoard = { provider: "greenhouse" | "lever"; token: string; company: string; region?: "global" | "eu" };
 export type PublicJob = { id: string; title: string; company: string; location: string; url: string; provider: PublicBoard["provider"]; postedAt: string | null };
 
 function httpsUrl(value: unknown, host: string) {
@@ -32,13 +32,13 @@ function validBoard(board: PublicBoard) {
   return /^[a-zA-Z0-9_-]{1,100}$/.test(board.token) && Boolean(text(board.company));
 }
 export function publicBoardEndpoint(board: PublicBoard) {
-  if (!validBoard(board)) throw new Error("Invalid board");
+  if (!validBoard(board) || (board.region && !["global", "eu"].includes(board.region))) throw new Error("Invalid board");
   if (board.provider === "greenhouse") return `https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(board.token)}/jobs`;
-  if (board.provider === "lever") return `https://api.lever.co/v0/postings/${encodeURIComponent(board.token)}?mode=json`;
+  if (board.provider === "lever") return `https://${board.region === "eu" ? "api.eu.lever.co" : "api.lever.co"}/v0/postings/${encodeURIComponent(board.token)}?mode=json`;
   throw new Error("Unsupported provider");
 }
 export function normalizePublicBoardJobs(board: PublicBoard, payload: unknown): PublicJob[] {
-  if (!validBoard(board)) return [];
+  if (!validBoard(board) || (board.region && !["global", "eu"].includes(board.region))) return [];
   const records = board.provider === "greenhouse"
     ? (payload && typeof payload === "object" && "jobs" in payload ? (payload as {jobs?:unknown}).jobs : null)
     : payload;
