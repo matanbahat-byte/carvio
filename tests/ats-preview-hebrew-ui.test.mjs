@@ -13,3 +13,16 @@ test('preview does not fetch or display general jobs before search',()=>{
  assert.ok(source.includes('hasSearch ? await Promise.all'));
  assert.ok(source.includes('!hasSearch &&'));
 });
+
+test('ATS pilot is explicitly blocked outside preview deployments',()=>{
+ assert.match(source,/if \(process\.env\.VERCEL_ENV !== "preview"\) notFound\(\)/);
+ const diagnostics=readFileSync(new URL('../app/ats-preview/source-check/route.ts',import.meta.url),'utf8');
+ assert.match(diagnostics,/if \(process\.env\.VERCEL_ENV !== "preview"\) notFound\(\)/);
+});
+test('ATS pilot only fetches fixed employer boards and warns about partial coverage',()=>{
+ assert.match(source,/const boards: readonly PublicBoard\[\] = \[/);
+ assert.match(source,/availableSources < boards\.length/);
+ assert.match(source,/מקורות לא הגיבו/);
+ assert.match(source,/המקורות טרם אושרו לשימוש ציבורי/);
+ assert.match(source,/rel="noopener noreferrer"/);
+});
