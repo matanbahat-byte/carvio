@@ -23,8 +23,10 @@ export function searchPreviewJobs(jobs: PublicJob[], options: {query?:string;loc
   const age=options.age ?? "180";
   const now=options.now ?? Date.now();
   const cutoff=now - Number(age === "all" ? 0 : age)*86_400_000;
+  const isRoleQuery = Object.hasOwn(aliases, query.toLocaleLowerCase());
   return jobs.filter(job=>{
-    if (query && !titleMatches(job.title,query) && ![job.company,job.location].some(v=>v.toLocaleLowerCase().includes(query.toLocaleLowerCase()))) return false;
+    // Known role queries must match a job title, never merely an employer or city.
+    if (query && (isRoleQuery ? !titleMatches(job.title,query) : !titleMatches(job.title,query) && ![job.company,job.location].some(v=>v.toLocaleLowerCase().includes(query.toLocaleLowerCase())))) return false;
     if (!locationMatches(job.location,location)) return false;
     if (age !== "all") {
       const published=job.postedAt ? Date.parse(job.postedAt) : NaN;
