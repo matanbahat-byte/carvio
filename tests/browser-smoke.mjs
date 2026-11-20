@@ -44,6 +44,11 @@ try {
       assert.ok(destinations.some((url) => url.includes("linkedin.com")), name + ": LinkedIn search link missing");
       assert.ok(destinations.some((url) => url.includes("google.com") || url.includes("indeed.com")), name + ": alternative search source missing");
       assert.ok(destinations.every((url) => url.startsWith("https://")), name + ": search sources must use HTTPS");
+      // Source links need discernible labels for keyboard and screen-reader users.
+      const sourceLabels = await searchCards.evaluateAll((links) => links.map((a) =>
+        (a.getAttribute("aria-label") || a.innerText || a.getAttribute("title") || "").trim()
+      ));
+      assert.ok(sourceLabels.every((label) => label.length > 0), name + ": unlabeled external search link");
       console.log("PASS " + name + " search | sources " + destinations.length);
     } else {
       throw new Error(name + ": search entry missing; refusing to silently skip the search journey");
