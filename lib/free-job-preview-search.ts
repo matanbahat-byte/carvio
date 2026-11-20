@@ -58,12 +58,11 @@ export function searchPreviewJobs(jobs: PublicJob[], options: {query?:string;loc
   const age=options.age ?? "180";
   const now=options.now ?? Date.now();
   const cutoff=now - Number(age === "all" ? 0 : age)*86_400_000;
-  const isRoleQuery = Object.hasOwn(aliases, query.toLocaleLowerCase());
   return jobs.filter(job=>{
     // Known role queries must match a job title, never merely an employer or city.
     const titleMatch = query ? titleMatches(job.title,query) : true;
-    const otherMatch = !isRoleQuery && [job.company,job.location].some(v=>v.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
-    if (query && !titleMatch && !otherMatch) return false;
+    // The search box asks for a role: employer/location-only matches are misleading.
+    if (query && !titleMatch) return false;
     if (!locationMatches(job.location,location)) return false;
     if (!locationMatches(job.location,country)) return false;
     if (city && !locationMatches(job.location,city)) return false;
@@ -73,7 +72,7 @@ export function searchPreviewJobs(jobs: PublicJob[], options: {query?:string;loc
     }
     return true;
   }).sort((a,b)=>{
-    const relevance=(job:PublicJob)=>!query?0:titleMatches(job.title,query)?2:job.company.toLocaleLowerCase().includes(query.toLocaleLowerCase())?1:0;
+    const relevance=(job:PublicJob)=>!query?0:job.title.toLocaleLowerCase().includes(query.toLocaleLowerCase())?2:1;
     return relevance(b)-relevance(a) || (Date.parse(b.postedAt ?? "") || 0)-(Date.parse(a.postedAt ?? "") || 0);
   });
 }
