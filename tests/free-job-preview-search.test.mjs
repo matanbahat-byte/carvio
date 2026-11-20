@@ -39,3 +39,10 @@ test('simple job country city search applies all three fields together',()=>{
  const jobs=[job('1','Software Engineer','Tel Aviv, Israel','2026-11-19T00:00:00Z'),job('2','Sales Manager','Tel Aviv, Israel','2026-11-19T00:00:00Z'),job('3','Software Engineer','London, UK','2026-11-19T00:00:00Z'),job('4','Software Engineer','Haifa, Israel','2026-11-19T00:00:00Z')];
  assert.deepEqual(searchPreviewJobs(jobs,{now,query:'Software Engineer',country:'Israel',city:'Tel Aviv'}).map(x=>x.id),['1']);
 });
+
+test('Hebrew job, country and city match English ATS records',()=>{
+ const jobs=[job('1','Senior Software Engineer','Tel Aviv','2026-11-19T00:00:00Z'),job('2','Software Engineer','London','2026-11-19T00:00:00Z'),job('3','Sales Manager','Tel Aviv','2026-11-19T00:00:00Z')];
+ assert.deepEqual(searchPreviewJobs(jobs,{now,query:'מהנדס תוכנה',country:'ישראל',city:'תל אביב'}).map(x=>x.id),['1']);
+ assert.equal(locationMatches('Haifa','חיפה'),true);
+ assert.equal(locationMatches('London','ישראל'),false);
+});
