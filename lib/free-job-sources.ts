@@ -79,11 +79,15 @@ export function normalizePublicBoardJobs(board: PublicBoard, payload: unknown): 
   return output;
 }
 export function dedupePublicJobs(jobs: PublicJob[]): PublicJob[] {
-  const seen = new Set<string>();
+  const seenUrls = new Set<string>();
+  const seenIds = new Set<string>();
   return jobs.filter(job => {
-    const key = job.url.replace(/\/$/, "").toLowerCase();
-    if (seen.has(key)) return false;
-    seen.add(key);
+    const url = job.url.replace(/\/$/, "").toLowerCase();
+    // ATS IDs include provider and board token. The same posting may have
+    // multiple tracked URLs; do not count it as a second opportunity.
+    if (seenUrls.has(url) || (job.id && seenIds.has(job.id))) return false;
+    seenUrls.add(url);
+    if (job.id) seenIds.add(job.id);
     return true;
   });
 }
