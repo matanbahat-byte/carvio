@@ -18,6 +18,16 @@ const aliases: Record<string, string[]> = {
   "software engineering": ["software engineer", "software developer", "backend engineer", "frontend engineer", "full stack engineer", "full-stack engineer"],
 };
 const israelPlaces = /\b(israel|tel[ -]?aviv|herzliya|haifa|jerusalem|petah[ -]?tikva|ramat[ -]?gan|raanana|rishon[ -]?lezion|netanya|beer[ -]?sheva|bnei[ -]?brak|hod[ -]?hasharon|kfar[ -]?saba|yokneam|rehovot)\b/i;
+// ATS boards frequently list only a city. Keep these mappings explicit and
+// conservative: never infer a country from a generic "Remote" label.
+const countryPlaces: Record<string, RegExp> = {
+  netherlands: /\b(netherlands|the netherlands|amsterdam|rotterdam|utrecht|eindhoven|the hague|den haag|haarlem|amstelveen|delft|leiden|groningen)\b/i,
+  germany: /\b(germany|deutschland|berlin|munich|münchen|hamburg|frankfurt|düsseldorf|dusseldorf|cologne|köln|stuttgart|bonn|dortmund|leipzig)\b/i,
+};
+const countryAliases: Record<string, string> = {
+  "הולנד": "netherlands", "נידרלנד": "netherlands", "נדרלנד": "netherlands",
+  "גרמניה": "germany",
+};
 export function titleMatches(title: string, query: string): boolean {
   const needle = query.toLocaleLowerCase().trim();
   if (!needle) return true;
@@ -35,6 +45,8 @@ export function locationMatches(actual: string, requested: string): boolean {
   const needle = requested.toLocaleLowerCase().trim();
   if (!needle) return true;
   if (needle === "israel" || needle === "ישראל") return israelPlaces.test(actual);
+  const countryPattern = countryPlaces[countryAliases[needle] ?? needle];
+  if (countryPattern) return countryPattern.test(actual);
   const variants = hebrewCities[needle];
   return variants ? variants.some(v => actual.toLocaleLowerCase().includes(v)) : actual.toLocaleLowerCase().includes(needle);
 }
