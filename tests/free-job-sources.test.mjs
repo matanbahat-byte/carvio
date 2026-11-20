@@ -32,3 +32,10 @@ test('deduplicates identical links without dropping distinct postings',()=>{
   const jobs=normalizePublicBoardJobs(gh,{jobs:[{id:1,title:'A',absolute_url:'https://boards.greenhouse.io/demo/jobs/1'},{id:1,title:'A',absolute_url:'https://boards.greenhouse.io/demo/jobs/1'},{id:2,title:'B',absolute_url:'https://boards.greenhouse.io/demo/jobs/2'}]});
   assert.equal(dedupePublicJobs([...jobs,...jobs]).length,2);
 });
+
+test('parses real Lever millisecond timestamps and Greenhouse published dates',()=>{
+  const leverJobs=normalizePublicBoardJobs(lever,[{id:'live',text:'Operations Lead',hostedUrl:'https://jobs.lever.co/sample-company/live',createdAt:1795161600000,categories:{location:'Tel Aviv'}}]);
+  assert.equal(leverJobs[0].postedAt,new Date(1795161600000).toISOString());
+  const greenhouseJobs=normalizePublicBoardJobs(gh,{jobs:[{id:20,title:'Designer',absolute_url:'https://boards.greenhouse.io/sample-company/jobs/20',first_published:'2026-11-19T09:00:00Z',updated_at:'2026-11-20T09:00:00Z'}]});
+  assert.equal(greenhouseJobs[0].postedAt,'2026-11-19T09:00:00.000Z');
+});
