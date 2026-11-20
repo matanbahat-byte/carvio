@@ -71,3 +71,9 @@ test('unknown role terms never match only employer name or city',()=>{
  jobs[0].company='Designer Studio';
  assert.deepEqual(searchPreviewJobs(jobs,{now,query:'Designer'}).map(x=>x.id),['b']);
 });
+
+test('supply chain director finds equivalent leadership titles in Israel',()=>{
+ const jobs=[job('a','Head of Supply Chain','Tel Aviv','2026-11-19T00:00:00Z'),job('b','Director of Supply Chain','Herzliya','2026-11-19T00:00:00Z'),job('c','Supply Chain Analyst','Tel Aviv','2026-11-19T00:00:00Z')];
+ assert.deepEqual(searchPreviewJobs(jobs,{now,query:'Supply Chain Director',country:'ישראל',city:'תל אביב'}).map(x=>x.id),['a']);
+ assert.deepEqual(searchPreviewJobs(jobs,{now,query:'Supply Chain Director',country:'Israel'}).map(x=>x.id).sort(),['a','b']);
+});
