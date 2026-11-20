@@ -82,3 +82,10 @@ test('rejects official Greenhouse links for another board or posting ID',()=>{
  ];
  assert.deepEqual(normalizePublicBoardJobs(gh,{jobs:records}).map(j=>j.title),['Correct']);
 });
+
+test('rejects unsupported ATS providers at runtime rather than treating them as Lever',()=>{
+  const unsupported={provider:'unknown',token:'sample-company',company:'Example Co'};
+  const records=[{id:'123',text:'Misclassified role',hostedUrl:'https://jobs.lever.co/sample-company/123'}];
+  assert.throws(()=>publicBoardEndpoint(unsupported),/Invalid board/);
+  assert.deepEqual(normalizePublicBoardJobs(unsupported,records),[]);
+});
