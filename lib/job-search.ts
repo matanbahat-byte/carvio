@@ -229,7 +229,7 @@ export function captureJobLink(value: string) {
   const pathname = url.pathname.replace(/\/+$/, "") || "/";
   // Search-result pages are not individual opportunities. Saving them as jobs
   // creates misleading tracker entries and prevents users from returning to a listing.
-  const isLinkedInSearch = (host === "linkedin.com" || host.endsWith(".linkedin.com")) && (pathname === "/jobs/search" || pathname === "/jobs");
+  const isLinkedInSearch = (host === "linkedin.com" || host.endsWith(".linkedin.com")) && (pathname === "/jobs/search" || pathname === "/jobs" || pathname.startsWith("/jobs/collections/") || pathname === "/jobs/collections");
   const isIndeedSearch = /(^|\.)indeed\.[a-z.]+$/.test(host) && (pathname === "/jobs" || pathname === "/");
   const isGoogleSearch = (host === "google.com" || host.startsWith("google.") || host.endsWith(".google.com")) && (pathname === "/search" || pathname === "/");
   if (isLinkedInSearch || isIndeedSearch || isGoogleSearch) throw new Error("Search results URL is not a job listing");
