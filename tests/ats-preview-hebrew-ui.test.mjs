@@ -49,3 +49,12 @@ test('redesigned search has accessible labels, responsive result cards and clear
  assert.match(source,/כיסוי המעסיקים חלקי/);
  assert.match(source,/ללא הרשמה כדי לחפש/);
 });
+
+test('mobile preview uses isolated light colors and honest zero-result fallback',()=>{
+ const css=readFileSync(new URL('../app/globals.css',import.meta.url),'utf8');
+ assert.match(source,/className="ats-pilot-light/);
+ assert.match(css,/\.ats-pilot-light \{ color-scheme: light/);
+ assert.match(source,/countryWideJobs\.length > 0/);
+ assert.match(source,/broaderRoleJobs\.length > 0/);
+ assert.match(source,/לא בכל שוק העבודה/);
+});
