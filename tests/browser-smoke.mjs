@@ -41,8 +41,14 @@ try {
       const searchCards = page.locator("a[href*='linkedin.com'], a[href*='indeed.com'], a[href*='google.com']");
       await searchCards.first().waitFor({ state: "attached", timeout: 10000 });
       const destinations = await searchCards.evaluateAll((links) => links.map((a) => a.href));
-      assert.ok(destinations.some((url) => url.includes("linkedin.com")), name + ": LinkedIn search link missing");
-      assert.ok(destinations.some((url) => url.includes("google.com") || url.includes("indeed.com")), name + ": alternative search source missing");
+      const hosts = destinations.map((url) => {
+        const parsed = new URL(url);
+        assert.equal(parsed.protocol, "https:", name + ": search link must use HTTPS");
+        return parsed.hostname.toLowerCase();
+      });
+      const isHost = (host, domain) => host === domain || host.endsWith("." + domain);
+      assert.ok(hosts.some((host) => isHost(host, "linkedin.com")), name + ": LinkedIn search link missing");
+      assert.ok(hosts.some((host) => isHost(host, "google.com") || isHost(host, "indeed.com")), name + ": alternative search source missing");
       console.log("PASS " + name + " search | sources " + destinations.length);
     } else {
       console.log("SKIP " + name + " search journey: first-job search entry not shown");
