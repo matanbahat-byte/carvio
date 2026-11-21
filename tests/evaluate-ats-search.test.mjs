@@ -19,7 +19,8 @@ test('ten manually reviewed results produce an auditable Precision@10',()=>{
   relevant:i<7,locationCorrect:true,seniorityCorrect:i<8,linkVerified:i<9
  }));
  const score=evaluateQuery({name:'Software Engineer Israel',results});
- assert.equal(score.precisionAt10,0.7);\n assert.equal(score.usablePrecisionAt10,null); // one broken link
+ assert.equal(score.precisionAt10,0.7);
+ assert.equal(score.usablePrecisionAt10,null); // one broken link
  assert.equal(score.locationAccuracy,1);
  assert.equal(score.seniorityAccuracy,0.8);
  assert.equal(score.linksVerified,9);
