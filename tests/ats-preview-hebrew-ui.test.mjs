@@ -80,7 +80,7 @@ test('broad fallback does not silently apply date or employment restrictions',()
 });
 
 test('primary external search is not silently limited to past month or full time',()=>{
- assert.match(source,/alternativeRoles: roleAlternatives\.join\(", "\), country: searchCountry, location: city \|\| location, datePosted: "Any time", employmentType: ""/);
+ assert.match(source,/alternativeRoles: roleAlternatives\.join\(", "\), radius: "", country: searchCountry, location: city \|\| location, datePosted: "Any time", employmentType: ""/);
  assert.doesNotMatch(source,/datePosted: "Past month"/);
 });
 
