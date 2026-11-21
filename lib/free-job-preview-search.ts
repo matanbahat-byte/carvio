@@ -55,7 +55,15 @@ export function locationMatches(actual: string, requested: string): boolean {
     return israelPlaces.test(actual);
   }
   const countryPattern = countryPlaces[countryAliases[needle] ?? needle];
-  if (countryPattern) return countryPattern.test(actual);
+  if (countryPattern) {
+    // A matching city must not override an explicitly different country.
+    const foreignCountry = /\b(?:israel|united states|usa|u\.s\.a\.|uk|united kingdom|germany|deutschland|netherlands|canada|australia|france|spain|poland)\b/gi;
+    const target = countryAliases[needle] ?? needle;
+    const namedCountries = [...actual.matchAll(foreignCountry)].map(match => match[0].toLocaleLowerCase());
+    const targetNames = target === "germany" ? ["germany", "deutschland"] : ["netherlands", "the netherlands"];
+    if (namedCountries.length && !namedCountries.some(name => targetNames.includes(name))) return false;
+    return countryPattern.test(actual);
+  }
   const variants = hebrewCities[needle];
   return variants ? variants.some(v => actual.toLocaleLowerCase().includes(v)) : actual.toLocaleLowerCase().includes(needle);
 }
