@@ -33,9 +33,9 @@ export default async function AtsPreview({ searchParams }: { searchParams: Promi
   const broaderRoleJobs = q && jobs.length === 0 ? searchPreviewJobs(allJobs, { country, city, age }) : [];
   const searchCountry = /^(ישראל|israel)$/i.test(country) ? "Israel" : /^(גרמניה|germany)$/i.test(country) ? "Germany" : /^(הולנד|netherlands)$/i.test(country) ? "Netherlands" : country;
   const roleAlternatives = q ? suggestedRoleAlternatives(q).slice(0, 3) : [];
-  const searchRoutes = q ? jobSearchSources({ ...emptySearchProfile, role: q, alternativeRoles: roleAlternatives.join(", "), country: searchCountry, location: city || location, datePosted: "Any time", employmentType: "" }, "he") : [];
+  const searchRoutes = q ? jobSearchSources({ ...emptySearchProfile, role: q, alternativeRoles: roleAlternatives.join(", "), radius: "", country: searchCountry, location: city || location, datePosted: "Any time", employmentType: "" }, "he") : [];
   const prioritizedRoutes = [...searchRoutes].sort((a, b) => ({ linkedin: 0, indeed: 1, google: 2 }[a.id] - { linkedin: 0, indeed: 1, google: 2 }[b.id]));
-  const broadRoutes = q ? jobSearchSources({ ...emptySearchProfile, role: q, country: searchCountry, location: city || location, datePosted: "Any time", employmentType: "" }, "he") : [];
+  const broadRoutes = q ? jobSearchSources({ ...emptySearchProfile, role: q, radius: "", country: searchCountry, location: city || location, datePosted: "Any time", employmentType: "" }, "he") : [];
   return (
     <main lang="he" dir="rtl" className="ats-pilot-light min-h-screen bg-[#f7f8ff] text-[#18223c]">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[550px] overflow-hidden" aria-hidden="true">
