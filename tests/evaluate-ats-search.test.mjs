@@ -41,3 +41,15 @@ test('missing job identities and URLs are not counted as duplicate opportunities
  assert.equal(result.uniqueJobIds,1);
  assert.equal(result.precisionAt10,null);
 });
+
+
+test('duplicate or missing top-ten identities cannot yield a misleading Precision@10',()=>{
+ const base=Array.from({length:10},(_,i)=>({id:String(i+1),url:'https://example.org/job/'+(i+1),provider:'lever',relevant:true}));
+ assert.equal(evaluateQuery({name:'baseline',results:base}).precisionAt10,1);
+ const duplicate=base.map(r=>({...r})); duplicate[9].id=duplicate[0].id;
+ assert.equal(evaluateQuery({name:'duplicate id',results:duplicate}).precisionAt10,null);
+ const duplicateUrl=base.map(r=>({...r})); duplicateUrl[9].url=duplicateUrl[0].url;
+ assert.equal(evaluateQuery({name:'duplicate url',results:duplicateUrl}).precisionAt10,null);
+ const missing=base.map(r=>({...r})); missing[9].url='';
+ assert.equal(evaluateQuery({name:'missing url',results:missing}).precisionAt10,null);
+});
