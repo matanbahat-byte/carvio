@@ -21,7 +21,7 @@ export function evaluateQuery(query) {
       const u = new URL(value);
       const host = u.hostname.toLowerCase();
       const path = u.pathname.toLowerCase();
-      return (/(^|\.)linkedin\.com$/.test(host) && (path.startsWith('/jobs/search') || path === '/jobs'))
+      return (/(^|\.)linkedin\.com$/.test(host) && (path.startsWith('/jobs/search') || path.startsWith('/jobs/collections') || path === '/jobs'))
         || (/(^|\.)indeed\.[a-z.]+$/.test(host) && (path === '/' || path === '/jobs' || path.startsWith('/jobs/search')))
         || (/(^|\.)google\.[a-z.]+$/.test(host) && (path === '/search' || path === '/'));
     } catch { return false; }
