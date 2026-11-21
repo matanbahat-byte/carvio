@@ -49,9 +49,10 @@ export function locationMatches(actual: string, requested: string): boolean {
   const needle = requested.toLocaleLowerCase().trim();
   if (!needle) return true;
   if (needle === "israel" || needle === "ישראל") {
+    if (/\b(?:united states|usa|u\.s\.a\.|uk|united kingdom|germany|netherlands|canada|australia|france|spain|poland)\b/i.test(actual)) return false;
+    if (/ישראל/.test(actual)) return true;
     // A city match alone cannot override an explicitly different country.
     // Employer boards sometimes publish city names shared by multiple countries.
-    if (/\b(?:united states|usa|u\.s\.a\.|uk|united kingdom|germany|netherlands|canada|australia|france|spain|poland)\b/i.test(actual) && !/\bIsrael\b/i.test(actual)) return false;
     return israelPlaces.test(actual);
   }
   const countryPattern = countryPlaces[countryAliases[needle] ?? needle];
@@ -61,11 +62,11 @@ export function locationMatches(actual: string, requested: string): boolean {
     const target = countryAliases[needle] ?? needle;
     const namedCountries = [...actual.matchAll(foreignCountry)].map(match => match[0].toLocaleLowerCase());
     const targetNames = target === "germany" ? ["germany", "deutschland"] : ["netherlands", "the netherlands"];
-    if (namedCountries.length && !namedCountries.some(name => targetNames.includes(name))) return false;
+    if (namedCountries.some(name => !targetNames.includes(name))) return false;
     return countryPattern.test(actual);
   }
   const variants = hebrewCities[needle];
-  return variants ? variants.some(v => actual.toLocaleLowerCase().includes(v)) : actual.toLocaleLowerCase().includes(needle);
+  return variants ? (actual.includes(needle) || variants.some(v => actual.toLocaleLowerCase().includes(v))) : actual.toLocaleLowerCase().includes(needle);
 }
 export function searchPreviewJobs(jobs: PublicJob[], options: {query?:string;location?:string;country?:string;city?:string;age?: "90"|"180"|"all";now?:number}): PublicJob[] {
   const query=(options.query ?? "").trim().slice(0,80);
