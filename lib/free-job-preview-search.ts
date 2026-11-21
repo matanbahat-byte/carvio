@@ -48,7 +48,12 @@ const hebrewCities: Record<string, string[]> = {
 export function locationMatches(actual: string, requested: string): boolean {
   const needle = requested.toLocaleLowerCase().trim();
   if (!needle) return true;
-  if (needle === "israel" || needle === "ישראל") return israelPlaces.test(actual);
+  if (needle === "israel" || needle === "ישראל") {
+    // A city match alone cannot override an explicitly different country.
+    // Employer boards sometimes publish city names shared by multiple countries.
+    if (/\b(?:united states|usa|u\.s\.a\.|uk|united kingdom|germany|netherlands|canada|australia|france|spain|poland)\b/i.test(actual) && !/\bIsrael\b/i.test(actual)) return false;
+    return israelPlaces.test(actual);
+  }
   const countryPattern = countryPlaces[countryAliases[needle] ?? needle];
   if (countryPattern) return countryPattern.test(actual);
   const variants = hebrewCities[needle];
