@@ -14,9 +14,9 @@ test('related role aliases match title but not arbitrary unrelated jobs',()=>{
  assert.equal(titleMatches('Head of Supply Chain','Supply Chain Manager'),true);
  assert.equal(titleMatches('Accountant','Supply Chain Manager'),false);
 });
-test('freshness hides old, undated and future posts, all restores old posts',()=>{
+test('freshness hides known old and future posts but retains undated active ATS posts',()=>{
  const jobs=[job('1','Engineer','Tel Aviv','2026-11-19T00:00:00Z'),job('2','Engineer','Tel Aviv','2024-11-19T00:00:00Z'),job('3','Engineer','Tel Aviv',null),job('4','Engineer','Tel Aviv','2027-11-19T00:00:00Z')];
- assert.deepEqual(searchPreviewJobs(jobs,{now,location:'Israel'}).map(x=>x.id),['1']);
+ assert.deepEqual(searchPreviewJobs(jobs,{now,location:'Israel'}).map(x=>x.id),['1','3']);
  assert.equal(searchPreviewJobs(jobs,{now,age:'all'}).length,4);
 });
 test('ranks title matches by recency and excludes location-only matches',()=>{
