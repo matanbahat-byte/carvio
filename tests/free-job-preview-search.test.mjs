@@ -96,3 +96,12 @@ test('Israel country filter rejects ATS records explicitly located abroad despit
  const jobs=[job('foreign','Software Engineer','Tel Aviv, USA','2026-11-19T00:00:00Z'),job('local','Software Engineer','Tel Aviv, Israel','2026-11-19T00:00:00Z')];
  assert.deepEqual(searchPreviewJobs(jobs,{now,query:'Software Engineer',country:'Israel',city:'Tel Aviv'}).map(x=>x.id),['local']);
 });
+
+test('country filters reject matching city names when a different country is explicit',()=>{
+ assert.equal(locationMatches('Berlin, United States','Germany'),false);
+ assert.equal(locationMatches('Amsterdam, Canada','Netherlands'),false);
+ assert.equal(locationMatches('Berlin, Germany','גרמניה'),true);
+ assert.equal(locationMatches('Amsterdam, Netherlands','הולנד'),true);
+ assert.equal(locationMatches('Berlin','Germany'),true);
+ assert.equal(locationMatches('Amsterdam','Netherlands'),true);
+});
