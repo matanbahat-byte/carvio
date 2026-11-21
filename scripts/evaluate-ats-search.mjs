@@ -15,8 +15,19 @@ export function evaluateQuery(query) {
   const topIds = top.map(r => String(r.id ?? '').trim());
   const topUrls = top.map(r => typeof r.url === 'string' ? r.url.trim() : '');
   const isSafeJobUrl = value => { try { const u = new URL(value); return u.protocol === 'https:' && Boolean(u.hostname) && !u.username && !u.password; } catch { return false; } };
-  const invalidJobUrls = urls.filter(url => !isSafeJobUrl(url)).length;
-  const distinctTop10 = top.length === 10 && topIds.every(Boolean) && topUrls.every(isSafeJobUrl)
+  // Search-result landing pages are navigation, not individually retrieved job postings.
+  const isSearchLandingPage = value => {
+    try {
+      const u = new URL(value);
+      const host = u.hostname.toLowerCase();
+      const path = u.pathname.toLowerCase();
+      return (/(^|\\.)linkedin\\.com$/.test(host) && (path.startsWith('/jobs/search') || path === '/jobs'))
+        || (/(^|\\.)indeed\\.[a-z.]+$/.test(host) && (path === '/jobs' || path === '/viewjob' ? false : path === '/' || path.startsWith('/jobs/search')))
+        || (/(^|\\.)google\\.[a-z.]+$/.test(host) && (path === '/search' || path === '/'));
+    } catch { return false; }
+  };
+  const invalidJobUrls = urls.filter(url => !isSafeJobUrl(url) || isSearchLandingPage(url)).length;
+  const distinctTop10 = top.length === 10 && topIds.every(Boolean) && topUrls.every(url => isSafeJobUrl(url) && !isSearchLandingPage(url))
     && new Set(topIds).size === 10 && new Set(topUrls).size === 10;
   const verifiedLinks = results.filter(r => r.linkVerified === true).length;
   const failedLinks = results.filter(r => r.linkVerified === false).length;
