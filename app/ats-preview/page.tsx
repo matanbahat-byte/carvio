@@ -56,7 +56,7 @@ export default async function AtsPreview({ searchParams }: { searchParams: Promi
             <Sparkles size={15} /> פחות חיפושים. יותר הזדמנויות.
           </div>
           <h1 className="text-4xl font-black leading-[1.2] tracking-tight sm:text-6xl">המשרה הבאה שלך <span className="bg-gradient-to-l from-[#6248ed] to-[#16b6a8] bg-clip-text text-transparent">מתחילה כאן.</span></h1>
-          <p className="mx-auto mt-5 max-w-xl text-base leading-8 text-[#68738c] sm:text-lg">תפקיד, מדינה, ואולי גם עיר. זה כל מה שצריך כדי לגלות משרות ממעסיקים אמיתיים.</p>
+          <p className="mx-auto mt-5 max-w-xl text-base leading-8 text-[#68738c] sm:text-lg">תפקיד, מדינה, ואולי גם עיר. זה כל מה שצריך כדי לבדוק משרות המתפרסמות באתרי מעסיקים.</p>
         </section>
 
         <section aria-label="חיפוש משרות" className="mx-auto max-w-5xl rounded-[28px] border border-white bg-white/95 p-4 shadow-[0_22px_70px_rgba(74,60,142,0.12)] sm:p-6">
@@ -73,7 +73,7 @@ export default async function AtsPreview({ searchParams }: { searchParams: Promi
             <input type="hidden" name="age" value="180" />
             <button type="submit" className="flex min-h-[51px] items-center justify-center gap-2 rounded-2xl bg-[#6248ed] px-6 py-3.5 font-bold text-white shadow-lg shadow-violet-200 transition hover:-translate-y-0.5 hover:bg-[#5239d6] focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-violet-300"><Search size={19} /> חיפוש משרות</button>
           </form>
-          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#f0f0f8] pt-4 text-xs text-[#76819a]"><CheckCircle2 size={15} className="text-[#16aa99]" /> ללא הרשמה כדי לחפש <span className="text-[#d1d4e1]">•</span> קישורים ישירים למשרות <span className="text-[#d1d4e1]">•</span> חיפוש בעברית ובאנגלית</div>
+          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#f0f0f8] pt-4 text-xs text-[#76819a]"><CheckCircle2 size={15} className="text-[#16aa99]" /> ללא הרשמה כדי לחפש <span className="text-[#d1d4e1]">•</span> קישורים לאתרי המעסיקים <span className="text-[#d1d4e1]">•</span> חיפוש בעברית ובאנגלית</div>
         </section>
 
         {hasSearch && q && <section aria-label="חיפוש במקורות נוספים" className="mx-auto mt-8 max-w-5xl rounded-[24px] border border-[#dedcf5] bg-white p-5 shadow-sm sm:p-7">
@@ -88,8 +88,8 @@ export default async function AtsPreview({ searchParams }: { searchParams: Promi
           {hasSearch ? (
             <>
               <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-                <div><p className="mb-1 text-sm font-bold text-[#745be6]">ההזדמנות הבאה שלך</p><h2 className="text-2xl font-black sm:text-3xl">{availableSources ? jobs.length + " משרות בחמשת אתרי המעסיקים" : "חמשת אתרי המעסיקים לא זמינים כרגע"}</h2><p className="mt-2 text-sm text-[#7a849b]" role="status">החיפוש שלך: {[q,country || location,city].filter(Boolean).join(" · ")} {availableSources > 0 && " · " + availableSources + "/" + boards.length + " מקורות זמינים"}</p></div>
-                <span className="rounded-full border border-[#d5efe8] bg-[#e9fbf5] px-3 py-2 text-xs font-bold text-[#128879]">{availableSources ? allJobs.length + " משרות נסרקו" : "נסו שוב בעוד רגע"}</span>
+                <div><p className="mb-1 text-sm font-bold text-[#745be6]">ההזדמנות הבאה שלך</p><h2 className="text-2xl font-black sm:text-3xl">{availableSources ? jobs.length + " משרות תואמות מתוך חמישה מקורות מעסיקים שנבדקו" : "חמשת מקורות המעסיקים לא זמינים כרגע"}</h2><p className="mt-2 text-sm text-[#7a849b]" role="status">החיפוש שלך: {[q,country || location,city].filter(Boolean).join(" · ")} {availableSources > 0 && " · " + availableSources + "/" + boards.length + " מקורות זמינים"}</p></div>
+                <span className="rounded-full border border-[#d5efe8] bg-[#e9fbf5] px-3 py-2 text-xs font-bold text-[#128879]">{availableSources ? allJobs.length + " משרות התקבלו ממקורות ATS" : "נסו שוב בעוד רגע"}</span>
               </div>
               {availableSources < boards.length && <p role="alert" className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">כיסוי חלקי: {boards.length - availableSources} מקורות לא הגיבו. ייתכן שחסרות משרות.</p>}
               <div className="grid gap-4 md:grid-cols-2">
