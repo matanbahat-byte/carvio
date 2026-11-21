@@ -92,7 +92,7 @@ test('LinkedIn is first and visually primary, with Indeed then Google and compan
  assert.match(source,/const prioritizedRoutes = \[\.\.\.searchRoutes\]\.sort/);
  assert.match(source,/linkedin: 0, indeed: 1, google: 2/);
  assert.match(source,/route\.id === "linkedin" \? "LinkedIn · חיפוש ראשי"/);
- assert.match(source,/route\.id === "linkedin" \? "flex min-h-14/);
+ assert.match(source,/route\.id === "linkedin" \? "flex min-h-\[76px\]/);
  assert.ok(source.indexOf('prioritizedRoutes.map') < source.indexOf('aria-label="תוצאות החיפוש"'));
  assert.match(source,/קישורי חיפוש, לא משרות שנמצאו או אומתו/);
 });
