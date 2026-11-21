@@ -113,5 +113,7 @@ test('missing URLs count as invalid postings rather than disappearing from URL q
  ]});
  assert.equal(score.missingUrls,2);
  assert.equal(score.invalidJobUrls,2);
+ assert.equal(score.individualJobs,3);
+ assert.equal(score.validIndividualJobs,1);
  assert.equal(score.precisionAt10,null);
 });
