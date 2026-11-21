@@ -2,6 +2,8 @@
 import { JobAvailabilityCheck } from "@/components/job-availability-check";
 import type { VerifiedJobDetails } from "@/lib/job-availability";
 import { SearchRoleAlternatives } from "@/components/search-role-alternatives";
+import { UnifiedJobResults } from "@/components/unified-job-results";
+import type { JobResult } from "@/lib/job-results";
 import { SearchSourceCards } from "@/components/search-source-cards";
 import { validApplicationLinks } from "@/lib/backup-links";
 import { linkedOutreachContact } from "@/lib/contact-links";
@@ -2418,6 +2420,24 @@ export default function Home() {
     }
   }
 
+  function reviewJobResult(job: JobResult) {
+    for (const source of job.sources) if (openExistingCapture(source.url)) return;
+    const source = job.sources[0];
+    if (!source) return;
+    captureEditedFields.current.clear();
+    setEditingApplicationId(null);
+    const requirements = extractJobRequirements(job.description);
+    setApplicationDraft({ ...emptyApplication, ...captureJobLink(source.url), role: job.title, company: job.company, location: job.location,
+      jobDescription: job.description, requirements: requirements.join("\n"),
+      requirementEvidence: requirements.map(requirement => ({ requirement, evidence: "", category: requirementCategory(requirement) })),
+      capturedAt: new Date().toISOString(), nextStep: captureReviewAction(language), nextStepDue: applications.length === 0 ? nextActionDueTomorrow() : "" });
+    setSmartCaptureUrl(source.url);
+    setSmartCaptureText(job.description);
+    setSmartCaptureError("");
+    setSmartCaptureStep("review");
+    setShowSmartCapture(true);
+  }
+
   function smartCaptureApplication() {
     setSmartCaptureError("");
     let captured: ReturnType<typeof captureJobLink>;
@@ -4373,6 +4393,7 @@ export default function Home() {
             <p>{openedSearchSource ? (language === "he" ? "הדביקו את קישור המשרה בשדה שמעל כדי לבדוק ולשמור אותה. אם לא מצאתם משרה מתאימה, אפשר לנסות מקור אחר בהמשך העמוד." : "Paste the job URL into the field above to review and save it. If nothing matched, try another source below.") : (language === "he" ? "CARVIO אינו מציג כאן משרות מתוך LinkedIn או אתרים אחרים. פתחו מקור בלשונית חדשה, בחרו משרה מתאימה, העתיקו את הקישור וחזרו לשמור אותה כאן. בפעם הבאה תוכלו להמשיך מההזדמנות ששמרתם." : "CARVIO does not display LinkedIn or other sites’ job listings here. Open a source in a new tab, choose a relevant listing, copy its link, and return to save it here. Next time, continue from your saved opportunity.")}</p>
             {!openedSearchSource && <div><button className="primary-button" onClick={() => setShowSmartCapture(true)} type="button"><Plus className="h-4 w-4" />{language === "he" ? "שמירת משרה מקישור" : "Save a job from a link"}</button></div>}
           </div>
+          <UnifiedJobResults key={JSON.stringify([submittedSearchProfile, language, demoMode])} profile={submittedSearchProfile} language={language} demoMode={demoMode} savedUrls={applications.map(item => item.jobUrl)} onReview={reviewJobResult} />
           <SearchSourceCards sources={submittedSearchSources} profile={submittedSearchProfile} language={language} careerUrl={officialSearchUrl(submittedSearchProfile, language)} anyTimeUrl={submittedSearchProfile.datePosted !== "Any time" ? googleJobSearch(submittedSearchProfile, language, { anyTime: true }).url : undefined} onCopy={(query) => { void copySearchQuery(query); }} onOpen={(sourceType) => { setOpenedSearchSource(sourceType); recordActionEvent("search_opened_by_source", "search", { sourceType }); }} filterNotice={(source) => <SearchFilterNotice source={source} language={language} onCopy={() => { void copySearchQuery(source.query); }} />} />
           {showCompanySearchLeads && <section className="job-inbox"><div className="job-inbox-heading"><div><p className="eyebrow text-emerald-300">{language === "he" ? "תיבת המשרות" : "Job inbox"}</p><h3>{language === "he" ? "נקודות פתיחה מותאמות לפרופיל שלך" : "Profile-matched starting points"}</h3><p>{language === "he" ? "Carvio מרכז מסלולי חיפוש ממוקדים, מסיר כפילויות ומאפשר לשמור כל הזדמנות. יש לאמת שהמשרה פעילה באתר המקור." : "Carvio organizes focused search leads, removes duplicates, and lets you save each opportunity. Always verify availability at the source."}</p></div><span>{jobInbox.length} {language === "he" ? "הצעות" : "leads"}</span></div><div className="job-inbox-list">{jobInbox.map((item) => { const saved = applications.some((application) => application.company.toLowerCase() === item.company.toLowerCase() && application.role.toLowerCase() === item.role.toLowerCase()); return <article className="job-inbox-card" key={item.id}><div className="job-inbox-logo">{item.company.slice(0, 1)}</div><div className="job-inbox-main"><div><strong>{item.role}</strong><span>{item.company} · {item.location}</span></div><p><span>🎯 {item.match}% {language === "he" ? "התאמה" : "match"}</span><span>🕒 {item.posted}</span><span>🔗 {item.source}</span></p><small>{item.reason}</small></div><div className="job-inbox-actions">{saved ? <span className="job-inbox-saved"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "במועמדויות" : "In Applications"}</span> : <><button onClick={() => saveInboxJob(item)} type="button"><Plus className="h-4 w-4" />{language === "he" ? "שמירה" : "Save"}</button><button onClick={() => saveInboxJob(item, true)} type="button">{language === "he" ? "כבר הגשתי" : "Already applied"}</button></>}<a href={item.url} rel="noreferrer" target="_blank">{language === "he" ? "בדיקה במקור" : "Verify & apply"}<ArrowUpRight className="h-4 w-4" /></a><button aria-label={language === "he" ? "הסתרת ההצעה" : "Hide lead"} onClick={() => setHiddenJobIds((items) => [...items, item.id])} type="button"><X className="h-4 w-4" /></button></div></article>; })}</div></section>}
           <div className="search-honesty-note"><CircleAlert className="h-5 w-5" /><div><strong>{language === "he" ? "מדוע עדיין חשוב לבדוק את המשרה?" : "Why should you still verify the listing?"}</strong><p>{language === "he" ? "Carvio שולח את השאילתה והמסננים המוצגים למעלה, אך אינו שולט בדירוג החיצוני. אם LinkedIn מציג “No matching jobs found”, השורות הממומנות או “Jobs you may be interested in” שמתחת אינן תוצאות של חיפוש Carvio ואין להתייחס אליהן כהתאמות. גם Indeed ו־Google עשויים להוסיף המלצות או תוצאות קרובות." : "Carvio sends the query and filters shown above but does not control external ranking. If LinkedIn says “No matching jobs found,” sponsored rows or “Jobs you may be interested in” below it are not Carvio search matches. Indeed and Google may also add nearby or personalized suggestions."}</p></div></div></div>}
