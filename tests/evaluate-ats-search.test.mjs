@@ -26,3 +26,18 @@ test('ten manually reviewed results produce an auditable Precision@10',()=>{
  assert.equal(score.linksFailed,1);
  assert.equal(score.sourcesCount,2);
 });
+
+test('missing job identities and URLs are not counted as duplicate opportunities',()=>{
+ const result=evaluateQuery({name:'HR Business Partner Israel',results:[
+  {id:'',url:'',provider:'lever'},
+  {provider:'greenhouse'},
+  {id:'real-1',url:'https://example.org/1',provider:'lever'},
+  {id:'real-1',url:'https://example.org/1',provider:'lever'}
+ ]});
+ assert.equal(result.duplicateIds,1);
+ assert.equal(result.duplicateUrls,1);
+ assert.equal(result.missingIds,2);
+ assert.equal(result.missingUrls,2);
+ assert.equal(result.uniqueJobIds,1);
+ assert.equal(result.precisionAt10,null);
+});
