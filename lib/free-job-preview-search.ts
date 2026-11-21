@@ -51,6 +51,8 @@ export function locationMatches(actual: string, requested: string): boolean {
   if (needle === "israel" || needle === "ישראל") {
     if (/\b(?:united states|usa|u\.s\.a\.|uk|united kingdom|germany|netherlands|canada|australia|france|spain|poland)\b/i.test(actual)) return false;
     if (/ישראל/.test(actual)) return true;
+    // Hebrew-only city names on ATS boards are also valid Israeli locations.
+    if (/(?:תל[ -]?אביב|ירושלים|חיפה|הרצליה|רמת[ -]?גן|פתח[ -]?תקווה|בני[ -]?ברק|נתניה|רחובות|ראשון[ -]?לציון|באר[ -]?שבע|כפר[ -]?סבא)/.test(actual)) return true;
     // A city match alone cannot override an explicitly different country.
     // Employer boards sometimes publish city names shared by multiple countries.
     return israelPlaces.test(actual);
