@@ -33,7 +33,7 @@ export default async function AtsPreview({ searchParams }: { searchParams: Promi
   const broaderRoleJobs = q && jobs.length === 0 ? searchPreviewJobs(allJobs, { country, city, age }) : [];
   const searchCountry = /^(ישראל|israel)$/i.test(country) ? "Israel" : /^(גרמניה|germany)$/i.test(country) ? "Germany" : /^(הולנד|netherlands)$/i.test(country) ? "Netherlands" : country;
   const roleAlternatives = q ? suggestedRoleAlternatives(q).slice(0, 3) : [];
-  const searchRoutes = q ? jobSearchSources({ ...emptySearchProfile, role: q, alternativeRoles: roleAlternatives.join(", "), country: searchCountry, location: city || location, datePosted: "Past month" }, "he") : [];
+  const searchRoutes = q ? jobSearchSources({ ...emptySearchProfile, role: q, alternativeRoles: roleAlternatives.join(", "), country: searchCountry, location: city || location, datePosted: "Any time", employmentType: "" }, "he") : [];
   const broadRoutes = q ? jobSearchSources({ ...emptySearchProfile, role: q, country: searchCountry, location: city || location, datePosted: "Any time", employmentType: "" }, "he") : [];
   return (
     <main lang="he" dir="rtl" className="ats-pilot-light min-h-screen bg-[#f7f8ff] text-[#18223c]">
@@ -79,8 +79,8 @@ export default async function AtsPreview({ searchParams }: { searchParams: Promi
           <div className="mb-3 flex items-center gap-2"><Search size={19} className="text-[#6248ed]" /><h2 className="text-lg font-extrabold">חיפוש רחב — LinkedIn, Indeed ו־Google</h2></div>
           <p className="text-sm leading-7 text-[#65708a]">זהו מסלול החיפוש הרחב שהיה קיים ב־CARVIO לפני הניסוי: LinkedIn, Indeed ו־Google. הקישורים פותחים את החיפוש באתרים עצמם עם התפקיד והמיקום שבחרת. אלה <strong>קישורי חיפוש, לא משרות שנמצאו או אומתו ב־CARVIO.</strong></p>
           <div className="mt-4 grid gap-3 sm:grid-cols-3">{searchRoutes.map(route => <a key={route.id} href={route.url} target="_blank" rel="noopener noreferrer" className="flex min-h-14 items-center justify-between gap-2 rounded-2xl border border-[#e4e1f6] bg-[#faf9ff] px-4 py-3 text-sm font-bold text-[#6048d8] transition hover:border-[#b9adff] hover:bg-[#f1edff]"><span>{route.name}</span><ExternalLink size={17} aria-hidden="true" /></a>)}</div>
-          <p className="mt-4 text-xs leading-6 text-[#75809a]">מעט תוצאות? אפשר לנסות חיפוש רחב ללא הגבלת זמן וללא מסנן סוג העסקה:</p>
-          <div className="mt-2 flex flex-wrap gap-3">{broadRoutes.map(route => <a key={"broad-"+route.id} href={route.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-xl border border-[#e4e1f6] px-4 py-2 text-sm font-semibold text-[#6048d8]">{route.id === "linkedin" ? "LinkedIn" : route.id === "indeed" ? "Indeed" : "Google"} — חיפוש רחב</a>)}</div>
+          <p className="mt-4 text-xs leading-6 text-[#75809a]">מעט תוצאות? אפשר לנסות גם חיפוש בשם התפקיד המדויק בלבד, ללא הרחבת שמות תפקידים:</p>
+          <div className="mt-2 flex flex-wrap gap-3">{broadRoutes.map(route => <a key={"broad-"+route.id} href={route.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-xl border border-[#e4e1f6] px-4 py-2 text-sm font-semibold text-[#6048d8]">{route.id === "linkedin" ? "LinkedIn" : route.id === "indeed" ? "Indeed" : "Google"} — שם תפקיד מדויק</a>)}</div>
           {roleAlternatives.length > 0 && <p className="mt-4 text-xs leading-6 text-[#75809a]">תפקידים קרובים שכדאי לנסות בנפרד: {roleAlternatives.join(" · ")}</p>}
         </section>}
         <section className="mx-auto mt-12 max-w-5xl" aria-label="תוצאות החיפוש">
