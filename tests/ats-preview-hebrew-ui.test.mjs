@@ -69,7 +69,11 @@ test('preview preserves original discovery routes without counting them as verif
 test('original multi-platform discovery is visible before limited ATS results',()=>{
  assert.ok(source.indexOf('חיפוש ראשי — LinkedIn, אחריו Indeed ו־Google') > -1);
  assert.ok(source.indexOf('חיפוש ראשי — LinkedIn, אחריו Indeed ו־Google') < source.indexOf('aria-label="תוצאות החיפוש"'));
- assert.ok(source.includes('משרות בחמשת אתרי המעסיקים'));
+ assert.ok(source.includes('מקורות מעסיקים זמינים (מתוך '));
+ assert.ok(source.includes('availableSources ? jobs.length'));
+ assert.ok(source.includes('boards.length'));
+ assert.ok(source.includes('חמשת מקורות המעסיקים לא זמינים כרגע'));
+ assert.ok(!source.includes('משרות בחמשת אתרי המעסיקים'));
 });
 
 test('broad fallback does not silently apply date or employment restrictions',()=>{
