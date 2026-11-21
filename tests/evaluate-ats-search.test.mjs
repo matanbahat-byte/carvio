@@ -90,3 +90,16 @@ test('external search links are never scored as retrieved job postings',()=>{
   assert.equal(score.usablePrecisionAt10,null);
  }
 });
+
+
+test('external search landing detection handles subdomains but not lookalike domains',()=>{
+ const base=Array.from({length:10},(_,i)=>({id:'job-'+i,url:'https://example.org/job/'+i,provider:'lever',relevant:true,linkVerified:true}));
+ for(const landing of ['https://linkedin.com/jobs/search?keywords=engineer','https://www.linkedin.com/jobs/search?keywords=engineer','https://uk.indeed.com/jobs?q=engineer','https://www.google.co.uk/search?q=engineer']) {
+  const rows=base.map(r=>({...r})); rows[9].url=landing;
+  const score=evaluateQuery({name:'landing',results:rows});
+  assert.equal(score.invalidJobUrls,1,landing);
+  assert.equal(score.precisionAt10,null,landing);
+ }
+ const rows=base.map(r=>({...r})); rows[9].url='https://notlinkedin.com/jobs/search?keywords=engineer';
+ assert.equal(evaluateQuery({name:'lookalike',results:rows}).invalidJobUrls,0);
+});
