@@ -22,7 +22,7 @@ export function evaluateQuery(query) {
       const host = u.hostname.toLowerCase();
       const path = u.pathname.toLowerCase();
       return (/(^|\\.)linkedin\\.com$/.test(host) && (path.startsWith('/jobs/search') || path === '/jobs'))
-        || (/(^|\\.)indeed\\.[a-z.]+$/.test(host) && (path === '/jobs' || path === '/viewjob' ? false : path === '/' || path.startsWith('/jobs/search')))
+        || (/(^|\\.)indeed\\.[a-z.]+$/.test(host) && (path === '/' || path === '/jobs' || path.startsWith('/jobs/search')))
         || (/(^|\\.)google\\.[a-z.]+$/.test(host) && (path === '/search' || path === '/'));
     } catch { return false; }
   };
