@@ -44,3 +44,11 @@ test('caller mutation cannot poison cached job details',async()=>{
  second.jobs[0].title='Also tampered';
  assert.equal((await get(board)).jobs[0].title,'Planner');
 });
+
+test('preview cache preserves up to 100 employer listings rather than truncating at 50',async()=>{
+ const postings=Array.from({length:75},(_,i)=>({id:String(i+1),text:'Engineer '+i,hostedUrl:'https://jobs.lever.co/example/'+(i+1)}));
+ const get=createCachedBoardFetcher({fetcher:async()=>new Response(JSON.stringify(postings),{headers:{'content-type':'application/json'}})});
+ const result=await get(board);
+ assert.equal(result.status,'ok');
+ assert.equal(result.jobs.length,75);
+});

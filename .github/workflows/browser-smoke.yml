@@ -43,3 +43,36 @@ jobs:
           path: artifacts/browser-smoke/
           if-no-files-found: ignore
           retention-days: 3
+
+  ats-preview-local:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm install --no-save --package-lock=false playwright@1.58.2
+      - run: npx playwright install --with-deps chromium
+      - name: Build preview app without Vercel deployment
+        run: npm run build
+        env:
+          VERCEL_ENV: preview
+      - name: Start local preview and test mobile/desktop
+        run: |
+          VERCEL_ENV=preview npm run start -- --port 3100 > /tmp/carvio-preview.log 2>&1 &
+          for i in $(seq 1 45); do
+            if curl -fsS http://127.0.0.1:3100/ >/dev/null; then break; fi
+            sleep 2
+          done
+          node tests/ats-preview-local-smoke.mjs
+      - name: Upload preview screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: carvio-ats-preview-local
+          path: artifacts/ats-preview/
+          if-no-files-found: ignore
+          retention-days: 3
