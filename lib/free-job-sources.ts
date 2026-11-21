@@ -57,7 +57,8 @@ function postingDate(value: unknown): string | null {
 }
 function text(value: unknown) { return typeof value === "string" ? value.trim() : ""; }
 function validBoard(board: PublicBoard) {
-  return (board.provider === "greenhouse" || board.provider === "lever") && /^[a-zA-Z0-9_-]{1,100}$/.test(board.token) && Boolean(text(board.company));
+  if (!board || typeof board !== "object") return false;
+  return (board.provider === "greenhouse" || board.provider === "lever") && typeof board.token === "string" && /^[a-zA-Z0-9_-]{1,100}$/.test(board.token) && Boolean(text(board.company));
 }
 export function publicBoardEndpoint(board: PublicBoard) {
   if (!validBoard(board) || (board.region && !["global", "eu"].includes(board.region))) throw new Error("Invalid board");
