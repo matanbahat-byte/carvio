@@ -89,3 +89,12 @@ test('rejects unsupported ATS providers at runtime rather than treating them as 
   assert.throws(()=>publicBoardEndpoint(unsupported),/Invalid board/);
   assert.deepEqual(normalizePublicBoardJobs(unsupported,records),[]);
 });
+
+test('rejects ambiguous duplicate Greenhouse gh_jid parameters on employer-hosted URLs',()=>{
+  const records=[
+    {id:101,title:'Ambiguous IDs',absolute_url:'https://careers.example.org/apply?gh_jid=101&gh_jid=999'},
+    {id:102,title:'Repeated identical IDs',absolute_url:'https://careers.example.org/apply?gh_jid=102&gh_jid=102'},
+    {id:103,title:'Single matching ID',absolute_url:'https://careers.example.org/apply?gh_jid=103'}
+  ];
+  assert.deepEqual(normalizePublicBoardJobs(gh,{jobs:records}).map(job=>job.title),['Single matching ID']);
+});

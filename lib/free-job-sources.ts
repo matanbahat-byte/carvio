@@ -30,7 +30,8 @@ function safeEmployerApplicationUrl(value: string, id: string) {
     if (url.protocol !== "https:" || url.username || url.password || url.port || !url.hostname.includes(".") || url.hostname === "localhost") return null;
     if (/^(?:localhost|127\\.|10\\.|192\\.168\\.|172\\.(?:1[6-9]|2\\d|3[01])\\.)/.test(url.hostname)) return null;
     // Greenhouse embeds the posting identifier in employer-hosted URLs as gh_jid.
-    return url.searchParams.get("gh_jid") === id ? url.href : null;
+    const jobIds = url.searchParams.getAll("gh_jid");
+    return jobIds.length === 1 && jobIds[0] === id ? url.href : null;
   } catch { return null; }
 }
 function leverPostingUrl(value: unknown, board: PublicBoard) {
