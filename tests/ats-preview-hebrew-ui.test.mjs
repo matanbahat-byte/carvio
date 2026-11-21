@@ -84,7 +84,7 @@ test('broad fallback does not silently apply date or employment restrictions',()
 });
 
 test('primary external search is not silently limited to past month or full time',()=>{
- assert.match(source,/alternativeRoles: roleAlternatives\.join\(", "\), radius: "", country: searchCountry, location: city \|\| location, datePosted: "Any time", employmentType: ""/);
+ assert.match(source,/alternativeRoles: roleAlternatives\.join\(", "\), radius: "", country: searchCountry, location: externalLocation, datePosted: "Any time", employmentType: ""/);
  assert.doesNotMatch(source,/datePosted: "Past month"/);
 });
 
@@ -100,4 +100,11 @@ test('LinkedIn is first and visually primary, with Indeed then Google and compan
 test('simple search does not silently impose a 25-km radius on LinkedIn or Indeed',()=>{
  assert.match(source,/alternativeRoles: roleAlternatives\.join\(", "\), radius: "", country: searchCountry/);
  assert.match(source,/role: q, radius: "", country: searchCountry/);
+});
+
+test('Hebrew city inputs are translated for external provider search URLs',()=>{
+ assert.match(source,/"תל אביב": "Tel Aviv"/);
+ assert.match(source,/"חיפה": "Haifa"/);
+ assert.match(source,/const externalLocation = externalCityNames/);
+ assert.equal((source.match(/location: externalLocation, datePosted:/g)||[]).length,2);
 });
