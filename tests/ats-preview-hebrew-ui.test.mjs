@@ -92,3 +92,8 @@ test('LinkedIn is first and visually primary, with Indeed then Google and compan
  assert.ok(source.indexOf('prioritizedRoutes.map') < source.indexOf('aria-label="תוצאות החיפוש"'));
  assert.match(source,/קישורי חיפוש, לא משרות שנמצאו או אומתו/);
 });
+
+test('simple search does not silently impose a 25-km radius on LinkedIn or Indeed',()=>{
+ assert.match(source,/alternativeRoles: roleAlternatives\.join\(", "\), radius: "", country: searchCountry/);
+ assert.match(source,/role: q, radius: "", country: searchCountry/);
+});
