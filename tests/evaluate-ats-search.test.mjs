@@ -103,3 +103,15 @@ test('external search landing detection handles subdomains but not lookalike dom
  const rows=base.map(r=>({...r})); rows[9].url='https://notlinkedin.com/jobs/search?keywords=engineer';
  assert.equal(evaluateQuery({name:'lookalike',results:rows}).invalidJobUrls,0);
 });
+
+
+test('missing URLs count as invalid postings rather than disappearing from URL quality denominator',()=>{
+ const score=evaluateQuery({name:'missing URL',results:[
+  {id:'one',provider:'lever',relevant:true},
+  {id:'two',url:'',provider:'lever',relevant:true},
+  {id:'three',url:'https://example.org/jobs/3',provider:'lever',relevant:true}
+ ]});
+ assert.equal(score.missingUrls,2);
+ assert.equal(score.invalidJobUrls,2);
+ assert.equal(score.precisionAt10,null);
+});
