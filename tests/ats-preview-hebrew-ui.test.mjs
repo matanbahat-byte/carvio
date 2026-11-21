@@ -61,14 +61,14 @@ test('mobile preview uses isolated light colors and honest zero-result fallback'
 
 test('preview preserves original discovery routes without counting them as verified jobs',()=>{
  assert.match(source,/jobSearchSources\(/);
- assert.match(source,/searchRoutes\.map\(/);
+ assert.match(source,/prioritizedRoutes\.map\(/);
  assert.match(source,/קישורי חיפוש, לא משרות שנמצאו או אומתו/);
  assert.match(source,/roleAlternatives\.join/);
 });
 
 test('original multi-platform discovery is visible before limited ATS results',()=>{
- assert.ok(source.indexOf('חיפוש רחב — LinkedIn, Indeed ו־Google') > -1);
- assert.ok(source.indexOf('חיפוש רחב — LinkedIn, Indeed ו־Google') < source.indexOf('aria-label="תוצאות החיפוש"'));
+ assert.ok(source.indexOf('חיפוש ראשי — LinkedIn, אחריו Indeed ו־Google') > -1);
+ assert.ok(source.indexOf('חיפוש ראשי — LinkedIn, אחריו Indeed ו־Google') < source.indexOf('aria-label="תוצאות החיפוש"'));
  assert.ok(source.includes('משרות בחמשת אתרי המעסיקים'));
 });
 
@@ -82,4 +82,13 @@ test('broad fallback does not silently apply date or employment restrictions',()
 test('primary external search is not silently limited to past month or full time',()=>{
  assert.match(source,/alternativeRoles: roleAlternatives\.join\(", "\), country: searchCountry, location: city \|\| location, datePosted: "Any time", employmentType: ""/);
  assert.doesNotMatch(source,/datePosted: "Past month"/);
+});
+
+test('LinkedIn is first and visually primary, with Indeed then Google and company ATS jobs after',()=>{
+ assert.match(source,/const prioritizedRoutes = \[\.\.\.searchRoutes\]\.sort/);
+ assert.match(source,/linkedin: 0, indeed: 1, google: 2/);
+ assert.match(source,/route\.id === "linkedin" \? "LinkedIn · חיפוש ראשי"/);
+ assert.match(source,/route\.id === "linkedin" \? "flex min-h-14/);
+ assert.ok(source.indexOf('prioritizedRoutes.map') < source.indexOf('aria-label="תוצאות החיפוש"'));
+ assert.match(source,/קישורי חיפוש, לא משרות שנמצאו או אומתו/);
 });
