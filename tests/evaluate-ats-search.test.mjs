@@ -79,3 +79,14 @@ test('unsafe or malformed top-ten job URLs cannot earn precision credit',()=>{
   assert.equal(score.invalidJobUrls,1);
  }
 });
+
+test('external search links are never scored as retrieved job postings',()=>{
+ const base=Array.from({length:10},(_,i)=>({id:'job-'+i,url:'https://example.org/job/'+i,provider:'lever',relevant:true,linkVerified:true}));
+ for(const landing of ['https://www.linkedin.com/jobs/search/?keywords=engineer','https://www.indeed.com/jobs?q=engineer','https://www.google.com/search?q=engineer']) {
+  const rows=base.map(r=>({...r})); rows[9].url=landing;
+  const score=evaluateQuery({name:'external landing',results:rows});
+  assert.equal(score.invalidJobUrls,1);
+  assert.equal(score.precisionAt10,null);
+  assert.equal(score.usablePrecisionAt10,null);
+ }
+});
