@@ -26,7 +26,7 @@ export function evaluateQuery(query) {
         || (/(^|\.)google\.[a-z.]+$/.test(host) && (path === '/search' || path === '/'));
     } catch { return false; }
   };
-  const invalidJobUrls = urls.filter(url => !isSafeJobUrl(url) || isSearchLandingPage(url)).length;
+  // Count missing URLs too: every row without a valid individual posting URL is invalid.\n  const invalidJobUrls = results.filter(r => {\n    const url = typeof r.url === 'string' ? r.url.trim() : '';\n    return !isSafeJobUrl(url) || isSearchLandingPage(url);\n  }).length;
   const distinctTop10 = top.length === 10 && topIds.every(Boolean) && topUrls.every(url => isSafeJobUrl(url) && !isSearchLandingPage(url))
     && new Set(topIds).size === 10 && new Set(topUrls).size === 10;
   const verifiedLinks = results.filter(r => r.linkVerified === true).length;
