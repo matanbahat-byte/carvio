@@ -87,3 +87,12 @@ test('director-level supply chain search excludes lower-seniority leads and anal
  ];
  assert.deepEqual(searchPreviewJobs(jobs,{now,query:'Supply Chain Director',country:'Israel',city:'Tel Aviv'}).map(x=>x.id),['director','head']);
 });
+
+test('Israel country filter rejects ATS records explicitly located abroad despite matching city text',()=>{
+ assert.equal(locationMatches('Tel Aviv, United States','Israel'),false);
+ assert.equal(locationMatches('Haifa, Germany','ישראל'),false);
+ assert.equal(locationMatches('Tel Aviv, Israel','Israel'),true);
+ assert.equal(locationMatches('Tel Aviv','ישראל'),true);
+ const jobs=[job('foreign','Software Engineer','Tel Aviv, USA','2026-11-19T00:00:00Z'),job('local','Software Engineer','Tel Aviv, Israel','2026-11-19T00:00:00Z')];
+ assert.deepEqual(searchPreviewJobs(jobs,{now,query:'Software Engineer',country:'Israel',city:'Tel Aviv'}).map(x=>x.id),['local']);
+});
