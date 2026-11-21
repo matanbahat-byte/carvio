@@ -116,3 +116,12 @@ test('Hebrew ATS locations match both Hebrew and English country/city searches',
  const jobs=[job('he','Software Engineer','תל אביב, ישראל','2026-11-19T00:00:00Z')];
  assert.deepEqual(searchPreviewJobs(jobs,{now,query:'מהנדס תוכנה',country:'ישראל',city:'תל אביב'}).map(x=>x.id),['he']);
 });
+
+
+test('Israel country search accepts Hebrew-only city ATS locations without explicit country',()=>{
+ assert.equal(locationMatches('תל אביב','Israel'),true);
+ assert.equal(locationMatches('חיפה','ישראל'),true);
+ assert.equal(locationMatches('תל אביב, Germany','Israel'),false);
+ const jobs=[job('he-city','Software Engineer','תל אביב','2026-11-19T00:00:00Z'),job('abroad','Software Engineer','תל אביב, Germany','2026-11-19T00:00:00Z')];
+ assert.deepEqual(searchPreviewJobs(jobs,{now,query:'Software Engineer',country:'Israel',city:'תל אביב'}).map(x=>x.id),['he-city']);
+});
