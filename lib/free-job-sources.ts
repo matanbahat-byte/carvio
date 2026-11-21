@@ -27,8 +27,11 @@ function officialGreenhousePostingUrl(value: unknown, board: PublicBoard, id: st
 function safeEmployerApplicationUrl(value: string, id: string) {
   try {
     const url = new URL(value);
-    if (url.protocol !== "https:" || url.username || url.password || url.port || !url.hostname.includes(".") || url.hostname === "localhost") return null;
-    if (/^(?:localhost|127\\.|10\\.|192\\.168\\.|172\\.(?:1[6-9]|2\\d|3[01])\\.)/.test(url.hostname)) return null;
+    const host = url.hostname.toLowerCase();
+    // Employer-hosted links are displayed to users, never fetched by CARVIO.
+    // Still reject local-network and loopback destinations.
+    if (url.protocol !== "https:" || url.username || url.password || url.port || !host.includes(".") || host === "localhost" || host.endsWith(".localhost") || host.startsWith("[") || host.endsWith(".local")) return null;
+    if (/^(?:0\\.|10\\.|127\\.|169\\.254\\.|192\\.168\\.|172\\.(?:1[6-9]|2[0-9]|3[01])\\.)/.test(host)) return null;
     // Greenhouse embeds the posting identifier in employer-hosted URLs as gh_jid.
     const jobIds = url.searchParams.getAll("gh_jid");
     return jobIds.length === 1 && jobIds[0] === id ? url.href : null;
