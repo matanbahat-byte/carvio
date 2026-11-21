@@ -67,8 +67,8 @@ test('preview preserves original discovery routes without counting them as verif
 });
 
 test('original multi-platform discovery is visible before limited ATS results',()=>{
- assert.ok(source.indexOf('חיפוש ראשי — LinkedIn, אחריו Indeed ו־Google') > -1);
- assert.ok(source.indexOf('חיפוש ראשי — LinkedIn, אחריו Indeed ו־Google') < source.indexOf('aria-label="תוצאות החיפוש"'));
+ assert.ok(source.includes('LinkedIn הוא נקודת הפתיחה הראשית לחיפוש. אחריו Indeed ו־Google'));
+ assert.ok(source.indexOf('prioritizedRoutes.map') < source.indexOf('aria-label="תוצאות החיפוש"'));
  assert.ok(source.includes('מקורות מעסיקים זמינים (מתוך '));
  assert.ok(source.includes('availableSources ? jobs.length'));
  assert.ok(source.includes('boards.length'));
