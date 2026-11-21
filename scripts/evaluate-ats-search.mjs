@@ -14,7 +14,9 @@ export function evaluateQuery(query) {
   // Repeated listings must not inflate a ten-result relevance score.
   const topIds = top.map(r => String(r.id ?? '').trim());
   const topUrls = top.map(r => typeof r.url === 'string' ? r.url.trim() : '');
-  const distinctTop10 = top.length === 10 && topIds.every(Boolean) && topUrls.every(Boolean)
+  const isSafeJobUrl = value => { try { const u = new URL(value); return u.protocol === 'https:' && Boolean(u.hostname) && !u.username && !u.password; } catch { return false; } };
+  const invalidJobUrls = urls.filter(url => !isSafeJobUrl(url)).length;
+  const distinctTop10 = top.length === 10 && topIds.every(Boolean) && topUrls.every(isSafeJobUrl)
     && new Set(topIds).size === 10 && new Set(topUrls).size === 10;
   const verifiedLinks = results.filter(r => r.linkVerified === true).length;
   const failedLinks = results.filter(r => r.linkVerified === false).length;
@@ -24,7 +26,7 @@ export function evaluateQuery(query) {
   return {
     query: query.name, individualJobs: results.length, uniqueJobIds: uniqueIds.size,
     duplicateIds: ids.length - uniqueIds.size, duplicateUrls: urls.length - uniqueUrls.size,
-    missingIds: results.length - ids.length, missingUrls: results.length - urls.length,
+    missingIds: results.length - ids.length, missingUrls: results.length - urls.length, invalidJobUrls,
     sources, sourcesCount: sources.length, linksVerified: verifiedLinks, linksFailed: failedLinks,
     linksNotChecked: results.length - verifiedLinks - failedLinks,
     precisionAt10: distinctTop10 && judged.length === 10
