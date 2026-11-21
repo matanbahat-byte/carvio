@@ -21,7 +21,7 @@ function officialGreenhousePostingUrl(value: unknown, board: PublicBoard, id: st
   const token = board.token.toLowerCase();
   const jobIndex = segments.lastIndexOf("jobs");
   // Do not associate another employer's posting with this board.
-  if (!segments.includes(token) || jobIndex < 0 || segments[jobIndex + 1] !== id) return null;
+  if (jobIndex < 1 || segments[jobIndex - 1] !== token || segments[jobIndex + 1] !== id || jobIndex + 2 !== segments.length) return null;
   return safe;
 }
 function safeEmployerApplicationUrl(value: string, id: string) {

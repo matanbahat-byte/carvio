@@ -98,3 +98,12 @@ test('rejects ambiguous duplicate Greenhouse gh_jid parameters on employer-hoste
   ];
   assert.deepEqual(normalizePublicBoardJobs(gh,{jobs:records}).map(job=>job.title),['Single matching ID']);
 });
+
+test('requires exact official Greenhouse board/jobs/id path structure',()=>{
+ const records=[
+  {id:71,title:'Nested unrelated board',absolute_url:'https://job-boards.greenhouse.io/sample-company/other/jobs/71'},
+  {id:72,title:'Trailing unrelated path',absolute_url:'https://job-boards.greenhouse.io/sample-company/jobs/72/other'},
+  {id:73,title:'Correct official posting',absolute_url:'https://job-boards.greenhouse.io/sample-company/jobs/73?utm_source=board'}
+ ];
+ assert.deepEqual(normalizePublicBoardJobs(gh,{jobs:records}).map(job=>job.title),['Correct official posting']);
+});
