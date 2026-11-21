@@ -107,3 +107,10 @@ test('requires exact official Greenhouse board/jobs/id path structure',()=>{
  ];
  assert.deepEqual(normalizePublicBoardJobs(gh,{jobs:records}).map(job=>job.title),['Correct official posting']);
 });
+
+test('rejects local and private employer-hosted Greenhouse application links',()=>{
+ const hosts=['127.0.0.1','10.0.0.2','192.168.1.3','172.16.0.4','169.254.1.2','dev.localhost','intranet.local','[::1]'];
+ const records=hosts.map((host,i)=>({id:200+i,title:'Unsafe '+host,absolute_url:`https://${host}/apply?gh_jid=${200+i}`}));
+ records.push({id:300,title:'Public employer',absolute_url:'https://careers.example.org/apply?gh_jid=300'});
+ assert.deepEqual(normalizePublicBoardJobs(gh,{jobs:records}).map(job=>job.title),['Public employer']);
+});
