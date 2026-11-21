@@ -3690,6 +3690,7 @@ export default function Home() {
             <span className="welcome-kicker"><Sparkles className="h-4 w-4" />{language === "he" ? "חיפוש עבודה, עם פחות עומס" : "A calmer way to move your career forward"}</span>
             <h1>{language === "he" ? "כל חיפוש העבודה שלכם. צעד ברור אחד בכל פעם." : "Your whole job search. One clear next move at a time."}</h1>
             <p>{language === "he" ? "רכזו מועמדויות, קשרים, פגישות ופעולות המשך במקום אחד — וקבלו בכל יום הכוונה שמקדמת אתכם." : "Bring applications, conversations, interviews and follow-ups into one focused workspace—and know what matters today."}</p>
+            <a href="/find" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-violet-600 px-6 py-3 font-extrabold text-white shadow-lg transition hover:bg-violet-700"><Search className="h-5 w-5" />{language === "he" ? "חיפוש משרות חדש ✦" : "Explore the new job search ✦"}</a>
             <WelcomeAccountAccess language={language} onContinueLocal={enterWorkspace} />
             <button className="secondary-button mt-3" type="button" onClick={() => { window.sessionStorage.setItem(LANGUAGE_KEY, JSON.stringify(language)); window.location.assign("/?workspace=1&demo=1"); }}>{language === "he" ? "סיור עם נתוני דוגמה נפרדים" : "Explore with separate demo data"}</button>
           </div>
@@ -3713,6 +3714,7 @@ export default function Home() {
   return (
     <main className={`carvio-shell min-h-screen px-4 py-6 text-slate-100 sm:px-6 sm:py-8 lg:px-8 ${theme === "light" ? "carvio-light" : theme === "ocean" ? "carvio-ocean" : theme === "plum" ? "carvio-plum" : ""}`} dir={language === "he" ? "rtl" : "ltr"}>
       <div className="carvio-language-bar carvio-workspace-language" dir="ltr">{languageSwitcher}</div>
+      <a href="/find" className="mx-auto mb-3 inline-flex min-h-11 items-center gap-2 rounded-full border border-violet-300 bg-violet-600 px-5 py-2 text-sm font-extrabold text-white shadow-lg transition hover:bg-violet-700"><Search className="h-4 w-4" />{language === "he" ? "חיפוש המשרות החדש ✦" : "New job search ✦"}</a>
       <div className="calm-content mx-auto flex max-w-7xl flex-col gap-8">
         {demoMode && <aside className="demo-mode-banner" role="status"><strong>{language === "he" ? "מצב דמו · נתונים פיקטיביים בלבד" : "Demo mode · fictional data only"}</strong><p>{language === "he" ? "נתוני הדמו נשארים בסיור. סביבת העבודה האישית נשמרת במכשיר הזה, ואפשר להתחבר בה כדי לסנכרן." : "Demo changes stay in this session. Your personal workspace is saved on this device. Sign in there to sync across devices."}</p><button className="secondary-button" type="button" onClick={() => { window.localStorage.setItem(LANGUAGE_KEY, JSON.stringify(language)); window.location.assign("/?workspace=1"); }}>{language === "he" ? "פתיחת סביבת עבודה במכשיר הזה" : "Open workspace on this device"}</button></aside>}
         <nav aria-label={language === "he" ? "ניווט ראשי ב־Carvio" : "Carvio main navigation"} className="calm-desktop-nav">
