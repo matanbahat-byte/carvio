@@ -76,5 +76,10 @@ test('broad fallback does not silently apply date or employment restrictions',()
  assert.match(source,/const broadRoutes = q \? jobSearchSources\(/);
  assert.match(source,/datePosted: "Any time", employmentType: ""/);
  assert.match(source,/broadRoutes\.map\(/);
- assert.match(source,/ללא הגבלת זמן וללא מסנן סוג העסקה/);
+ assert.match(source,/שם התפקיד המדויק בלבד/);
+});
+
+test('primary external search is not silently limited to past month or full time',()=>{
+ assert.match(source,/alternativeRoles: roleAlternatives\.join\(", "\), country: searchCountry, location: city \|\| location, datePosted: "Any time", employmentType: ""/);
+ assert.doesNotMatch(source,/datePosted: "Past month"/);
 });
