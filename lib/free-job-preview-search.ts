@@ -72,7 +72,9 @@ export function searchPreviewJobs(jobs: PublicJob[], options: {query?:string;loc
     if (city && !locationMatches(job.location,city)) return false;
     if (age !== "all") {
       const published=job.postedAt ? Date.parse(job.postedAt) : NaN;
-      if (!Number.isFinite(published) || published < cutoff || published > now+86_400_000) return false;
+      // Missing publication date is not proof that a live ATS posting is old.
+      // Keep undated postings, label their date as unknown in the UI, and rank them last.
+      if (Number.isFinite(published) && (published < cutoff || published > now+86_400_000)) return false;
     }
     return true;
   }).sort((a,b)=>{
