@@ -29,7 +29,11 @@ export function evaluateQuery(query) {
     linksNotChecked: results.length - verifiedLinks - failedLinks,
     precisionAt10: distinctTop10 && judged.length === 10
       ? judged.filter(r => r.relevant).length / 10 : null,
-    // A usable top-ten score additionally requires live link verification for every listing.\n    // This is deliberately unknown when any link is untested or broken.\n    usablePrecisionAt10: distinctTop10 && judged.length === 10 && top.every(r => r.linkVerified === true)\n      ? judged.filter(r => r.relevant).length / 10 : null,\n    relevanceJudged: judged.length, top10Count: top.length,
+    // A usable top-ten score additionally requires live link verification for every listing.
+    // This is deliberately unknown when any link is untested or broken.
+    usablePrecisionAt10: distinctTop10 && judged.length === 10 && top.every(r => r.linkVerified === true)
+      ? judged.filter(r => r.relevant).length / 10 : null,
+    relevanceJudged: judged.length, top10Count: top.length,
     locationAccuracy: locationJudged.length === top.length && top.length > 0
       ? locationJudged.filter(r => r.locationCorrect).length / top.length : null,
     seniorityAccuracy: seniorityJudged.length === top.length && top.length > 0
