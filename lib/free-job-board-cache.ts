@@ -27,7 +27,7 @@ export function createCachedBoardFetcher(options: {
     const existing = pending.get(key);
     if (existing) return existing.then(copyResult);
     const work = (async () => {
-      const result = await fetchPublicBoardJobs(board, { fetcher: options.fetcher });
+      const result = await fetchPublicBoardJobs(board, { fetcher: options.fetcher, maxResults: 100 });
       if (result.status === "ok") {
         cache.delete(key);
         cache.set(key, { expiresAt: now() + ttlMs, result: copyResult(result) });
