@@ -39,7 +39,7 @@ export function evaluateQuery(query) {
   const locationJudged = top.filter(r => typeof r.locationCorrect === 'boolean');
   const seniorityJudged = top.filter(r => typeof r.seniorityCorrect === 'boolean');
   return {
-    query: query.name, individualJobs: results.length, uniqueJobIds: uniqueIds.size,
+    query: query.name, individualJobs: results.length, validIndividualJobs: results.length - invalidJobUrls, uniqueJobIds: uniqueIds.size,
     duplicateIds: ids.length - uniqueIds.size, duplicateUrls: urls.length - uniqueUrls.size,
     missingIds: results.length - ids.length, missingUrls: results.length - urls.length, invalidJobUrls,
     sources, sourcesCount: sources.length, linksVerified: verifiedLinks, linksFailed: failedLinks,
