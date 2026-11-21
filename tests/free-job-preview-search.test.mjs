@@ -77,3 +77,13 @@ test('supply chain director finds equivalent leadership titles in Israel',()=>{
  assert.deepEqual(searchPreviewJobs(jobs,{now,query:'Supply Chain Director',country:'ישראל',city:'תל אביב'}).map(x=>x.id),['a']);
  assert.deepEqual(searchPreviewJobs(jobs,{now,query:'Supply Chain Director',country:'Israel'}).map(x=>x.id).sort(),['a','b']);
 });
+
+test('director-level supply chain search excludes lower-seniority leads and analysts',()=>{
+ const jobs=[
+  job('director','Director of Supply Chain','Tel Aviv','2026-11-19T00:00:00Z'),
+  job('head','Head of Supply Chain','Tel Aviv','2026-11-19T00:00:00Z'),
+  job('lead','Supply Chain Lead','Tel Aviv','2026-11-19T00:00:00Z'),
+  job('analyst','Supply Chain Analyst','Tel Aviv','2026-11-19T00:00:00Z'),
+ ];
+ assert.deepEqual(searchPreviewJobs(jobs,{now,query:'Supply Chain Director',country:'Israel',city:'Tel Aviv'}).map(x=>x.id),['director','head']);
+});
