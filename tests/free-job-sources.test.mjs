@@ -114,3 +114,10 @@ test('rejects local and private employer-hosted Greenhouse application links',()
  records.push({id:300,title:'Public employer',absolute_url:'https://careers.example.org/apply?gh_jid=300'});
  assert.deepEqual(normalizePublicBoardJobs(gh,{jobs:records}).map(job=>job.title),['Public employer']);
 });
+
+test('fails closed on malformed runtime board configuration',()=>{
+ for (const board of [null, undefined, {}, {provider:'lever',token:null,company:'Example'}, {provider:'greenhouse',token:42,company:'Example'}]) {
+  assert.deepEqual(normalizePublicBoardJobs(board,{jobs:[]}),[]);
+  assert.throws(()=>publicBoardEndpoint(board),/Invalid board/);
+ }
+});
