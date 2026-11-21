@@ -22,6 +22,9 @@ try {
       const link = page.getByRole("link", { name: new RegExp(name, "i") }).first();
       const target = new URL(await link.getAttribute("href"));
       assert.ok(target.hostname === host || target.hostname.endsWith("." + host), name + " host mismatch");
+      assert.equal(target.protocol, "https:", name + " must use HTTPS");
+      assert.equal(target.username, "", name + " must not contain URL credentials");
+      assert.equal(target.password, "", name + " must not contain URL credentials");
       assert.ok(target.search.length > 0, name + " search query missing");
     }
     assert.ok(await page.getByText(/קישורי חיפוש, לא משרות שנמצאו או אומתו/).isVisible());
