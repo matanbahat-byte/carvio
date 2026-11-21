@@ -11,6 +11,11 @@ export function evaluateQuery(query) {
   const uniqueIds = new Set(ids);
   const uniqueUrls = new Set(urls);
   const judged = top.filter(r => typeof r.relevant === 'boolean');
+  // Repeated listings must not inflate a ten-result relevance score.
+  const topIds = top.map(r => String(r.id ?? '').trim());
+  const topUrls = top.map(r => typeof r.url === 'string' ? r.url.trim() : '');
+  const distinctTop10 = top.length === 10 && topIds.every(Boolean) && topUrls.every(Boolean)
+    && new Set(topIds).size === 10 && new Set(topUrls).size === 10;
   const verifiedLinks = results.filter(r => r.linkVerified === true).length;
   const failedLinks = results.filter(r => r.linkVerified === false).length;
   const sources = [...new Set(results.map(r => r.provider).filter(Boolean))].sort();
@@ -22,7 +27,7 @@ export function evaluateQuery(query) {
     missingIds: results.length - ids.length, missingUrls: results.length - urls.length,
     sources, sourcesCount: sources.length, linksVerified: verifiedLinks, linksFailed: failedLinks,
     linksNotChecked: results.length - verifiedLinks - failedLinks,
-    precisionAt10: top.length === 10 && judged.length === 10
+    precisionAt10: distinctTop10 && judged.length === 10
       ? judged.filter(r => r.relevant).length / 10 : null,
     relevanceJudged: judged.length, top10Count: top.length,
     locationAccuracy: locationJudged.length === top.length && top.length > 0
