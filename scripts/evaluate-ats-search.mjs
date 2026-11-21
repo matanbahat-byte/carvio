@@ -6,8 +6,10 @@ import { readFileSync } from 'node:fs';
 export function evaluateQuery(query) {
   const results = Array.isArray(query.results) ? query.results : [];
   const top = results.slice(0, 10);
-  const uniqueIds = new Set(results.map(r => r.id).filter(Boolean));
-  const uniqueUrls = new Set(results.map(r => r.url).filter(Boolean));
+  const ids = results.map(r => typeof r.id === 'string' ? r.id.trim() : String(r.id ?? '').trim()).filter(Boolean);
+  const urls = results.map(r => typeof r.url === 'string' ? r.url.trim() : '').filter(Boolean);
+  const uniqueIds = new Set(ids);
+  const uniqueUrls = new Set(urls);
   const judged = top.filter(r => typeof r.relevant === 'boolean');
   const verifiedLinks = results.filter(r => r.linkVerified === true).length;
   const failedLinks = results.filter(r => r.linkVerified === false).length;
@@ -16,7 +18,8 @@ export function evaluateQuery(query) {
   const seniorityJudged = top.filter(r => typeof r.seniorityCorrect === 'boolean');
   return {
     query: query.name, individualJobs: results.length, uniqueJobIds: uniqueIds.size,
-    duplicateIds: results.length - uniqueIds.size, duplicateUrls: results.length - uniqueUrls.size,
+    duplicateIds: ids.length - uniqueIds.size, duplicateUrls: urls.length - uniqueUrls.size,
+    missingIds: results.length - ids.length, missingUrls: results.length - urls.length,
     sources, sourcesCount: sources.length, linksVerified: verifiedLinks, linksFailed: failedLinks,
     linksNotChecked: results.length - verifiedLinks - failedLinks,
     precisionAt10: top.length === 10 && judged.length === 10
