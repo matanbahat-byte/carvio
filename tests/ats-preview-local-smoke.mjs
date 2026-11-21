@@ -9,11 +9,11 @@ try {
     const page = await browser.newPage({ viewport: { width: viewport.width, height: viewport.height }, deviceScaleFactor: 1 });
     const response = await page.goto(url, { waitUntil: "networkidle", timeout: 45000 });
     assert.equal(response?.status(), 200, "preview route must be accessible");
-    assert.equal(await page.getByRole("link", { name: /LinkedIn/i }).count(), 1);
-    assert.equal(await page.getByRole("link", { name: /Indeed/i }).count(), 1);
-    assert.equal(await page.getByRole("link", { name: /Google/i }).count(), 1);
+    assert.ok(await page.getByRole("link", { name: /LinkedIn/i }).count() >= 2);
+    assert.ok(await page.getByRole("link", { name: /Indeed/i }).count() >= 2);
+    assert.ok(await page.getByRole("link", { name: /Google/i }).count() >= 2);
     for (const [name, host] of [["LinkedIn", "linkedin.com"], ["Indeed", "indeed.com"], ["Google", "google.com"]]) {
-      const link = page.getByRole("link", { name: new RegExp(name, "i") });
+      const link = page.getByRole("link", { name: new RegExp(name, "i") }).first();
       const target = new URL(await link.getAttribute("href"));
       assert.ok(target.hostname === host || target.hostname.endsWith("." + host), name + " host mismatch");
       assert.ok(target.search.length > 0, name + " search query missing");
