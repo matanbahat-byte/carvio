@@ -41,7 +41,9 @@ export function evaluateQuery(query) {
   const verifiedSources = [...new Set(results.filter(r => r.linkVerified === true && isSafeJobUrl(r.url) && !isSearchLandingPage(r.url)).map(r => r.provider).filter(Boolean))].sort();
   // A syntactically plausible URL does not prove that a real, individual job was retrieved.
   // This flag must come from manual review of the destination page, not URL heuristics.
-  const confirmedIndividualJobs = results.filter(r => r.individualJobVerified === true && isSafeJobUrl(r.url) && !isSearchLandingPage(r.url)).length;
+  const confirmedRows = results.filter(r => r.individualJobVerified === true && r.linkVerified === true && isSafeJobUrl(r.url) && !isSearchLandingPage(r.url));
+  const confirmedIndividualJobs = confirmedRows.length;
+  const confirmedSources = [...new Set(confirmedRows.map(r => r.provider).filter(Boolean))].sort();
   const confirmedTop10 = distinctTop10 && top.every(r => r.individualJobVerified === true);
   const locationJudged = top.filter(r => typeof r.locationCorrect === 'boolean');
   const seniorityJudged = top.filter(r => typeof r.seniorityCorrect === 'boolean');
@@ -50,7 +52,8 @@ export function evaluateQuery(query) {
     duplicateIds: ids.length - uniqueIds.size, duplicateUrls: urls.length - uniqueUrls.size,
     missingIds: results.length - ids.length, missingUrls: results.length - urls.length, invalidJobUrls,
     sources, sourcesCount: sources.length, validSources, validSourcesCount: validSources.length,
-    verifiedSources, verifiedSourcesCount: verifiedSources.length, linksVerified: verifiedLinks, linksFailed: failedLinks,
+    verifiedSources, verifiedSourcesCount: verifiedSources.length,
+    confirmedSources, confirmedSourcesCount: confirmedSources.length, linksVerified: verifiedLinks, linksFailed: failedLinks,
     linksNotChecked: results.length - verifiedLinks - failedLinks,
     precisionAt10: distinctTop10 && judged.length === 10
       ? judged.filter(r => r.relevant).length / 10 : null,
