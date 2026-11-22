@@ -3731,20 +3731,33 @@ export default function Home() {
         </nav>
 
         <header className={`calm-view dashboard-v2 ${activeView !== "home" ? "calm-view-hidden" : ""}`} id="dashboard">
-          <section aria-label={language === "he" ? "משרות שעשויות להתאים לכם" : "Your next opportunities"} className="relative mb-7 overflow-hidden rounded-[30px] border border-violet-300/50 bg-gradient-to-br from-[#27145c] via-[#3e238d] to-[#075d68] p-5 shadow-[0_24px_75px_rgba(91,52,205,0.3)] sm:p-8">
+          <section aria-label={language === "he" ? "החיפושים והמשרות השמורות שלכם" : "Your saved jobs and searches"} className="relative mb-7 overflow-hidden rounded-[30px] border border-violet-300/50 bg-gradient-to-br from-[#27145c] via-[#3e238d] to-[#075d68] p-5 shadow-[0_24px_75px_rgba(91,52,205,0.3)] sm:p-8">
             <div aria-hidden="true" className="pointer-events-none absolute -left-16 -top-24 h-64 w-64 rounded-full bg-cyan-400/20 blur-[75px]" /><div aria-hidden="true" className="pointer-events-none absolute -right-20 top-16 h-72 w-72 rounded-full bg-fuchsia-400/25 blur-[90px]" /><div className="relative flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="mb-2 flex items-center gap-2 text-xs font-extrabold tracking-wide text-violet-300"><Sparkles className="h-4 w-4" /> YOUR NEXT OPPORTUNITIES</p>
-                <h2 className="text-xl font-extrabold text-white sm:text-2xl">{language === "he" ? "משרות שעשויות להתאים לכם" : "Your next opportunity starts here"}</h2>
-                <p className="mt-2 text-sm leading-6 text-slate-300">{language === "he" ? "החיפוש שלך מוכן — בחרו מקור וצפו במשרות באתר המקורי." : "Your search is ready — pick a source to see live listings on its own website."}</p>
+                <h2 className="text-xl font-extrabold text-white sm:text-2xl">{language === "he" ? "המשרות והחיפושים שלכם, במקום אחד" : "Your saved jobs and searches in one place"}</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-300">{language === "he" ? "חזרו למשרות ששמרתם או פתחו חיפוש לפי ההעדפות שלכם." : "Your search is ready — pick a source to see live listings on its own website."}</p>
               </div>
               <a href={`/find?q=${encodeURIComponent(searchProfile.role || userProfile.targetRole || "")}&country=${encodeURIComponent(searchProfile.country || "")}&city=${encodeURIComponent(searchProfile.location || "")}`} className="inline-flex items-center gap-2 rounded-full border border-violet-300/50 bg-violet-500/20 px-4 py-2 text-sm font-bold text-white transition hover:bg-violet-500/40"><Search className="h-4 w-4" />{language === "he" ? "שינוי חיפוש" : "Edit search"}</a>
             </div>
-            {(searchProfile.role || userProfile.targetRole) ? (
+            {applications.filter(item => item.role.trim() && item.company.trim()).length > 0 && (
+              <div className="relative mt-5">
+                <h3 className="mb-3 text-sm font-bold text-white">{language === "he" ? "משרות ששמרתם" : "Jobs you saved"}</h3>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {applications.filter(item => item.role.trim() && item.company.trim()).slice(0, 3).map(item => (
+                    <div key={item.id} className="flex min-h-32 flex-col justify-between gap-3 rounded-2xl border border-white/25 bg-white/95 p-4 text-slate-900">
+                      <div><p className="font-bold">{item.role}</p><p className="mt-1 text-xs text-slate-600">{item.company}{item.location ? ` · ${item.location}` : ""}</p></div>
+                      {/^https?:\/\//i.test(item.jobUrl.trim()) ? <a href={item.jobUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm font-bold text-violet-700">{language === "he" ? "פתיחת המשרה המקורית" : "Open original job"}<ExternalLink className="h-4 w-4" /></a> : <button type="button" onClick={() => switchView("applications")} className="text-start text-sm font-bold text-violet-700">{language === "he" ? "פתיחה במעקב" : "Open in tracker"}</button>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {searchProfile.role.trim() && (searchProfile.country.trim() || searchProfile.location.trim()) && !searchPreferencesNeedReview(searchProfile) ? (
               <>
-                <p className="mt-5 rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-medium text-white">{searchProfile.role || userProfile.targetRole}{searchProfile.country ? ` · ${searchProfile.country}` : ""}{searchProfile.location ? ` · ${searchProfile.location}` : ""}</p>
+                <p className="mt-5 rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-medium text-white">{searchProfile.role}{searchProfile.country ? ` · ${searchProfile.country}` : ""}{searchProfile.location ? ` · ${searchProfile.location}` : ""}</p>
                 <div className="relative mt-4 grid gap-3 sm:grid-cols-3">
-                  {jobSearchSources({ ...searchProfile, role: searchProfile.role || userProfile.targetRole }, language).filter(source => ["linkedin","indeed","google"].includes(source.id)).map(source => (
+                  {jobSearchSources(searchProfile, language).filter(source => ["linkedin","indeed","google"].includes(source.id)).map(source => (
                     <a key={source.id} href={source.url} target="_blank" rel="noopener noreferrer" className="group flex min-h-32 flex-col items-start justify-between gap-3 rounded-2xl border border-white/30 bg-white/95 p-5 text-[#30235d] shadow-[0_10px_25px_rgba(12,10,47,0.15)] transition duration-200 hover:-translate-y-1 hover:bg-white hover:shadow-2xl"><span className="flex w-full items-center justify-between gap-2"><span className="text-lg font-black">{source.id === "linkedin" ? "LinkedIn" : source.id === "indeed" ? "Indeed" : "Google Jobs"}</span><ExternalLink className="h-5 w-5 text-violet-600 transition group-hover:translate-x-[-2px]" /></span><span className="text-xs font-medium leading-5 text-slate-600">{source.id === "linkedin" ? (language === "he" ? "לצפייה במשרות וברשת המקצועית" : "Explore jobs and your professional network") : source.id === "indeed" ? (language === "he" ? "עוד משרות ממעסיקים שונים" : "More openings across employers") : (language === "he" ? "חיפוש רחב של משרות ברשת" : "Search job openings across the web")}</span><span className="inline-flex items-center gap-1 text-sm font-extrabold text-violet-700">{language === "he" ? "פתיחת תוצאות" : "Open results"} <ArrowUpRight className="h-4 w-4" /></span></a>
                   ))}
                 </div>
@@ -3753,7 +3766,7 @@ export default function Home() {
               </>
             ) : (
               <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/15 bg-white/10 p-4">
-                <p className="text-sm text-slate-200">{language === "he" ? "איזה תפקיד ומיקום מעניינים אותך? נגדיר פעם אחת ונציג כאן חיפוש מותאם בכל כניסה." : "Which role and location interest you? Set them once for a ready-to-use search on every visit."}</p>
+                <p className="text-sm text-slate-200">{language === "he" ? "כדי להציג חיפוש רלוונטי, הגדירו תפקיד ומיקום ועדכנו מסננים ישנים במידת הצורך." : "Set a role and location, and review outdated filters, to see a relevant search."}</p>
                 <a href="/find" className="rounded-xl bg-violet-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-violet-400">{language === "he" ? "מציאת משרות" : "Find jobs"}</a>
               </div>
             )}
