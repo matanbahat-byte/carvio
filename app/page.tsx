@@ -3731,11 +3731,11 @@ export default function Home() {
         </nav>
 
         <header className={`calm-view dashboard-v2 ${activeView !== "home" ? "calm-view-hidden" : ""}`} id="dashboard">
-          <section aria-label={language === "he" ? "הזדמנויות החיפוש שלך" : "Your next opportunities"} className="relative mb-7 overflow-hidden rounded-[30px] border border-violet-300/50 bg-gradient-to-br from-[#27145c] via-[#3e238d] to-[#075d68] p-5 shadow-[0_24px_75px_rgba(91,52,205,0.3)] sm:p-8">
+          <section aria-label={language === "he" ? "משרות שעשויות להתאים לכם" : "Your next opportunities"} className="relative mb-7 overflow-hidden rounded-[30px] border border-violet-300/50 bg-gradient-to-br from-[#27145c] via-[#3e238d] to-[#075d68] p-5 shadow-[0_24px_75px_rgba(91,52,205,0.3)] sm:p-8">
             <div aria-hidden="true" className="pointer-events-none absolute -left-16 -top-24 h-64 w-64 rounded-full bg-cyan-400/20 blur-[75px]" /><div aria-hidden="true" className="pointer-events-none absolute -right-20 top-16 h-72 w-72 rounded-full bg-fuchsia-400/25 blur-[90px]" /><div className="relative flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="mb-2 flex items-center gap-2 text-xs font-extrabold tracking-wide text-violet-300"><Sparkles className="h-4 w-4" /> YOUR NEXT OPPORTUNITIES</p>
-                <h2 className="text-xl font-extrabold text-white sm:text-2xl">{language === "he" ? "ההזדמנות הבאה שלך מתחילה כאן" : "Your next opportunity starts here"}</h2>
+                <h2 className="text-xl font-extrabold text-white sm:text-2xl">{language === "he" ? "משרות שעשויות להתאים לכם" : "Your next opportunity starts here"}</h2>
                 <p className="mt-2 text-sm leading-6 text-slate-300">{language === "he" ? "החיפוש שלך מוכן — בחרו מקור וצפו במשרות באתר המקורי." : "Your search is ready — pick a source to see live listings on its own website."}</p>
               </div>
               <a href={`/find?q=${encodeURIComponent(searchProfile.role || userProfile.targetRole || "")}&country=${encodeURIComponent(searchProfile.country || "")}&city=${encodeURIComponent(searchProfile.location || "")}`} className="inline-flex items-center gap-2 rounded-full border border-violet-300/50 bg-violet-500/20 px-4 py-2 text-sm font-bold text-white transition hover:bg-violet-500/40"><Search className="h-4 w-4" />{language === "he" ? "שינוי חיפוש" : "Edit search"}</a>
@@ -3779,8 +3779,8 @@ export default function Home() {
           </section>}
           {applications.length > 0 && <section aria-label={language === "he" ? "המשך מהנקודה שבה עצרתם" : "Pick up where you left off"} className="mb-4 rounded-2xl border border-emerald-400/25 bg-emerald-500/10 p-4 sm:p-5">
             <p className="text-xs font-semibold text-emerald-300">{language === "he" ? "ברוכים השבים · ממשיכים מכאן" : "Welcome back · pick up here"}</p>
-            <h2 className="mt-2 text-lg font-semibold text-slate-100">{language === "he" ? "ההזדמנויות ששמרתם מחכות לכם" : "Your saved opportunities are waiting"}</h2>
-            <p className="mt-1 text-sm text-slate-300">{language === "he" ? `יש לכם ${applications.length} הזדמנויות שמורות. פתחו את המעקב ובחרו את הצעד הבא — בלי להתחיל חיפוש מחדש.` : `You have ${applications.length} saved opportunities. Open your tracker and choose your next step — no need to start searching again.`}</p>
+            <h2 className="mt-2 text-lg font-semibold text-slate-100">{language === "he" ? "המשרות ששמרתם מחכות לכם" : "Your saved opportunities are waiting"}</h2>
+            <p className="mt-1 text-sm text-slate-300">{language === "he" ? `יש לכם ${applications.length} משרות שמורות. פתחו את המעקב ובחרו את הצעד הבא — בלי להתחיל חיפוש מחדש.` : `You have ${applications.length} saved opportunities. Open your tracker and choose your next step — no need to start searching again.`}</p>
             <div className="mt-3 flex flex-wrap gap-2"><button className="primary-button" type="button" onClick={() => switchView("applications")}>{language === "he" ? "המשך למעקב המשרות" : "Continue tracking jobs"}<ArrowRight className="h-4 w-4" /></button>{contacts.length > 0 && <button className="secondary-button" type="button" onClick={() => switchView("networking")}>{language === "he" ? `קשרים מקצועיים (${contacts.length})` : `Professional contacts (${contacts.length})`}</button>}</div>
           </section>}
           {applications.length === 0 && contacts.length > 0 && <section aria-label={language === "he" ? "המשך קשרים מקצועיים" : "Resume your professional connections"} className="mb-4 rounded-2xl border border-sky-400/25 bg-sky-500/10 p-4 sm:p-5">
