@@ -39,10 +39,14 @@ export function evaluateQuery(query) {
   // Coverage of actual posting URLs must not include providers represented only by search links.
   const validSources = [...new Set(results.filter(r => isSafeJobUrl(r.url) && !isSearchLandingPage(r.url)).map(r => r.provider).filter(Boolean))].sort();
   const verifiedSources = [...new Set(results.filter(r => r.linkVerified === true && isSafeJobUrl(r.url) && !isSearchLandingPage(r.url)).map(r => r.provider).filter(Boolean))].sort();
+  // A syntactically plausible URL does not prove that a real, individual job was retrieved.
+  // This flag must come from manual review of the destination page, not URL heuristics.
+  const confirmedIndividualJobs = results.filter(r => r.individualJobVerified === true && isSafeJobUrl(r.url) && !isSearchLandingPage(r.url)).length;
+  const confirmedTop10 = distinctTop10 && top.every(r => r.individualJobVerified === true);
   const locationJudged = top.filter(r => typeof r.locationCorrect === 'boolean');
   const seniorityJudged = top.filter(r => typeof r.seniorityCorrect === 'boolean');
   return {
-    query: query.name, individualJobs: results.length, validIndividualJobs: results.length - invalidJobUrls, uniqueJobIds: uniqueIds.size,
+    query: query.name, individualJobs: results.length, validIndividualJobs: results.length - invalidJobUrls, confirmedIndividualJobs, uniqueJobIds: uniqueIds.size,
     duplicateIds: ids.length - uniqueIds.size, duplicateUrls: urls.length - uniqueUrls.size,
     missingIds: results.length - ids.length, missingUrls: results.length - urls.length, invalidJobUrls,
     sources, sourcesCount: sources.length, validSources, validSourcesCount: validSources.length,
@@ -53,6 +57,9 @@ export function evaluateQuery(query) {
     // A usable top-ten score additionally requires live link verification for every listing.
     // This is deliberately unknown when any link is untested or broken.
     usablePrecisionAt10: distinctTop10 && judged.length === 10 && top.every(r => r.linkVerified === true)
+      ? judged.filter(r => r.relevant).length / 10 : null,
+    // Strict metric: only manually confirmed individual postings with checked live links.
+    evidenceBasedPrecisionAt10: confirmedTop10 && judged.length === 10 && top.every(r => r.linkVerified === true)
       ? judged.filter(r => r.relevant).length / 10 : null,
     relevanceJudged: judged.length, top10Count: top.length,
     locationAccuracy: locationJudged.length === top.length && top.length > 0
