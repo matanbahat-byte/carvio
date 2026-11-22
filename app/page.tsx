@@ -1441,6 +1441,7 @@ export default function Home() {
         role: edited.has("role") ? current.role : details.role || current.role,
         company: edited.has("company") ? current.company : details.company || current.company,
         location: edited.has("location") ? current.location : details.location || current.location,
+        jobDescription: current.jobDescription.trim() ? current.jobDescription : details.jobDescription || current.jobDescription,
       };
     });
   }, []);
