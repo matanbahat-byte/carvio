@@ -74,7 +74,9 @@ export async function checkJobAvailability(input: string, request: typeof fetch 
         text?: unknown;
         company_name?: unknown;
         location?: { name?: unknown };
-        categories?: { location?: unknown };\n        content?: unknown;\n        descriptionPlain?: unknown;
+        categories?: { location?: unknown };
+        content?: unknown;
+        descriptionPlain?: unknown;
       } | null;
       const lever = target.provider === "lever";
       const role = verifiedField(lever ? job?.text : job?.title);
@@ -84,7 +86,8 @@ export async function checkJobAvailability(input: string, request: typeof fetch 
         details: {
           role,
           company: lever ? "" : verifiedField(job.company_name),
-          location: verifiedField(lever ? job.categories?.location : job.location?.name),\n          jobDescription: jobDescriptionText(lever ? job.descriptionPlain : job.content, !lever) || undefined,
+          location: verifiedField(lever ? job.categories?.location : job.location?.name),
+          jobDescription: jobDescriptionText(lever ? job.descriptionPlain : job.content, !lever) || undefined,
         },
       };
     }
