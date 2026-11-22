@@ -34,7 +34,10 @@ export function acquisitionChannel(search = "", referrer = "") {
 export function sanitizeAnalyticsProperties(properties: Record<string, unknown> = {}) {
   return Object.fromEntries(
     Object.entries(properties).filter(
-      ([key, value]) => allowedProperties.has(key) && ["string", "number", "boolean"].includes(typeof value),
+      ([key, value]) => allowedProperties.has(key)
+        && (typeof value === "boolean"
+          || (typeof value === "number" && Number.isFinite(value))
+          || (typeof value === "string" && value.length <= 128)),
     ),
   ) as AnalyticsProperties;
 }

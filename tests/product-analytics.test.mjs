@@ -43,3 +43,15 @@ test("return prompt appears only after a visit on an earlier local day", () => {
   assert.equal(isReturningVisit("2026-11-14", "2026-11-14"), false);
   assert.equal(isReturningVisit("2026-11-13", "2026-11-14"), true);
 });
+
+
+test("analytics properties reject nonfinite numbers and oversized values", () => {
+  assert.deepEqual(sanitizeAnalyticsProperties({
+    activeSeconds: Infinity,
+    count: Number.NaN,
+    method: "x".repeat(129),
+    screen: "search",
+    days: 7,
+    readiness: false,
+  }), { screen: "search", days: 7, readiness: false });
+});
