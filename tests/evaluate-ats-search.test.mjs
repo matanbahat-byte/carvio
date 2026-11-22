@@ -145,3 +145,17 @@ test('source coverage excludes navigation links and distinguishes verified provi
  assert.deepEqual(score.verifiedSources,['greenhouse']);
  assert.equal(score.verifiedSourcesCount,1);
 });
+
+
+test('confirmed job and source counts require both destination and live-link evidence',()=>{
+ const score=evaluateQuery({name:'evidence coverage',results:[
+  {id:'a',url:'https://jobs.lever.co/acme/a',provider:'lever',individualJobVerified:true,linkVerified:true},
+  {id:'b',url:'https://boards.greenhouse.io/acme/jobs/b',provider:'greenhouse',individualJobVerified:true},
+  {id:'c',url:'https://www.linkedin.com/jobs/search?q=hr',provider:'linkedin',individualJobVerified:true,linkVerified:true},
+  {id:'d',url:'https://jobs.lever.co/acme/d',provider:'lever',linkVerified:true}
+ ]});
+ assert.equal(score.confirmedIndividualJobs,1);
+ assert.deepEqual(score.confirmedSources,['lever']);
+ assert.equal(score.confirmedSourcesCount,1);
+ assert.equal(score.evidenceBasedPrecisionAt10,null);
+});
