@@ -14,7 +14,7 @@ export function evaluateQuery(query) {
   // Repeated listings must not inflate a ten-result relevance score.
   const topIds = top.map(r => String(r.id ?? '').trim());
   const topUrls = top.map(r => typeof r.url === 'string' ? r.url.trim() : '');
-  const isSafeJobUrl = value => { try { const u = new URL(value); return u.protocol === 'https:' && Boolean(u.hostname) && !u.username && !u.password; } catch { return false; } };
+  const isSafeJobUrl = value => { try { const u = new URL(value); return u.protocol === 'https:' && Boolean(u.hostname) && !u.username && !u.password && !u.port; } catch { return false; } };
   // Search-result landing pages are navigation, not individually retrieved job postings.
   const isSearchLandingPage = value => {
     try {
