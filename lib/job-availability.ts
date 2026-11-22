@@ -87,7 +87,7 @@ export async function checkJobAvailability(input: string, request: typeof fetch 
           role,
           company: lever ? "" : verifiedField(job.company_name),
           location: verifiedField(lever ? job.categories?.location : job.location?.name),
-          jobDescription: jobDescriptionText(lever ? job.descriptionPlain : job.content, !lever) || undefined,
+          ...(jobDescriptionText(lever ? job.descriptionPlain : job.content, !lever) ? { jobDescription: jobDescriptionText(lever ? job.descriptionPlain : job.content, !lever) } : {}),
         },
       };
     }
