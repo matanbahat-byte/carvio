@@ -12,7 +12,7 @@ export function availabilityTarget(input: string): Target | null {
     if (!parts[0] || !safe.test(parts[0])) return null;
     if (["boards.greenhouse.io", "job-boards.greenhouse.io"].includes(url.hostname) && parts.length === 3 && parts[1] === "jobs" && /^\d+$/.test(parts[2])) {
       const board = `https://boards-api.greenhouse.io/v1/boards/${parts[0]}/jobs`;
-      return { provider: "greenhouse", id: parts[2], board, detail: `${board}/${parts[2]}` };
+      return { provider: "greenhouse", id: parts[2], board, detail: `${board}/${parts[2]}?content=true` };
     }
     if (["jobs.lever.co", "jobs.eu.lever.co"].includes(url.hostname) && parts.length === 2 && /^[a-f0-9-]{36}$/i.test(parts[1])) {
       const host = url.hostname === "jobs.eu.lever.co" ? "api.eu.lever.co" : "api.lever.co";
