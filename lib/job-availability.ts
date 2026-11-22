@@ -53,9 +53,9 @@ function verifiedField(value: unknown): string {
 function jobDescriptionText(value: unknown, html = false): string {
   if (typeof value !== "string") return "";
   const plain = html
-    ? value.replace(/<script\\b[^>]*>[\\s\\S]*?<\\/script>/gi, " ").replace(/<style\\b[^>]*>[\\s\\S]*?<\\/style>/gi, " ").replace(/<[^>]+>/g, " ")
+    ? value.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ").replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ")
     : value;
-  return plain.replace(/&nbsp;|&#160;/gi, " ").replace(/&amp;/gi, "&").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">").replace(/&quot;/gi, '"').replace(/&#39;/gi, "'").replace(/\\s+/g, " ").trim().slice(0, 20000);
+  return plain.replace(/&nbsp;|&#160;/gi, " ").replace(/&amp;/gi, "&").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">").replace(/&quot;/gi, '"').replace(/&#39;/gi, "'").replace(/\s+/g, " ").trim().slice(0, 20000);
 }
 
 export async function checkJobAvailability(input: string, request: typeof fetch = fetch): Promise<Availability> {
