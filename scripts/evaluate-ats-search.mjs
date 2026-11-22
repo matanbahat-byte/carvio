@@ -23,7 +23,7 @@ export function evaluateQuery(query) {
       const path = u.pathname.toLowerCase();
       return (/(^|\.)linkedin\.com$/.test(host) && (path.startsWith('/jobs/search') || path.startsWith('/jobs/collections') || path === '/jobs'))
         || (/(^|\.)indeed\.[a-z.]+$/.test(host) && (path === '/' || path === '/jobs' || path.startsWith('/jobs/search')))
-        || (/(^|\.)google\.[a-z.]+$/.test(host) && (path === '/search' || path === '/'));
+        || (/(^|\.)google\.[a-z.]+$/.test(host) && (path === '/search' || path === '/' || path === '/url'));
     } catch { return false; }
   };
   // Count missing URLs too: every row without a valid individual posting URL is invalid.
