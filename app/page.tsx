@@ -3731,8 +3731,8 @@ export default function Home() {
         </nav>
 
         <header className={`calm-view dashboard-v2 ${activeView !== "home" ? "calm-view-hidden" : ""}`} id="dashboard">
-          <section aria-label={language === "he" ? "הזדמנויות החיפוש שלך" : "Your next opportunities"} className="mb-5 rounded-3xl border border-violet-300/35 bg-gradient-to-br from-violet-950/85 via-slate-900/90 to-teal-950/75 p-5 shadow-xl sm:p-7">
-            <div className="flex flex-wrap items-start justify-between gap-3">
+          <section aria-label={language === "he" ? "הזדמנויות החיפוש שלך" : "Your next opportunities"} className="relative mb-7 overflow-hidden rounded-[30px] border border-violet-300/50 bg-gradient-to-br from-[#27145c] via-[#3e238d] to-[#075d68] p-5 shadow-[0_24px_75px_rgba(91,52,205,0.3)] sm:p-8">
+            <div aria-hidden="true" className="pointer-events-none absolute -left-16 -top-24 h-64 w-64 rounded-full bg-cyan-400/20 blur-[75px]" /><div aria-hidden="true" className="pointer-events-none absolute -right-20 top-16 h-72 w-72 rounded-full bg-fuchsia-400/25 blur-[90px]" /><div className="relative flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="mb-2 flex items-center gap-2 text-xs font-extrabold tracking-wide text-violet-300"><Sparkles className="h-4 w-4" /> YOUR NEXT OPPORTUNITIES</p>
                 <h2 className="text-xl font-extrabold text-white sm:text-2xl">{language === "he" ? "ההזדמנות הבאה שלך מתחילה כאן" : "Your next opportunity starts here"}</h2>
@@ -3743,12 +3743,13 @@ export default function Home() {
             {(searchProfile.role || userProfile.targetRole) ? (
               <>
                 <p className="mt-5 rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-medium text-white">{searchProfile.role || userProfile.targetRole}{searchProfile.country ? ` · ${searchProfile.country}` : ""}{searchProfile.location ? ` · ${searchProfile.location}` : ""}</p>
-                <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                <div className="relative mt-4 grid gap-3 sm:grid-cols-3">
                   {jobSearchSources({ ...searchProfile, role: searchProfile.role || userProfile.targetRole }, language).filter(source => ["linkedin","indeed","google"].includes(source.id)).map(source => (
-                    <a key={source.id} href={source.url} target="_blank" rel="noopener noreferrer" className="flex min-h-16 items-center justify-between gap-3 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-extrabold text-white transition hover:-translate-y-0.5 hover:border-violet-300/70 hover:bg-white/20"><span>{source.id === "linkedin" ? "LinkedIn" : source.id === "indeed" ? "Indeed" : "Google"}</span><ExternalLink className="h-4 w-4" /></a>
+                    <a key={source.id} href={source.url} target="_blank" rel="noopener noreferrer" className="group flex min-h-32 flex-col items-start justify-between gap-3 rounded-2xl border border-white/30 bg-white/95 p-5 text-[#30235d] shadow-[0_10px_25px_rgba(12,10,47,0.15)] transition duration-200 hover:-translate-y-1 hover:bg-white hover:shadow-2xl"><span className="flex w-full items-center justify-between gap-2"><span className="text-lg font-black">{source.id === "linkedin" ? "LinkedIn" : source.id === "indeed" ? "Indeed" : "Google Jobs"}</span><ExternalLink className="h-5 w-5 text-violet-600 transition group-hover:translate-x-[-2px]" /></span><span className="text-xs font-medium leading-5 text-slate-600">{source.id === "linkedin" ? (language === "he" ? "לצפייה במשרות וברשת המקצועית" : "Explore jobs and your professional network") : source.id === "indeed" ? (language === "he" ? "עוד משרות ממעסיקים שונים" : "More openings across employers") : (language === "he" ? "חיפוש רחב של משרות ברשת" : "Search job openings across the web")}</span><span className="inline-flex items-center gap-1 text-sm font-extrabold text-violet-700">{language === "he" ? "פתיחת תוצאות" : "Open results"} <ArrowUpRight className="h-4 w-4" /></span></a>
                   ))}
                 </div>
-                <p className="mt-3 text-xs leading-5 text-slate-400">{language === "he" ? "אלו קישורים לחיפושים מותאמים, לא משרות שנאספו או אומתו על ידי CARVIO. בדקו את המיקום והמסננים באתר המקור." : "These are personalized search links, not listings collected or verified by CARVIO. Check location and filters at the source."}</p>
+                <button type="button" onClick={() => setShowSmartCapture(true)} className="relative mt-4 inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/15 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/25"><Plus className="h-4 w-4" />{language === "he" ? "מצאתי משרה — שמירה למעקב" : "Found a job? Save it to track"}</button>
+                <p className="relative mt-3 text-xs leading-5 text-slate-300">{language === "he" ? "אלו קישורים לחיפושים מותאמים, לא משרות שנאספו או אומתו על ידי CARVIO. בדקו את המיקום והמסננים באתר המקור." : "These are personalized search links, not listings collected or verified by CARVIO. Check location and filters at the source."}</p>
               </>
             ) : (
               <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/15 bg-white/10 p-4">
