@@ -3731,6 +3731,33 @@ export default function Home() {
         </nav>
 
         <header className={`calm-view dashboard-v2 ${activeView !== "home" ? "calm-view-hidden" : ""}`} id="dashboard">
+          <section aria-label={language === "he" ? "הזדמנויות החיפוש שלך" : "Your next opportunities"} className="mb-5 rounded-3xl border border-violet-300/35 bg-gradient-to-br from-violet-950/85 via-slate-900/90 to-teal-950/75 p-5 shadow-xl sm:p-7">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="mb-2 flex items-center gap-2 text-xs font-extrabold tracking-wide text-violet-300"><Sparkles className="h-4 w-4" /> YOUR NEXT OPPORTUNITIES</p>
+                <h2 className="text-xl font-extrabold text-white sm:text-2xl">{language === "he" ? "ההזדמנות הבאה שלך מתחילה כאן" : "Your next opportunity starts here"}</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-300">{language === "he" ? "החיפוש שלך מוכן — בחרו מקור וצפו במשרות באתר המקורי." : "Your search is ready — pick a source to see live listings on its own website."}</p>
+              </div>
+              <a href={`/find?q=${encodeURIComponent(searchProfile.role || userProfile.targetRole || "")}&country=${encodeURIComponent(searchProfile.country || "")}&city=${encodeURIComponent(searchProfile.location || "")}`} className="inline-flex items-center gap-2 rounded-full border border-violet-300/50 bg-violet-500/20 px-4 py-2 text-sm font-bold text-white transition hover:bg-violet-500/40"><Search className="h-4 w-4" />{language === "he" ? "שינוי חיפוש" : "Edit search"}</a>
+            </div>
+            {(searchProfile.role || userProfile.targetRole) ? (
+              <>
+                <p className="mt-5 rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-medium text-white">{searchProfile.role || userProfile.targetRole}{searchProfile.country ? ` · ${searchProfile.country}` : ""}{searchProfile.location ? ` · ${searchProfile.location}` : ""}</p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                  {jobSearchSources({ ...searchProfile, role: searchProfile.role || userProfile.targetRole }, language).filter(source => ["linkedin","indeed","google"].includes(source.id)).map(source => (
+                    <a key={source.id} href={source.url} target="_blank" rel="noopener noreferrer" className="flex min-h-16 items-center justify-between gap-3 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-extrabold text-white transition hover:-translate-y-0.5 hover:border-violet-300/70 hover:bg-white/20"><span>{source.id === "linkedin" ? "LinkedIn" : source.id === "indeed" ? "Indeed" : "Google"}</span><ExternalLink className="h-4 w-4" /></a>
+                  ))}
+                </div>
+                <p className="mt-3 text-xs leading-5 text-slate-400">{language === "he" ? "אלו קישורים לחיפושים מותאמים, לא משרות שנאספו או אומתו על ידי CARVIO. בדקו את המיקום והמסננים באתר המקור." : "These are personalized search links, not listings collected or verified by CARVIO. Check location and filters at the source."}</p>
+              </>
+            ) : (
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/15 bg-white/10 p-4">
+                <p className="text-sm text-slate-200">{language === "he" ? "איזה תפקיד ומיקום מעניינים אותך? נגדיר פעם אחת ונציג כאן חיפוש מותאם בכל כניסה." : "Which role and location interest you? Set them once for a ready-to-use search on every visit."}</p>
+                <a href="/find" className="rounded-xl bg-violet-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-violet-400">{language === "he" ? "מציאת משרות" : "Find jobs"}</a>
+              </div>
+            )}
+          </section>
+
           {applications.length === 0 && contacts.length === 0 && <section className="first-job-decision" aria-labelledby="first-job-decision-title">
             <div className="first-job-decision-copy">
               <p className="dashboard-v2-label"><Sparkles className="h-4 w-4" />{language === "he" ? "הניצחון הראשון שלכם" : "Your first win"}</p>
