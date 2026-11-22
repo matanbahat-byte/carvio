@@ -33,8 +33,8 @@ export function evaluateQuery(query) {
   }).length;
   const distinctTop10 = top.length === 10 && topIds.every(Boolean) && topUrls.every(url => isSafeJobUrl(url) && !isSearchLandingPage(url))
     && new Set(topIds).size === 10 && new Set(topUrls).size === 10;
-  const verifiedLinks = results.filter(r => r.linkVerified === true).length;
-  const failedLinks = results.filter(r => r.linkVerified === false).length;
+  const verifiedLinks = results.filter(r => r.linkVerified === true && isSafeJobUrl(r.url) && !isSearchLandingPage(r.url)).length;
+  const failedLinks = results.filter(r => r.linkVerified === false || (r.linkVerified === true && (!isSafeJobUrl(r.url) || isSearchLandingPage(r.url)))).length;
   const sources = [...new Set(results.map(r => r.provider).filter(Boolean))].sort();
   const locationJudged = top.filter(r => typeof r.locationCorrect === 'boolean');
   const seniorityJudged = top.filter(r => typeof r.seniorityCorrect === 'boolean');
