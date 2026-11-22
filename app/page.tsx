@@ -3740,14 +3740,14 @@ export default function Home() {
               </div>
               <a href={`/find?q=${encodeURIComponent(searchProfile.role || userProfile.targetRole || "")}&country=${encodeURIComponent(searchProfile.country || "")}&city=${encodeURIComponent(searchProfile.location || "")}`} className="inline-flex items-center gap-2 rounded-full border border-violet-300/50 bg-violet-500/20 px-4 py-2 text-sm font-bold text-white transition hover:bg-violet-500/40"><Search className="h-4 w-4" />{language === "he" ? "שינוי חיפוש" : "Edit search"}</a>
             </div>
-            {applications.filter(item => item.role.trim() && item.company.trim()).length > 0 && (
+            {applications.filter(item => item.role.trim() && item.company.trim() && isActiveApplicationStatus(item.status)).length > 0 && (
               <div className="relative mt-5">
-                <h3 className="mb-3 text-sm font-bold text-white">{language === "he" ? "משרות ששמרתם" : "Jobs you saved"}</h3>
+                <h3 className="mb-3 text-sm font-bold text-white">{language === "he" ? "המשרות הפעילות האחרונות שלכם" : "Your recent active jobs"}</h3>
                 <div className="grid gap-3 sm:grid-cols-3">
-                  {applications.filter(item => item.role.trim() && item.company.trim()).slice(0, 3).map(item => (
+                  {applications.filter(item => item.role.trim() && item.company.trim() && isActiveApplicationStatus(item.status)).sort((a, b) => (Date.parse(b.lastActivityAt || b.capturedAt || b.appliedDate || "") || 0) - (Date.parse(a.lastActivityAt || a.capturedAt || a.appliedDate || "") || 0)).slice(0, 3).map(item => (
                     <div key={item.id} className="flex min-h-32 flex-col justify-between gap-3 rounded-2xl border border-white/25 bg-white/95 p-4 text-slate-900">
                       <div><p className="font-bold">{item.role}</p><p className="mt-1 text-xs text-slate-600">{item.company}{item.location ? ` · ${item.location}` : ""}</p></div>
-                      {/^https?:\/\//i.test(item.jobUrl.trim()) ? <a href={item.jobUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm font-bold text-violet-700">{language === "he" ? "פתיחת המשרה המקורית" : "Open original job"}<ExternalLink className="h-4 w-4" /></a> : <button type="button" onClick={() => switchView("applications")} className="text-start text-sm font-bold text-violet-700">{language === "he" ? "פתיחה במעקב" : "Open in tracker"}</button>}
+                      {/^https?:\/\//i.test(item.jobUrl.trim()) ? <a href={item.jobUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm font-bold text-violet-700">{language === "he" ? "פתיחת המשרה המקורית" : "Open original job"}<ExternalLink className="h-4 w-4" /></a> : <button type="button" onClick={() => { setWorkspaceApplicationId(item.id); switchView("applications"); }} className="text-start text-sm font-bold text-violet-700">{language === "he" ? "פתיחה במעקב" : "Open in tracker"}</button>}
                     </div>
                   ))}
                 </div>
