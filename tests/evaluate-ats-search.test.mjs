@@ -71,7 +71,7 @@ test('usable precision requires ten individually link-verified real postings',()
 
 test('unsafe or malformed top-ten job URLs cannot earn precision credit',()=>{
  const base=Array.from({length:10},(_,i)=>({id:'job-'+i,url:'https://example.org/job/'+i,provider:'lever',relevant:true,linkVerified:true}));
- for (const unsafe of ['http://example.org/job/9','https://user:pass@example.org/job/9','not-a-url']) {
+ for (const unsafe of ['http://example.org/job/9','https://user:pass@example.org/job/9','https://example.org:8443/job/9','not-a-url']) {
   const results=base.map(r=>({...r})); results[9].url=unsafe;
   const score=evaluateQuery({name:'unsafe URL',results});
   assert.equal(score.precisionAt10,null);
