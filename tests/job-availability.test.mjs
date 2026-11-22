@@ -11,7 +11,7 @@ test('only fixed public ATS hosts and exact job routes can trigger requests', ()
 test('published requires matching structured job identity and title', async () => {
   const result = await checkJobAvailability(url, async (target, options) => {
     assert.equal(options.redirect, 'error'); assert.equal(options.cache, 'no-store');
-    assert.equal(target, 'https://boards-api.greenhouse.io/v1/boards/example/jobs/123');
+    assert.equal(target, 'https://boards-api.greenhouse.io/v1/boards/example/jobs/123?content=true');
     return json({id:123,title:' Electronics Engineer ',company_name:'Example Engineering',location:{name:'Haifa'}});
   });
   assert.equal(result.status, 'published'); assert.ok(Date.parse(result.checkedAt));
@@ -50,4 +50,18 @@ test('unconfirmed identities and board-only availability do not supply autofill 
     : json({jobs:[{id:123,title:'Board title'}]}));
   assert.equal(boardOnly.status, 'published');
   assert.equal(boardOnly.details, undefined);
+});
+
+
+test('verified Greenhouse HTML is converted into bounded plain-text JD', async () => {
+  const result = await checkJobAvailability(url, async () => json({id:123,title:'Engineer',content:'<h2>Responsibilities</h2><p>Build &amp; test</p><script>alert(1)</script>'}));
+  assert.equal(result.status,'published');
+  assert.equal(result.details.jobDescription,'Responsibilities Build & test');
+});
+test('verified Lever plain description is preserved, unknown listings never supply JD', async () => {
+  const id = '12345678-abcd-abcd-abcd-123456789012';
+  const good = await checkJobAvailability(`https://jobs.lever.co/example/${id}`,async () => json({id,text:'Engineer',descriptionPlain:'  Work with teams  '}));
+  assert.equal(good.details.jobDescription,'Work with teams');
+  const wrong = await checkJobAvailability(url,async () => json({id:999,title:'Engineer',content:'Secret'}));
+  assert.equal(wrong.details,undefined);
 });
