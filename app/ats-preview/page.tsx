@@ -37,7 +37,9 @@ export default async function AtsPreview({ searchParams }: { searchParams: Promi
   const externalLocation = externalCityNames[(city || location).trim()] || city || location;
   const roleAlternatives = q ? suggestedRoleAlternatives(q).slice(0, 3) : [];
   const searchRoutes = q ? jobSearchSources({ ...emptySearchProfile, role: q, alternativeRoles: roleAlternatives.join(", "), radius: "", country: searchCountry, location: externalLocation, datePosted: "Any time", employmentType: "" }, "he") : [];
-  const prioritizedRoutes = [...searchRoutes].sort((a, b) => ({ linkedin: 0, indeed: 1, google: 2 }[a.id] - { linkedin: 0, indeed: 1, google: 2 }[b.id]));
+  const sourcePriority: Record<string, number> = { linkedin: 0, indeed: 1, google: 2 };
+  // Keep unknown future providers after the three primary sources, without NaN comparisons.
+  const prioritizedRoutes = [...searchRoutes].sort((a, b) => (sourcePriority[a.id] ?? 100) - (sourcePriority[b.id] ?? 100));
   const broadRoutes = q ? jobSearchSources({ ...emptySearchProfile, role: q, radius: "", country: searchCountry, location: externalLocation, datePosted: "Any time", employmentType: "" }, "he") : [];
   return (
     <main lang="he" dir="rtl" className="ats-pilot-light min-h-screen overflow-hidden bg-[#f4f6ff] text-[#18223c]">
