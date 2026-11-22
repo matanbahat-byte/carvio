@@ -117,3 +117,16 @@ test('missing URLs count as invalid postings rather than disappearing from URL q
  assert.equal(score.validIndividualJobs,1);
  assert.equal(score.precisionAt10,null);
 });
+
+
+test('invalid or landing URLs cannot be reported as verified links',()=>{
+ const score=evaluateQuery({name:'invalid verified links',results:[
+  {id:'1',url:'https://example.org/job/1',provider:'lever',linkVerified:true},
+  {id:'2',url:'https://www.linkedin.com/jobs/search/?keywords=engineer',provider:'linkedin',linkVerified:true},
+  {id:'3',url:'',provider:'lever',linkVerified:true}
+ ]});
+ assert.equal(score.linksVerified,1);
+ assert.equal(score.linksFailed,2);
+ assert.equal(score.linksNotChecked,0);
+ assert.equal(score.validIndividualJobs,1);
+});
