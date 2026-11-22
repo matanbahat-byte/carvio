@@ -130,3 +130,18 @@ test('invalid or landing URLs cannot be reported as verified links',()=>{
  assert.equal(score.linksNotChecked,0);
  assert.equal(score.validIndividualJobs,1);
 });
+
+test('source coverage excludes navigation links and distinguishes verified providers',()=>{
+ const score=evaluateQuery({name:'source coverage',results:[
+  {id:'1',url:'https://www.linkedin.com/jobs/search/?keywords=engineer',provider:'linkedin',linkVerified:true},
+  {id:'2',url:'https://www.indeed.com/jobs?q=engineer',provider:'indeed'},
+  {id:'3',url:'https://boards.greenhouse.io/acme/jobs/123',provider:'greenhouse',linkVerified:true},
+  {id:'4',url:'https://jobs.lever.co/acme/abc',provider:'lever',linkVerified:false},
+  {id:'5',provider:'google'}
+ ]});
+ assert.equal(score.sourcesCount,5);
+ assert.deepEqual(score.validSources,['greenhouse','lever']);
+ assert.equal(score.validSourcesCount,2);
+ assert.deepEqual(score.verifiedSources,['greenhouse']);
+ assert.equal(score.verifiedSourcesCount,1);
+});
