@@ -42,7 +42,8 @@ export function evaluateQuery(query) {
   // A syntactically plausible URL does not prove that a real, individual job was retrieved.
   // This flag must come from manual review of the destination page, not URL heuristics.
   const confirmedRows = results.filter(r => r.individualJobVerified === true && r.linkVerified === true && isSafeJobUrl(r.url) && !isSearchLandingPage(r.url));
-  const confirmedIndividualJobs = confirmedRows.length;
+  // Duplicate evidence rows are not distinct opportunities, even if each link was checked.
+  const confirmedIndividualJobs = new Set(confirmedRows.map(r => String(r.id ?? '').trim() + '\u0000' + String(r.url ?? '').trim())).size;
   const confirmedSources = [...new Set(confirmedRows.map(r => r.provider).filter(Boolean))].sort();
   const confirmedTop10 = distinctTop10 && top.every(r => r.individualJobVerified === true);
   const locationJudged = top.filter(r => typeof r.locationCorrect === 'boolean');
