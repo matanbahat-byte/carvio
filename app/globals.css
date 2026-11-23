@@ -10873,3 +10873,18 @@ html[data-carvio-theme="light"] {
 .search-return-capture p { margin-block-start: .4rem; font-size: .875rem; }
 .search-return-capture input { min-width: 0; }
 .search-source-open { min-height: 44px; }
+
+.unified-job-results { margin-block: 1.5rem; padding: 1rem; border: 1px solid var(--cv-border-strong); border-radius: 1rem; background: var(--cv-surface); }
+.unified-job-results h3 { font-size: 1.25rem; font-weight: 650; }
+.unified-job-results header p, .job-results-disclosure { margin-block: .75rem; font-size: .875rem; line-height: 1.6; }
+.unified-job-results > label { display: block; margin-block: 1rem; }
+.job-results-list { display: grid; gap: 1rem; margin-block: 1rem; }
+.job-result-card { min-width: 0; border: 1px solid var(--cv-border-strong); border-radius: 1rem; padding: 1rem; }
+.job-result-card h4 { font-size: 1.125rem; font-weight: 650; overflow-wrap: anywhere; }
+.job-result-card p { margin-block: .5rem; font-size: .875rem; line-height: 1.6; }
+.job-result-card summary { min-height: 44px; cursor: pointer; font-size: .875rem; padding-block: .65rem; }
+.job-result-tags, .job-result-sources { display: flex; flex-wrap: wrap; gap: .6rem; margin-block: .75rem; font-size: .875rem; }
+.job-result-sources a { min-height: 44px; display: inline-flex; align-items: center; padding-inline: .75rem; border: 1px solid var(--cv-border-strong); border-radius: .5rem; overflow-wrap: anywhere; }
+.job-result-description { white-space: pre-wrap; max-height: 24rem; overflow: auto; }
+.job-result-demo, .job-result-warning { font-weight: 650; }
+.job-result-demo { border: 1px solid currentColor; padding: .75rem; border-radius: .5rem; }
