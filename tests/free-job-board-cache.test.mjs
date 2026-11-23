@@ -44,3 +44,24 @@ test('caller mutation cannot poison cached job details',async()=>{
  second.jobs[0].title='Also tampered';
  assert.equal((await get(board)).jobs[0].title,'Planner');
 });
+
+test('concurrent callers receive independently mutable job records',async()=>{
+ let calls=0;
+ const get=createCachedBoardFetcher({fetcher:async()=>{calls++;await new Promise(resolve=>setTimeout(resolve,5));return response();}});
+ const [first,second]=await Promise.all([get(board),get(board)]);
+ first.jobs[0].title='Changed by first consumer';
+ assert.equal(second.jobs[0].title,'Planner');
+ assert.equal((await get(board)).jobs[0].title,'Planner');
+ assert.equal(calls,1);
+});
+test('evicts least-recently-inserted board once bounded cache fills',async()=>{
+ let calls=0;
+ const get=createCachedBoardFetcher({maxBoards:1,fetcher:async()=>{calls++;return response();}});
+ const secondBoard={...board,token:'another'};
+ await get(board);
+ await get(secondBoard);
+ await get(secondBoard);
+ assert.equal(calls,2);
+ await get(board);
+ assert.equal(calls,3);
+});
