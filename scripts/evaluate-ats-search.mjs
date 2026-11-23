@@ -43,7 +43,18 @@ export function evaluateQuery(query) {
   // This flag must come from manual review of the destination page, not URL heuristics.
   const confirmedRows = results.filter(r => r.individualJobVerified === true && r.linkVerified === true && isSafeJobUrl(r.url) && !isSearchLandingPage(r.url));
   // Duplicate evidence rows are not distinct opportunities, even if each link was checked.
-  const confirmedIndividualJobs = new Set(confirmedRows.map(r => String(r.id ?? '').trim() + '\u0000' + String(r.url ?? '').trim())).size;
+  const confirmedIds = new Set();
+  const confirmedUrls = new Set();
+  let confirmedIndividualJobs = 0;
+  for (const row of confirmedRows) {
+    const id = String(row.id ?? '').trim();
+    const url = String(row.url ?? '').trim();
+    // Either repeated identity or repeated destination is duplicate evidence.
+    if (!id || confirmedIds.has(id) || confirmedUrls.has(url)) continue;
+    confirmedIds.add(id);
+    confirmedUrls.add(url);
+    confirmedIndividualJobs++;
+  }
   const confirmedSources = [...new Set(confirmedRows.map(r => r.provider).filter(Boolean))].sort();
   const confirmedTop10 = distinctTop10 && top.every(r => r.individualJobVerified === true);
   const locationJudged = top.filter(r => typeof r.locationCorrect === 'boolean');
