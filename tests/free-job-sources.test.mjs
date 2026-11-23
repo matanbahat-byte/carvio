@@ -121,3 +121,32 @@ test('fails closed on malformed runtime board configuration',()=>{
   assert.throws(()=>publicBoardEndpoint(board),/Invalid board/);
  }
 });
+
+test('rejects credentialed and custom-port official Greenhouse URLs',()=>{
+ const records=[
+  {id:41,title:'Credential URL',absolute_url:'https://user:pass@boards.greenhouse.io/sample-company/jobs/41'},
+  {id:42,title:'Custom port',absolute_url:'https://boards.greenhouse.io:8443/sample-company/jobs/42'},
+  {id:43,title:'Valid URL',absolute_url:'https://job-boards.greenhouse.io/sample-company/jobs/43'}
+ ];
+ assert.deepEqual(normalizePublicBoardJobs(gh,{jobs:records}).map(j=>j.title),['Valid URL']);
+});
+test('normalization drops repeated ATS IDs with distinct tracking URLs',()=>{
+ const leverJobs=normalizePublicBoardJobs(lever,[
+  {id:'123',text:'Engineer',hostedUrl:'https://jobs.lever.co/sample-company/123?source=a'},
+  {id:'123',text:'Engineer',hostedUrl:'https://jobs.lever.co/sample-company/123?source=b'},
+  {id:'124',text:'Designer',hostedUrl:'https://jobs.lever.co/sample-company/124'}
+ ]);
+ assert.deepEqual(leverJobs.map(job=>job.id),['lever:sample-company:123','lever:sample-company:124']);
+ const greenhouseJobs=normalizePublicBoardJobs(gh,{jobs:[
+  {id:55,title:'Analyst',absolute_url:'https://job-boards.greenhouse.io/sample-company/jobs/55?source=a'},
+  {id:55,title:'Analyst',absolute_url:'https://job-boards.greenhouse.io/sample-company/jobs/55?source=b'}
+ ]});
+ assert.equal(greenhouseJobs.length,1);
+});
+test('rejects Lever posting URL with a different posting ID',()=>{
+ const records=[
+  {id:'expected',text:'Wrong posting',hostedUrl:'https://jobs.lever.co/sample-company/other'},
+  {id:'correct',text:'Correct posting',hostedUrl:'https://jobs.lever.co/sample-company/correct?utm_source=email'}
+ ];
+ assert.deepEqual(normalizePublicBoardJobs(lever,records).map(job=>job.title),['Correct posting']);
+});
