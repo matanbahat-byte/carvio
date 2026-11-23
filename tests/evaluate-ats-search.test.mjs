@@ -168,3 +168,18 @@ test('repeated verified evidence rows count as one confirmed opportunity',()=>{
  assert.equal(score.duplicateIds,1);
  assert.equal(score.evidenceBasedPrecisionAt10,null);
 });
+
+
+test('verified jobs sharing an ID or destination count only once',()=>{
+ const base={provider:'lever',individualJobVerified:true,linkVerified:true};
+ const rows=[
+  {...base,id:'one',url:'https://jobs.lever.co/acme/one'},
+  {...base,id:'one',url:'https://jobs.lever.co/acme/one?source=tracked'},
+  {...base,id:'another-id',url:'https://jobs.lever.co/acme/one'},
+  {...base,id:'two',url:'https://jobs.lever.co/acme/two'},
+  {...base,id:'',url:'https://jobs.lever.co/acme/unknown'}
+ ];
+ const score=evaluateQuery({name:'verified duplicate identities',results:rows});
+ assert.equal(score.confirmedIndividualJobs,2);
+ assert.equal(score.evidenceBasedPrecisionAt10,null);
+});
