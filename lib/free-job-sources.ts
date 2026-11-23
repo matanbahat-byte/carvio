@@ -20,14 +20,14 @@ function safeEmployerApplicationUrl(value: string, id: string) {
     return url.searchParams.get("gh_jid") === id ? url.href : null;
   } catch { return null; }
 }
-function leverPostingUrl(value: unknown, board: PublicBoard) {
+function leverPostingUrl(value: unknown, board: PublicBoard, id: string) {
   if (typeof value !== "string") return null;
   try {
     const url = new URL(value);
     const expectedHost = board.region === "eu" ? "jobs.eu.lever.co" : "jobs.lever.co";
     if (url.protocol !== "https:" || url.hostname !== expectedHost || url.username || url.password || url.port) return null;
     const segments = url.pathname.split("/").filter(Boolean);
-    if (segments.length < 2 || segments[0].toLowerCase() !== board.token.toLowerCase()) return null;
+    if (segments.length < 2 || segments[0].toLowerCase() !== board.token.toLowerCase() || segments[1] !== id) return null;
     return url.href;
   } catch { return null; }
 }
@@ -69,7 +69,7 @@ export function normalizePublicBoardJobs(board: PublicBoard, payload: unknown): 
     const greenhouseUrl = typeof job.absolute_url === "string" ? job.absolute_url : "";
     const url = board.provider === "greenhouse"
       ? (httpsUrl(greenhouseUrl, "greenhouse.io") || safeEmployerApplicationUrl(greenhouseUrl, id))
-      : leverPostingUrl(job.hostedUrl, board);
+      : leverPostingUrl(job.hostedUrl, board, id);
     if (!id || !title || !url || seen.has(url)) continue;
     seen.add(url);
     // updated_at is not a posting date; never mislabel it as one.
