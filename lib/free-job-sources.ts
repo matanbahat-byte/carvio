@@ -7,7 +7,7 @@ function httpsUrl(value: unknown, host: string) {
   if (typeof value !== "string") return null;
   try {
     const url = new URL(value);
-    if (url.protocol !== "https:" || (url.hostname !== host && !url.hostname.endsWith("." + host))) return null;
+    if (url.protocol !== "https:" || url.username || url.password || url.port || (url.hostname !== host && !url.hostname.endsWith("." + host))) return null;
     return url.href;
   } catch { return null; }
 }
@@ -37,14 +37,14 @@ function safeEmployerApplicationUrl(value: string, id: string) {
     return jobIds.length === 1 && jobIds[0] === id ? url.href : null;
   } catch { return null; }
 }
-function leverPostingUrl(value: unknown, board: PublicBoard) {
+function leverPostingUrl(value: unknown, board: PublicBoard, id: string) {
   if (typeof value !== "string") return null;
   try {
     const url = new URL(value);
     const expectedHost = board.region === "eu" ? "jobs.eu.lever.co" : "jobs.lever.co";
     if (url.protocol !== "https:" || url.hostname !== expectedHost || url.username || url.password || url.port) return null;
     const segments = url.pathname.split("/").filter(Boolean);
-    if (segments.length < 2 || segments[0].toLowerCase() !== board.token.toLowerCase()) return null;
+    if (segments.length < 2 || segments[0].toLowerCase() !== board.token.toLowerCase() || segments[1] !== id) return null;
     return url.href;
   } catch { return null; }
 }
@@ -74,6 +74,7 @@ export function normalizePublicBoardJobs(board: PublicBoard, payload: unknown): 
   if (!Array.isArray(records)) return [];
   const output: PublicJob[] = [];
   const seen = new Set<string>();
+  const seenIds = new Set<string>();
   for (const item of records.slice(0, 500)) {
     if (!item || typeof item !== "object") continue;
     const job = item as Record<string, unknown>;
@@ -87,9 +88,10 @@ export function normalizePublicBoardJobs(board: PublicBoard, payload: unknown): 
     const greenhouseUrl = typeof job.absolute_url === "string" ? job.absolute_url : "";
     const url = board.provider === "greenhouse"
       ? (officialGreenhousePostingUrl(greenhouseUrl, board, id) || safeEmployerApplicationUrl(greenhouseUrl, id))
-      : leverPostingUrl(job.hostedUrl, board);
-    if (!id || !title || !url || seen.has(url)) continue;
+      : leverPostingUrl(job.hostedUrl, board, id);
+    if (!id || !title || !url || seen.has(url) || seenIds.has(id)) continue;
     seen.add(url);
+    seenIds.add(id);
     // updated_at is not a posting date; never mislabel it as one.
     const date = board.provider === "greenhouse" ? job.first_published : job.createdAt;
     output.push({id:`${board.provider}:${board.token}:${id}`,title,company:board.company,location,url,provider:board.provider,postedAt:postingDate(date)});
