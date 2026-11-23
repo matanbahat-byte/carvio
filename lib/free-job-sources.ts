@@ -44,7 +44,7 @@ function leverPostingUrl(value: unknown, board: PublicBoard, id: string) {
     const expectedHost = board.region === "eu" ? "jobs.eu.lever.co" : "jobs.lever.co";
     if (url.protocol !== "https:" || url.hostname !== expectedHost || url.username || url.password || url.port) return null;
     const segments = url.pathname.split("/").filter(Boolean);
-    if (segments.length < 2 || segments[0].toLowerCase() !== board.token.toLowerCase() || segments[1] !== id) return null;
+    if (segments.length !== 2 || segments[0].toLowerCase() !== board.token.toLowerCase() || segments[1] !== id) return null;
     return url.href;
   } catch { return null; }
 }
