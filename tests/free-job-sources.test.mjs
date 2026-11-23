@@ -73,3 +73,12 @@ test('deduplicates tracked URLs for one ATS posting without collapsing distinct 
  ];
  assert.deepEqual(dedupePublicJobs(jobs).map(j=>j.id),['lever:acme:123','lever:other:123']);
 });
+
+test('rejects Lever posting URLs whose ID disagrees with the API record',()=>{
+ const jobs=normalizePublicBoardJobs(lever,[
+  {id:'expected',text:'Wrong posting',hostedUrl:'https://jobs.lever.co/sample-company/different'},
+  {id:'valid',text:'Correct posting',hostedUrl:'https://jobs.lever.co/sample-company/valid?utm_source=carvio'}
+ ]);
+ assert.deepEqual(jobs.map(job=>job.title),['Correct posting']);
+ assert.match(jobs[0].url,/\/valid\?utm_source=carvio$/);
+});
