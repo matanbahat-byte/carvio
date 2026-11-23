@@ -159,3 +159,12 @@ test('confirmed job and source counts require both destination and live-link evi
  assert.equal(score.confirmedSourcesCount,1);
  assert.equal(score.evidenceBasedPrecisionAt10,null);
 });
+
+
+test('repeated verified evidence rows count as one confirmed opportunity',()=>{
+ const row={id:'lever-123',url:'https://jobs.lever.co/acme/123',provider:'lever',individualJobVerified:true,linkVerified:true,relevant:true};
+ const score=evaluateQuery({name:'duplicate evidence',results:[row,{...row}]});
+ assert.equal(score.confirmedIndividualJobs,1);
+ assert.equal(score.duplicateIds,1);
+ assert.equal(score.evidenceBasedPrecisionAt10,null);
+});
