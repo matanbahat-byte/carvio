@@ -150,3 +150,11 @@ test('rejects Lever posting URL with a different posting ID',()=>{
  ];
  assert.deepEqual(normalizePublicBoardJobs(lever,records).map(job=>job.title),['Correct posting']);
 });
+
+test('rejects nested Lever paths even when the posting ID matches',()=>{
+ const records=[
+  {id:'123',text:'Misleading nested link',hostedUrl:'https://jobs.lever.co/sample-company/123/unrelated'},
+  {id:'124',text:'Valid posting',hostedUrl:'https://jobs.lever.co/sample-company/124?source=company'}
+ ];
+ assert.deepEqual(normalizePublicBoardJobs(lever,records).map(job=>job.title),['Valid posting']);
+});
