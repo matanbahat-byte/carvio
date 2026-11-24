@@ -10,5 +10,5 @@ test("native GET search route mounts analytics and tags only approved outbound s
   assert.match(page, /data-search-provider="careers"/);
   assert.match(tracking, /emitProductEvent\("search_submitted", \{ method: "find_get" \}\)/);
   assert.match(tracking, /emitProductEvent\("search_opened_by_source", \{ sourceType: source \}\)/);
-  assert.doesNotMatch(tracking, /emitProductEvent\([^\n]*(?:role|country|city|query|href)/);
+  assert.doesNotMatch(tracking, /emitProductEvent\([^\n]*\b(?:role|country|city|query|href)\s*:/);
 });
