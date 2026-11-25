@@ -35,4 +35,22 @@ try {
     await context.close();
     console.log(`PASS owned workspace remains hidden and unchanged: ${language}, ${viewport.width}px`);
   }
+  // Browser security settings may reject the property getter itself, before
+  // getItem can run. The gate must show its recovery UI without mounting Home.
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  const gateErrors = [];
+  page.on('pageerror', error => gateErrors.push(error.message));
+  await context.addInitScript(() => {
+    Object.defineProperty(window, 'localStorage', { configurable: true, get() { throw new DOMException('Storage blocked', 'SecurityError'); } });
+  });
+  await page.goto(`${base}/?workspace=1`);
+  await page.locator('#workspace-locked-title').waitFor();
+  assert.match(await page.locator('main').innerText(), /Access could not be verified/);
+  assert.equal(await page.locator('.carvio-shell').count(), 0);
+  // Layout-level analytics has its own existing storage handling; report errors
+  // so CI can detect it separately rather than hiding a broken application.
+  assert.deepEqual(gateErrors, []);
+  await context.close();
+  console.log('PASS blocked localStorage getter fails closed without hydration');
 } finally { await browser.close(); }

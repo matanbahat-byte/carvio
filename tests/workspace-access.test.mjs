@@ -44,3 +44,10 @@ test('another-tab owner update is respected on the next access check', () => {
   assert.equal(resolveWorkspaceAccess(local, 'bob'), 'locked');
   assert.equal(resolveWorkspaceAccess(local, 'alice'), 'ready');
 });
+
+
+test('blocked localStorage property getter fails closed before acquiring storage', () => {
+  const browser = Object.defineProperty({}, 'localStorage', { get() { throw new Error('SecurityError: access denied'); } });
+  assert.equal(resolveWorkspaceAccess(() => browser.localStorage, null), 'unavailable');
+  assert.equal(resolveWorkspaceAccess(() => browser.localStorage, 'alice'), 'unavailable');
+});

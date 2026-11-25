@@ -13,7 +13,7 @@ export function WorkspaceAccessGate({ children }: { children: ReactNode }) {
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
-  const supabaseRef = useRef(createClient());
+  const supabaseRef = useRef<ReturnType<typeof createClient>>(null);
   const configured = isSupabaseConfigured();
 
   useEffect(() => {
@@ -22,6 +22,7 @@ export function WorkspaceAccessGate({ children }: { children: ReactNode }) {
     function initialize() {
     const isDemo = new URLSearchParams(window.location.search).get("demo") === "1";
     if (isDemo) { setAccess("ready"); return; }
+    try { supabaseRef.current = createClient(); } catch { setAccess("unavailable"); return; }
     try { setLanguage(window.localStorage.getItem("carvio.language.v1") === '"he"' ? "he" : "en"); } catch { /* ownership check fails closed below */ }
     let alive = true;
     let authChanged = false;
@@ -31,7 +32,7 @@ export function WorkspaceAccessGate({ children }: { children: ReactNode }) {
       currentId = id;
       setIdentity(id);
       setMessage("");
-      setAccess(resolveWorkspaceAccess(window.localStorage, id));
+      setAccess(resolveWorkspaceAccess(() => window.localStorage, id));
     };
     const onStorage = (event: StorageEvent) => {
       if (event.key === LOCAL_WORKSPACE_OWNER_KEY || event.key === null) applyIdentity(currentId);

@@ -6,13 +6,13 @@ The existing workspace stores applications, contacts, documents, profile, search
 
 `WorkspaceAccessGate` mounts before the main workspace. It resolves authentication and the local owner marker before allowing local-data hydration. A signed-out user or a different account cannot mount an owned workspace. Authentication and cross-tab ownership changes re-evaluate access and unmount sensitive workspace state. The owner can sign in again to recover access. Public `/find` search remains available from the locked screen. There is no continue-local bypass for an owned workspace.
 
-Unowned guest data remains available locally. On its first authenticated opening, the local owner marker is assigned to that account; data stays in place and is never uploaded by this gate. Storage or authentication verification failures fail closed. Demo mode keeps using its separate session storage and does not claim the real workspace.
+Unowned guest data remains available locally. On its first authenticated opening, the local owner marker is assigned to that account; data stays in place and is never uploaded by this gate. Storage or authentication verification failures fail closed. Storage acquisition uses a lazy accessor inside the ownership guard, and optional Supabase client initialization runs inside a guarded effect rather than render. Demo mode keeps using its separate session storage and does not claim the real workspace.
 
 ## Validation
 
-Five new unit tests cover existing guest data, ownership assignment without data mutation, logout, different-account login, original-account return, denied storage and cross-tab ownership changes. Full unit suite: 147/147 passed. TypeScript, changed-file ESLint and production build passed.
+Six new unit tests cover existing guest data, ownership assignment without data mutation, logout, different-account login, original-account return, denied storage (including a throwing localStorage property getter) and cross-tab ownership changes. Full unit suite: 148/148 passed. TypeScript, changed-file ESLint and production build passed.
 
-Added `tests/workspace-access-browser.mjs` for English desktop and Hebrew mobile fixtures: locked initial load, no private DOM, unchanged local records after reload, correct direction/no overflow and public search access. Local execution is blocked because Playwright browser binaries are absent and `/usr/bin/chromium` points to a missing executable. Run in CI with installed Chromium; authenticated account transitions still require controlled real-account validation.
+Added `tests/workspace-access-browser.mjs` for English desktop, Hebrew mobile and blocked-storage-getter fixtures: locked initial load, no private DOM, unchanged local records after reload, correct direction/no overflow and public search access. Local execution is blocked because Playwright browser binaries are absent and `/usr/bin/chromium` points to a missing executable. Run in CI with installed Chromium; authenticated account transitions still require controlled real-account validation.
 
 ## Explicit limitations
 

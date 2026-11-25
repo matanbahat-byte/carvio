@@ -8,8 +8,9 @@ export type WorkspaceAccess = "ready" | "locked" | "unavailable";
  * An unowned guest workspace becomes private to the first authenticated account.
  * Once owned, only that same authenticated account may mount the workspace.
  */
-export function resolveWorkspaceAccess(storage: AccessStorage, userId: string | null): WorkspaceAccess {
+export function resolveWorkspaceAccess(storageSource: AccessStorage | (() => AccessStorage), userId: string | null): WorkspaceAccess {
   try {
+    const storage = typeof storageSource === "function" ? storageSource() : storageSource;
     const owner = storage.getItem(LOCAL_WORKSPACE_OWNER_KEY);
     if (owner) return owner === userId ? "ready" : "locked";
     if (userId) storage.setItem(LOCAL_WORKSPACE_OWNER_KEY, userId);
