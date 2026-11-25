@@ -21,8 +21,13 @@ jobs:
       - run: npx tsc --noEmit
       - run: npm test
       - run: npm run build
-      - run: npm install --no-save --package-lock=false playwright@1.58.2
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://cloud-fixture.invalid
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: isolated-fixture-anon-key
+      - run: npm install --no-save --package-lock=false playwright@1.58.2 @electric-sql/pglite@0.5.17
       - run: npx playwright install --with-deps chromium
+      - name: Verify isolated database ownership and stale writes
+        run: CARVIO_QA_NODE_MODULES="$PWD/node_modules" node tests/cloud-sync-database.mjs
       - name: Verify candidate desktop, mobile, RTL and LTR
         run: |
           npm run start -- --hostname 127.0.0.1 --port 3120 > /tmp/carvio-visual-server.log 2>&1 &
@@ -30,9 +35,12 @@ jobs:
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           node --input-type=module -e 'for(let i=0;i<100;i++){try{if((await fetch("http://127.0.0.1:3120/find")).ok)process.exit(0)}catch{}await new Promise(r=>setTimeout(r,200));}process.exit(1)'
           node tests/visual-quality.mjs
+          CARVIO_BASE_URL=http://127.0.0.1:3120 node tests/cloud-sync-browser.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: carvio-visual-quality
-          path: artifacts/visual/after/
+          path: |
+            artifacts/visual/after/
+            artifacts/cloud-sync/
           retention-days: 7

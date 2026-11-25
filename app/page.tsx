@@ -1,4 +1,5 @@
 "use client";
+import { WorkspaceAccessGate } from "@/components/workspace-access";
 import { JobAvailabilityCheck } from "@/components/job-availability-check";
 import type { VerifiedJobDetails } from "@/lib/job-availability";
 import { SearchRoleAlternatives } from "@/components/search-role-alternatives";
@@ -1330,6 +1331,10 @@ function ApplicationCalendarMenu({ application, language, onClose, onEdit }: { a
 }
 
 export default function Home() {
+  return <WorkspaceAccessGate><WorkspaceHome /></WorkspaceAccessGate>;
+}
+
+function WorkspaceHome() {
   const [demoMode, setDemoMode] = useState(false);
   const [searchTasks, setSearchTasks] = useState<SearchTask[]>([]);
   const [showSearchTaskModal, setShowSearchTaskModal] = useState(false);
@@ -3633,7 +3638,7 @@ export default function Home() {
     if (["", "ready", "low", "difficult"].includes(payload.dailyMood)) setDailyMood(payload.dailyMood as DailyMood);
     if (["en", "he"].includes(payload.language)) setLanguage(payload.language);
     setTheme("light"); // Restored data must not reactivate a legacy appearance.
-    setNotice(language === "he" ? "סביבת העבודה נטענה מהענן בהצלחה." : "Your workspace was restored from the cloud.");
+    setNotice(language === "he" ? "סביבת העבודה סונכרנה עם החשבון." : "Your workspace was synced with your account.");
   }
 
   const goalStats = useMemo(() => goalMetrics(applications), [applications]);
@@ -4603,7 +4608,7 @@ export default function Home() {
       {showTrustCenter && (
         <Modal title={language === "he" ? "גיבוי ופרטיות" : "Backup and privacy"} description={demoMode ? (language === "he" ? "זהו גיבוי של נתוני הדמו בלבד, בנפרד מהסביבה האישית." : "This backs up demo data only, separate from your personal workspace.") : (language === "he" ? "הורידו עותק של המידע שלכם או שחזרו קובץ גיבוי קודם." : "Download a copy of your data or restore a previous backup file.")} closeLabel={language === "he" ? "סגירת החלון" : "Close modal"} onClose={() => setShowTrustCenter(false)}>
           <div className="space-y-4">
-            <div className="trust-status"><ShieldCheck className="h-7 w-7 shrink-0 text-emerald-300" /><div><p className="font-semibold">{language === "he" ? "המידע נשמר קודם במכשיר הזה" : "Your data is saved on this device first"}</p><p className="mt-1 text-sm leading-6 text-slate-400">{language === "he" ? "התחברות לחשבון אינה גיבוי. אפשר לגבות ולשחזר בין מכשירים דרך חלון הענן. סנכרון אוטומטי פועל רק אם הפעלתם אותו. גיבוי עשוי לכלול את התוכן ששמרתם בקורות החיים." : "Signing in does not back up your workspace. Use Cloud to back up or restore it across devices. Automatic sync runs only when you enable it. Backups may include saved CV text."}</p></div></div>
+            <div className="trust-status"><ShieldCheck className="h-7 w-7 shrink-0 text-emerald-300" /><div><p className="font-semibold">{language === "he" ? "המידע נשמר קודם במכשיר הזה" : "Your data is saved on this device first"}</p><p className="mt-1 text-sm leading-6 text-slate-400">{language === "he" ? "לאחר התחברות, המידע מסתנכרן עם אותו חשבון בין מכשירים, אלא אם כיביתם סנכרון. בדקו שחיווי הענן מציג שהמידע סונכרן. הסנכרון עשוי לכלול תוכן ששמרתם בקורות החיים." : "After sign-in, your workspace syncs across devices using the same account unless you turn sync off. Check that the cloud indicator confirms it is synced. Sync may include saved CV text."}</p></div></div>
             <div className="grid gap-3 sm:grid-cols-2"><button className="secondary-button min-h-14" onClick={exportCarvioData} type="button"><Download className="h-5 w-5" />{language === "he" ? "הורדת קובץ גיבוי" : "Download backup file"}</button><label className="secondary-button min-h-14"><UploadCloud className="h-5 w-5" />{language === "he" ? "שחזור מקובץ גיבוי" : "Restore from backup file"}<input accept="application/json,.json" className="sr-only" onChange={(event) => { void importCarvioData(event); }} type="file" /></label></div>
             <div className="rounded-2xl border border-amber-400/15 bg-amber-400/5 p-4 text-sm leading-6 text-slate-400">{language === "he" ? "קובץ הגיבוי עשוי לכלול קורות חיים ומידע אישי. שמרו אותו במקום בטוח. ניקוי נתוני הדפדפן עלול למחוק מידע מקומי; שחזור מקובץ מחליף את המשרות ואנשי הקשר בסביבה הנוכחית." : "Backups may contain CV text and personal information. Keep them safe. Clearing browser data can remove local information; restoring a file replaces applications and contacts in this workspace."}</div>
             <div className="border-t border-white/10 pt-4"><button className="text-button text-rose-300 hover:text-rose-200" onClick={() => setShowDeleteLocalConfirm(true)} type="button"><Trash2 className="h-4 w-4" />{language === "he" ? "מחיקת נתוני חיפוש העבודה מהמכשיר הזה" : "Delete job-search data from this device"}</button></div>
