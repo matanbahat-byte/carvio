@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { createAnalyticsDelivery, safeAnalyticsStorage } from "@/lib/analytics-delivery";
+import { createAccountSession } from "@/lib/analytics-account-session";
 import { createActiveTimeClock } from "@/lib/analytics-active-time";
 import {
   PRODUCT_EVENT_CHANNEL,
@@ -11,7 +12,6 @@ import {
   localDateKey,
 } from "@/lib/product-analytics";
 
-const SESSION_KEY = "carvio.analytics-session.v2";
 const LAST_ACTIVE_DAY_KEY = "carvio.analytics-last-active-day.v1";
 const ACQUISITION_RECORDED_KEY = "carvio.analytics-acquisition-recorded.v1";
 const PENDING_CHANNEL_KEY = "carvio.analytics-pending-channel.v1";
@@ -35,8 +35,7 @@ export function ProductAnalytics() {
     let disposed = false;
     const sessionStorage = safeAnalyticsStorage(() => window.sessionStorage);
     const localStorage = safeAnalyticsStorage(() => window.localStorage);
-    let sessionId = makeSessionId();
-    let sessionOwner: string | null = null;
+    const accountSession = createAccountSession(sessionStorage, makeSessionId);
     const acquisitionRecorded = new Set<string>();
     let acquisitionQueued = false;
     const delivery = createAnalyticsDelivery({
@@ -52,7 +51,7 @@ export function ProductAnalytics() {
       },
     });
     const enqueue = (eventName: string, properties: Record<string, unknown> = {}) => {
-      if (!disposed) delivery.enqueue(eventName, { ...properties, sessionId });
+      if (!disposed) delivery.enqueue(eventName, { ...properties, sessionId: accountSession.id });
     };
     const flush = () => delivery.flush();
 
@@ -110,12 +109,7 @@ export function ProductAnalytics() {
     const applySession = (userId: string | null) => {
       if (disposed) return;
       const changed = delivery.setOwner(userId);
-      if (sessionOwner !== userId) {
-        if (sessionOwner) sessionStorage.remove(`${SESSION_KEY}:${sessionOwner}`);
-        sessionOwner = userId;
-        sessionId = userId ? sessionStorage.get(`${SESSION_KEY}:${userId}`) || makeSessionId() : makeSessionId();
-        if (userId) sessionStorage.set(`${SESSION_KEY}:${userId}`, sessionId);
-      }
+      accountSession.setOwner(userId);
       if (!userId) { acquisitionQueued = false; return; }
       if (changed) {
         clock = createActiveTimeClock(performance.now(), document.visibilityState === "visible" && document.hasFocus());
