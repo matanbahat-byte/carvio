@@ -7,7 +7,7 @@ permissions:
   contents: read
 
 jobs:
-  unit-tests:
+  quality:
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     steps:
@@ -17,7 +17,10 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - run: npm run lint
+      - run: npx tsc --noEmit
       - run: npm test
+      - run: npm run build
 
   public-smoke:
     runs-on: ubuntu-24.04
@@ -31,10 +34,24 @@ jobs:
       - run: npm ci
       - run: npm install --no-save --package-lock=false playwright@1.58.2
       - run: npx playwright install --with-deps chromium
-      - name: Check public desktop and mobile experience (read-only)
+      - run: npm run build
+      - name: Start the pull request build
+        run: |
+          npm run start -- --hostname 127.0.0.1 > /tmp/carvio-server.log 2>&1 &
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:3000/find > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/carvio-server.log
+          exit 1
+      - name: Check candidate desktop and mobile experience (read-only)
         run: node tests/browser-smoke.mjs
         env:
-          CARVIO_BASE_URL: https://carvio-pi.vercel.app/?workspace=1
+          CARVIO_BASE_URL: http://127.0.0.1:3000/?workspace=1
+      - name: Check bilingual public search forms
+        run: node tests/find-bilingual-browser.mjs
+        env:
+          CARVIO_BASE_URL: http://127.0.0.1:3000
       - name: Upload browser screenshots
         if: always()
         uses: actions/upload-artifact@v4

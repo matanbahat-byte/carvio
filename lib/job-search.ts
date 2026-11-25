@@ -44,6 +44,20 @@ export function normalizeSearchText(value: string) {
   return value.trim().replace(/\s+/g, " ");
 }
 
+// Resolve explicit country aliases only for provider routing. Keep the user's
+// original country/city text in queries and summaries; never infer geography.
+function providerCountry(country: string) {
+  const aliases: Record<string, string> = {
+    "ישראל": "Israel", "הולנד": "Netherlands", "גרמניה": "Germany",
+    "צרפת": "France", "ספרד": "Spain", "פורטוגל": "Portugal",
+    "בלגיה": "Belgium", "קנדה": "Canada", "בריטניה": "United Kingdom",
+    "הממלכה המאוחדת": "United Kingdom", 'ארצות הברית': "United States",
+  };
+  const clean = normalizeSearchText(country);
+  const canonical = ["Israel", "Netherlands", "Germany", "France", "Spain", "Portugal", "Belgium", "Canada", "United Kingdom", "United States"];
+  return aliases[clean] || canonical.find(value => value.toLowerCase() === clean.toLowerCase()) || clean;
+}
+
 export function sanitizeSearchProfile(profile: SearchProfile): SearchProfile {
   return {
     ...profile,
@@ -258,7 +272,7 @@ export function googleJobSearch(profile: SearchProfile, language: Language = "en
   const query = [roleQuery, options.careerPages ? careerTerms : jobTerms, text(clean.city), text(clean.country), ...requiredSkills, text(clean.industry), text(clean.workModel), ...exclusions, options.careerPages ? "-site:linkedin.com -site:indeed.com" : ""].filter(Boolean).join(" ");
   const params = new URLSearchParams({ q: query, hl: language === "he" ? "he" : "en" });
   const codes: Record<string, string> = { Netherlands: "nl", Israel: "il", "United Kingdom": "gb", Germany: "de", France: "fr", Spain: "es", Portugal: "pt", Belgium: "be", Canada: "ca", "United States": "us" };
-  if (codes[clean.country]) params.set("gl", codes[clean.country]);
+  if (codes[providerCountry(clean.country)]) params.set("gl", codes[providerCountry(clean.country)]);
   const age = ({ "Past 24 hours": "qdr:d", "Past week": "qdr:w", "Past month": "qdr:m" } as Record<string, string>)[clean.datePosted];
   if (age && !options.anyTime) params.set("tbs", age);
   return { query, url: `https://www.google.com/search?${params.toString()}` };
@@ -304,7 +318,7 @@ export function companyJobSearchRoute(profile: SearchProfile, company: string, r
     const location = encodeURIComponent(clean.location);
     return {
       provider: `Indeed · ${company}`,
-      url: `https://${indeedDomains[clean.country] || "www.indeed.com"}/jobs?q=${query}&l=${location}&radius=${encodeURIComponent(clean.radius)}${indeedAge ? `&fromage=${indeedAge}` : ""}&sort=date`,
+      url: `https://${indeedDomains[providerCountry(clean.country)] || "www.indeed.com"}/jobs?q=${query}&l=${location}&radius=${encodeURIComponent(clean.radius)}${indeedAge ? `&fromage=${indeedAge}` : ""}&sort=date`,
     };
   }
 
@@ -314,7 +328,7 @@ export function companyJobSearchRoute(profile: SearchProfile, company: string, r
     const query = [siteFilter, `"${clean.role}"`, `"${company}"`, clean.city ? `"${clean.city}"` : "", `"${clean.country}"`, "jobs"].filter(Boolean).join(" ");
     return {
       provider: officialDomain ? `Official-site results · ${company}` : `Web results · ${company}`,
-      url: `https://${googleDomains[clean.country] || "www.google.com"}/search?q=${encodeURIComponent(query)}`,
+      url: `https://${googleDomains[providerCountry(clean.country)] || "www.google.com"}/search?q=${encodeURIComponent(query)}`,
     };
   }
 
@@ -353,7 +367,7 @@ export function searchFilterSummary(profile: SearchProfile, source: "linkedin" |
 export function jobSearchSources(profile: SearchProfile, language: Language = "en"): JobSearchSource[] {
   const clean = normalizedSearchProfile(profile);
   const indeedDomains: Record<string, string> = { Netherlands: "nl.indeed.com", Israel: "il.indeed.com", "United Kingdom": "uk.indeed.com", Germany: "de.indeed.com", France: "fr.indeed.com", Spain: "es.indeed.com", Portugal: "pt.indeed.com", Belgium: "be.indeed.com", Canada: "ca.indeed.com", "United States": "www.indeed.com" };
-  const indeedDomain = indeedDomains[clean.country] || "www.indeed.com";
+  const indeedDomain = indeedDomains[providerCountry(clean.country)] || "www.indeed.com";
   const quote = (value: string) => `"${value.replace(/["“”]/g, "").trim()}"`;
   const skills = clean.skillsMode === "required" ? clean.skills.split(",").map(normalizeSearchText).filter(Boolean) : [];
   const exclusions = clean.exclude.split(",").map((term) => normalizeSearchText(term).replace(/^-+/, "")).filter(Boolean);
