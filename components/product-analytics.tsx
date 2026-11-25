@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import { createActiveTimeClock } from "@/lib/analytics-active-time";
 import {
   PRODUCT_EVENT_CHANNEL,
   acquisitionChannel,
@@ -34,11 +35,12 @@ export function ProductAnalytics() {
   const sessionRef = useRef<Session | null>(null);
   const queueRef = useRef<QueuedEvent[]>([]);
   const flushingRef = useRef(false);
-  const activeSecondsRef = useRef(0);
 
   useEffect(() => {
     const supabase = supabaseRef.current;
     if (!supabase || new URLSearchParams(window.location.search).get("demo") === "1") return;
+
+    const clock = createActiveTimeClock(performance.now(), document.visibilityState === "visible" && document.hasFocus());
 
     const sessionId = window.sessionStorage.getItem(SESSION_KEY) || makeSessionId();
     window.sessionStorage.setItem(SESSION_KEY, sessionId);
@@ -79,9 +81,11 @@ export function ProductAnalytics() {
     };
 
     const recordHeartbeat = () => {
+      const activeSeconds = clock.takeHeartbeat(performance.now());
+      if (activeSeconds === null) return;
       enqueue("session_heartbeat", {
-        activeSeconds: activeSecondsRef.current,
-        durationBucket: activeDurationBucket(activeSecondsRef.current),
+        activeSeconds,
+        durationBucket: activeDurationBucket(activeSeconds),
       });
       void flush();
     };
@@ -95,16 +99,19 @@ export function ProductAnalytics() {
       void flush();
     };
 
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "hidden") recordHeartbeat();
+    const updateActive = () => {
+      clock.setActive(performance.now(), document.visibilityState === "visible" && document.hasFocus());
+      if (document.visibilityState === "hidden" || !document.hasFocus()) recordHeartbeat();
     };
+    const onInteraction = () => clock.interact(performance.now());
+    const activityEvents = ["pointerdown", "keydown", "scroll", "touchstart"] as const;
 
     window.addEventListener(PRODUCT_EVENT_CHANNEL, onProductEvent);
-    document.addEventListener("visibilitychange", onVisibilityChange);
+    document.addEventListener("visibilitychange", updateActive);
+    window.addEventListener("focus", updateActive);
+    window.addEventListener("blur", updateActive);
+    for (const name of activityEvents) window.addEventListener(name, onInteraction, { passive: true });
 
-    const activeTimer = window.setInterval(() => {
-      if (document.visibilityState === "visible" && document.hasFocus()) activeSecondsRef.current += 15;
-    }, 15_000);
     const heartbeatTimer = window.setInterval(recordHeartbeat, 60_000);
 
     // Capture the landing channel before authentication redirects change the URL.
@@ -145,10 +152,12 @@ export function ProductAnalytics() {
 
     return () => {
       recordHeartbeat();
-      window.clearInterval(activeTimer);
       window.clearInterval(heartbeatTimer);
       window.removeEventListener(PRODUCT_EVENT_CHANNEL, onProductEvent);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
+      document.removeEventListener("visibilitychange", updateActive);
+      window.removeEventListener("focus", updateActive);
+      window.removeEventListener("blur", updateActive);
+      for (const name of activityEvents) window.removeEventListener(name, onInteraction);
       authListener.subscription.unsubscribe();
     };
   }, []);
