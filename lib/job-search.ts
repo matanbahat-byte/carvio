@@ -40,6 +40,12 @@ export const emptySearchProfile: SearchProfile = { role: "", filterRole: "", loc
 const supplyChainSkillSuggestions = ["Inventory management", "Demand planning", "Procurement", "Logistics", "S&OP", "ERP", "Supplier management", "Warehouse operations", "Forecasting"];
 const hrSkillSuggestions = ["Business partnering", "Talent management", "Employee relations", "Organizational development", "Change management", "Workforce planning", "Coaching", "HR analytics", "People strategy", "Recruitment", "Compensation & benefits", "Labor law"];
 
+/** Public search supplies only these criteria; previous workspace filters are not part of it. */
+export function publicSearchHandoffProfile(role: string, country: string, city: string): SearchProfile {
+  return { ...emptySearchProfile, role: role.trim().slice(0, 80), country: country.trim().slice(0, 80),
+    location: city.trim().slice(0, 80), employmentType: "", datePosted: "Any time", radius: "" };
+}
+
 export function normalizeSearchText(value: string) {
   return value.trim().replace(/\s+/g, " ");
 }
@@ -341,7 +347,7 @@ export function searchFilterSummary(profile: SearchProfile, source: "linkedin" |
   add(he ? "מיקום מבוקש" : "Requested location", [profile.location, profile.country].filter(Boolean).join(", "));
   add(he ? "רדיוס" : "Radius", `${profile.radius} km`, source !== "google");
   add(he ? "מועד פרסום" : "Date posted", localizedSearchFilter(profile.datePosted, language), ["Past 24 hours", "Past week", "Past month", "Any time"].includes(profile.datePosted));
-  add(he ? "סוג העסקה" : "Employment type", localizedSearchFilter(profile.employmentType, language), source !== "google" && ["Full-time", "Part-time", "Contract", "Temporary", "Internship"].includes(profile.employmentType));
+  add(he ? "סוג העסקה" : "Employment type", localizedSearchFilter(profile.employmentType, language), source !== "google" && !(source === "indeed" && profile.employmentType === "Full-time") && ["Full-time", "Part-time", "Contract", "Temporary", "Internship"].includes(profile.employmentType));
   add(he ? "דרגה" : "Seniority", localizedSearchFilter(profile.seniority, language), source === "linkedin" && ["Entry level", "Associate", "Mid-Senior level", "Director", "Executive"].includes(profile.seniority));
   add(source === "linkedin" ? (he ? "מודל עבודה" : "Work model") : (he ? "מודל עבודה כמילת חיפוש" : "Work model as a keyword"), localizedSearchFilter(profile.workModel, language), ["Remote", "Hybrid", "On-site"].includes(profile.workModel));
   add(source === "google" ? (he ? "תחום כמילת חיפוש בלבד" : "Industry as a keyword only") : (he ? "תחום" : "Industry"), profile.industry, source === "google");
@@ -360,7 +366,8 @@ export function jobSearchSources(profile: SearchProfile, language: Language = "e
   const supplement = skills.map(quote);
   const negative = exclusions.map((term) => `-${quote(term)}`);
   const indeedRoles = [clean.role, ...selectedRoleAlternatives(clean)];
-  const indeedRoleQuery = indeedRoles.length > 1 ? `(${indeedRoles.map(quote).join(" OR ")})` : quote(clean.role);
+  const unquotedRole = (value: string) => value.replace(/["“”]/g, "").trim();
+  const indeedRoleQuery = indeedRoles.length > 1 ? `(${indeedRoles.map(unquotedRole).join(" OR ")})` : unquotedRole(clean.role);
   const indeedQuery = [indeedRoleQuery, ...supplement.map((term) => `AND ${term}`), ...negative, clean.workModel ? `AND ${quote(clean.workModel)}` : ""].filter(Boolean).join(" ");
   const google = googleJobSearch(profile, language);
   const indeedAge = clean.datePosted === "Past 24 hours" ? "1" : clean.datePosted === "Past week" ? "7" : clean.datePosted === "Past month" ? "30" : "";
@@ -377,7 +384,7 @@ export function jobSearchSources(profile: SearchProfile, language: Language = "e
   const indeedEmployment: Record<string, string> = { "Full-time": "fulltime", "Part-time": "parttime", Contract: "contract", Temporary: "temporary", Internship: "internship" };
   const indeedParams = new URLSearchParams({ q: indeedQuery, l: clean.location, radius: clean.radius, sort: "date" });
   if (indeedAge) indeedParams.set("fromage", indeedAge);
-  if (indeedEmployment[clean.employmentType]) indeedParams.set("jt", indeedEmployment[clean.employmentType]);
+  if (clean.employmentType !== "Full-time" && indeedEmployment[clean.employmentType]) indeedParams.set("jt", indeedEmployment[clean.employmentType]);
   const freshnessLabel = language === "he"
     ? ({ "Past 24 hours": "24 השעות האחרונות", "Past week": "השבוע האחרון", "Past month": "החודש האחרון", "Any time": "ללא הגבלת זמן" }[clean.datePosted] || clean.datePosted)
     : clean.datePosted;
