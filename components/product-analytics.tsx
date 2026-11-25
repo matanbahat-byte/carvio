@@ -1,23 +1,15 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { Session } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import { createAnalyticsDelivery, safeAnalyticsStorage } from "@/lib/analytics-delivery";
 import { createActiveTimeClock } from "@/lib/analytics-active-time";
 import {
   PRODUCT_EVENT_CHANNEL,
   acquisitionChannel,
   activeDurationBucket,
   localDateKey,
-  sanitizeAnalyticsProperties,
-  type AnalyticsProperties,
 } from "@/lib/product-analytics";
-
-type QueuedEvent = {
-  event_name: string;
-  properties: AnalyticsProperties;
-  created_at: string;
-};
 
 const SESSION_KEY = "carvio.analytics-session.v1";
 const LAST_ACTIVE_DAY_KEY = "carvio.analytics-last-active-day.v1";
@@ -31,58 +23,42 @@ function makeSessionId() {
 }
 
 export function ProductAnalytics() {
-  const supabaseRef = useRef(createClient());
-  const sessionRef = useRef<Session | null>(null);
-  const queueRef = useRef<QueuedEvent[]>([]);
-  const flushingRef = useRef(false);
+  const supabaseRef = useRef<ReturnType<typeof createClient>>(null);
 
   useEffect(() => {
+    try { supabaseRef.current = createClient(); } catch { return; }
     const supabase = supabaseRef.current;
     if (!supabase || new URLSearchParams(window.location.search).get("demo") === "1") return;
 
-    const clock = createActiveTimeClock(performance.now(), document.visibilityState === "visible" && document.hasFocus());
+    let clock = createActiveTimeClock(performance.now(), document.visibilityState === "visible" && document.hasFocus());
 
-    const sessionId = window.sessionStorage.getItem(SESSION_KEY) || makeSessionId();
-    window.sessionStorage.setItem(SESSION_KEY, sessionId);
-
-    const enqueue = (eventName: string, properties: Record<string, unknown> = {}) => {
-      queueRef.current = [...queueRef.current.slice(-99), {
-        event_name: eventName.slice(0, 80),
-        properties: sanitizeAnalyticsProperties({ ...properties, sessionId }),
-        created_at: new Date().toISOString(),
-      }];
-    };
-
+    let disposed = false;
+    const sessionStorage = safeAnalyticsStorage(() => window.sessionStorage);
+    const localStorage = safeAnalyticsStorage(() => window.localStorage);
+    const sessionId = sessionStorage.get(SESSION_KEY) || makeSessionId();
+    sessionStorage.set(SESSION_KEY, sessionId);
+    const acquisitionRecorded = new Set<string>();
     let acquisitionQueued = false;
-
-    const flush = async () => {
-      if (flushingRef.current || !sessionRef.current || !queueRef.current.length) return;
-      flushingRef.current = true;
-      try {
-        while (sessionRef.current && queueRef.current.length) {
-          const pending = queueRef.current.splice(0, 25);
-          const rows = pending.map((event) => ({ ...event, user_id: sessionRef.current!.user.id }));
-          const { error } = await supabase.from("product_events").insert(rows);
-          if (error) {
-            queueRef.current = [...pending, ...queueRef.current].slice(-100);
-            break;
-          }
-          // Mark attribution only after Supabase acknowledges the insert.
-          // A failed insert remains eligible for retry instead of silently losing the channel.
-          if (pending.some((event) => event.event_name === "acquisition_attributed")) {
-            window.localStorage.setItem(`${ACQUISITION_RECORDED_KEY}:${rows[0].user_id}`, "1");
-            window.sessionStorage.removeItem(PENDING_CHANNEL_KEY);
-            acquisitionQueued = false;
-          }
-        }
-      } finally {
-        flushingRef.current = false;
-      }
+    const delivery = createAnalyticsDelivery({
+      id: () => crypto.randomUUID(),
+      // Stable row IDs make retries idempotent even if the original acknowledgement was lost.
+      send: (rows) => supabase.from("product_events").upsert(rows, { onConflict: "id", ignoreDuplicates: true }),
+      acknowledged: (rows) => {
+        if (!rows.some((event) => event.event_name === "acquisition_attributed")) return;
+        acquisitionRecorded.add(rows[0].user_id);
+        localStorage.set(`${ACQUISITION_RECORDED_KEY}:${rows[0].user_id}`, "1");
+        sessionStorage.remove(PENDING_CHANNEL_KEY);
+        acquisitionQueued = false;
+      },
+    });
+    const enqueue = (eventName: string, properties: Record<string, unknown> = {}) => {
+      if (!disposed) delivery.enqueue(eventName, { ...properties, sessionId });
     };
+    const flush = () => delivery.flush();
 
     const recordHeartbeat = () => {
       const activeSeconds = clock.takeHeartbeat(performance.now());
-      if (activeSeconds === null) return;
+      if (activeSeconds === null) { void flush(); return; }
       enqueue("session_heartbeat", {
         activeSeconds,
         durationBucket: activeDurationBucket(activeSeconds),
@@ -119,39 +95,49 @@ export function ProductAnalytics() {
     const currentChannel = acquisitionChannel(window.location.search, document.referrer);
     // Preserve a coarse first-touch channel through OAuth/email redirects.
     // Never persist UTM parameters, full referrers, or campaign identifiers.
-    if (!window.sessionStorage.getItem(PENDING_CHANNEL_KEY)) {
-      window.sessionStorage.setItem(PENDING_CHANNEL_KEY, currentChannel);
+    if (!sessionStorage.get(PENDING_CHANNEL_KEY)) {
+      sessionStorage.set(PENDING_CHANNEL_KEY, currentChannel);
     }
     const recordAcquisitionIfNeeded = (userId: string) => {
       // A browser can host multiple accounts: attribution must be scoped per user.
-      if (window.localStorage.getItem(`${ACQUISITION_RECORDED_KEY}:${userId}`) || acquisitionQueued) return;
+      if (acquisitionRecorded.has(userId) || localStorage.get(`${ACQUISITION_RECORDED_KEY}:${userId}`) || acquisitionQueued) return;
       acquisitionQueued = true;
-      const landingChannel = window.sessionStorage.getItem(PENDING_CHANNEL_KEY) || currentChannel;
+      const landingChannel = sessionStorage.get(PENDING_CHANNEL_KEY) || currentChannel;
       enqueue("acquisition_attributed", { channel: landingChannel });
     };
 
-    supabase.auth.getSession().then(({ data }) => {
-      sessionRef.current = data.session;
-      if (!data.session) return;
-      enqueue("session_started", { method: "authenticated" });
-      recordAcquisitionIfNeeded(data.session.user.id);
-      const today = localDateKey();
-      const priorDay = window.localStorage.getItem(LAST_ACTIVE_DAY_KEY);
-      if (priorDay && priorDay !== today) enqueue("return_visit", { method: "new_day" });
-      window.localStorage.setItem(LAST_ACTIVE_DAY_KEY, today);
-      void flush();
-    });
+    let authRevision = 0;
+    const applySession = (userId: string | null) => {
+      if (disposed) return;
+      const changed = delivery.setOwner(userId);
+      if (!userId) { acquisitionQueued = false; return; }
+      if (changed) {
+        clock = createActiveTimeClock(performance.now(), document.visibilityState === "visible" && document.hasFocus());
+        acquisitionQueued = false;
+        enqueue("session_started", { method: "authenticated" });
+        const today = localDateKey();
+        const key = `${LAST_ACTIVE_DAY_KEY}:${userId}`;
+        const priorDay = localStorage.get(key);
+        if (priorDay && priorDay !== today) enqueue("return_visit", { method: "new_day" });
+        localStorage.set(key, today);
+      }
+      recordAcquisitionIfNeeded(userId);
+      queueMicrotask(() => { if (!disposed) void flush(); });
+    };
+    const initialRevision = authRevision;
+    void supabase.auth.getSession().then(({ data }) => {
+      if (authRevision === initialRevision) applySession(data.session?.user.id || null);
+    }).catch(() => { /* Missing analytics auth must never affect the product. */ });
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      sessionRef.current = session;
-      if (session) {
-        recordAcquisitionIfNeeded(session.user.id);
-        void flush();
-      }
+      authRevision++;
+      applySession(session?.user.id || null);
     });
 
     return () => {
       recordHeartbeat();
+      disposed = true;
+      delivery.setOwner(null);
       window.clearInterval(heartbeatTimer);
       window.removeEventListener(PRODUCT_EVENT_CHANNEL, onProductEvent);
       document.removeEventListener("visibilitychange", updateActive);
