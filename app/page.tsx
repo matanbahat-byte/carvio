@@ -3638,7 +3638,7 @@ function WorkspaceHome() {
     if (["", "ready", "low", "difficult"].includes(payload.dailyMood)) setDailyMood(payload.dailyMood as DailyMood);
     if (["en", "he"].includes(payload.language)) setLanguage(payload.language);
     setTheme("light"); // Restored data must not reactivate a legacy appearance.
-    setNotice(language === "he" ? "סביבת העבודה סונכרנה עם החשבון." : "Your workspace was synced with your account.");
+    // Automatic refresh reports its acknowledgement in the cloud indicator.
   }
 
   const goalStats = useMemo(() => goalMetrics(applications), [applications]);
