@@ -93,8 +93,8 @@ const PILOT_FEEDBACK_EMAIL = "carvio.team@gmail.com";
 const RESUMES_KEY = "carvio.resumes.v1";
 const SEARCH_PROFILE_KEY = "carvio.search-profile.v1";
 const RECOVERY_KEY = "carvio.recovery.v1";
-const THEME_KEY = "carvio.theme.v1";
-const THEME_EXPLICIT_KEY = "carvio.theme-explicit.v1";
+const THEME_KEY = "carvio.theme.v2";
+const THEME_EXPLICIT_KEY = "carvio.theme-explicit.v2";
 const PROFILE_KEY = "carvio.profile.v1";
 const CHECKIN_KEY = "carvio.checkin.v1";
 const LANGUAGE_KEY = "carvio.language.v1";
@@ -3691,7 +3691,7 @@ export default function Home() {
             <span className="welcome-kicker"><Sparkles className="h-4 w-4" />{language === "he" ? "חיפוש עבודה, עם פחות עומס" : "A calmer way to move your career forward"}</span>
             <h1>{language === "he" ? "כל חיפוש העבודה שלכם. צעד ברור אחד בכל פעם." : "Your whole job search. One clear next move at a time."}</h1>
             <p>{language === "he" ? "רכזו מועמדויות, קשרים, פגישות ופעולות המשך במקום אחד — וקבלו בכל יום הכוונה שמקדמת אתכם." : "Bring applications, conversations, interviews and follow-ups into one focused workspace—and know what matters today."}</p>
-            <a href="/find" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-violet-600 px-6 py-3 font-extrabold text-white shadow-lg transition hover:bg-violet-700"><Search className="h-5 w-5" />{language === "he" ? "חיפוש משרות חדש ✦" : "Explore the new job search ✦"}</a>
+            <a href="/find" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-teal-700 px-6 py-3 font-extrabold text-white shadow-lg transition hover:bg-teal-800"><Search className="h-5 w-5" />{language === "he" ? "חיפוש משרות חדש ✦" : "Explore the new job search ✦"}</a>
             <WelcomeAccountAccess language={language} onContinueLocal={enterWorkspace} />
             <button className="secondary-button mt-3" type="button" onClick={() => { window.sessionStorage.setItem(LANGUAGE_KEY, JSON.stringify(language)); window.location.assign("/?workspace=1&demo=1"); }}>{language === "he" ? "סיור עם נתוני דוגמה נפרדים" : "Explore with separate demo data"}</button>
           </div>
@@ -3715,7 +3715,7 @@ export default function Home() {
   return (
     <main className={`carvio-shell min-h-screen px-4 py-6 text-slate-100 sm:px-6 sm:py-8 lg:px-8 ${theme === "light" ? "carvio-light" : theme === "ocean" ? "carvio-ocean" : theme === "plum" ? "carvio-plum" : ""}`} dir={language === "he" ? "rtl" : "ltr"}>
       <div className="carvio-language-bar carvio-workspace-language" dir="ltr">{languageSwitcher}</div>
-      <a href="/find" className="mx-auto mb-3 inline-flex min-h-11 items-center gap-2 rounded-full border border-violet-300 bg-violet-600 px-5 py-2 text-sm font-extrabold text-white shadow-lg transition hover:bg-violet-700"><Search className="h-4 w-4" />{language === "he" ? "חיפוש המשרות החדש ✦" : "New job search ✦"}</a>
+      <a href="/find" className="mx-auto mb-3 inline-flex min-h-11 items-center gap-2 rounded-full border border-teal-700 bg-teal-700 px-5 py-2 text-sm font-extrabold text-white shadow-lg transition hover:bg-teal-800"><Search className="h-4 w-4" />{language === "he" ? "חיפוש המשרות החדש ✦" : "New job search ✦"}</a>
       <div className="calm-content mx-auto flex max-w-7xl flex-col gap-8">
         {demoMode && <aside className="demo-mode-banner" role="status"><strong>{language === "he" ? "מצב דמו · נתונים פיקטיביים בלבד" : "Demo mode · fictional data only"}</strong><p>{language === "he" ? "נתוני הדמו נשארים בסיור. סביבת העבודה האישית נשמרת במכשיר הזה, ואפשר להתחבר בה כדי לסנכרן." : "Demo changes stay in this session. Your personal workspace is saved on this device. Sign in there to sync across devices."}</p><button className="secondary-button" type="button" onClick={() => { window.localStorage.setItem(LANGUAGE_KEY, JSON.stringify(language)); window.location.assign("/?workspace=1"); }}>{language === "he" ? "פתיחת סביבת עבודה במכשיר הזה" : "Open workspace on this device"}</button></aside>}
         <nav aria-label={language === "he" ? "ניווט ראשי ב־Carvio" : "Carvio main navigation"} className="calm-desktop-nav">
@@ -3732,23 +3732,23 @@ export default function Home() {
         </nav>
 
         <header className={`calm-view dashboard-v2 ${activeView !== "home" ? "calm-view-hidden" : ""}`} id="dashboard">
-          <section aria-label={language === "he" ? "החיפושים והמשרות השמורות שלכם" : "Your saved jobs and searches"} className="relative mb-7 overflow-hidden rounded-[30px] border border-violet-300/50 bg-gradient-to-br from-[#27145c] via-[#3e238d] to-[#075d68] p-5 shadow-[0_24px_75px_rgba(91,52,205,0.3)] sm:p-8">
-            <div aria-hidden="true" className="pointer-events-none absolute -left-16 -top-24 h-64 w-64 rounded-full bg-cyan-400/20 blur-[75px]" /><div aria-hidden="true" className="pointer-events-none absolute -right-20 top-16 h-72 w-72 rounded-full bg-fuchsia-400/25 blur-[90px]" /><div className="relative flex flex-wrap items-start justify-between gap-3">
+          <section aria-label={language === "he" ? "החיפושים והמשרות השמורות שלכם" : "Your saved jobs and searches"} className="relative mb-7 overflow-hidden rounded-[30px] border border-slate-200 bg-slate-50 p-5 shadow-sm sm:p-8">
+            <div className="relative flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="mb-2 flex items-center gap-2 text-xs font-extrabold tracking-wide text-violet-300"><Sparkles className="h-4 w-4" /> YOUR NEXT OPPORTUNITIES</p>
-                <h2 className="text-xl font-extrabold text-white sm:text-2xl">{language === "he" ? "המשרות והחיפושים שלכם, במקום אחד" : "Your saved jobs and searches in one place"}</h2>
-                <p className="mt-2 text-sm leading-6 text-slate-300">{language === "he" ? "חזרו למשרות ששמרתם או פתחו חיפוש לפי ההעדפות שלכם." : "Your search is ready — pick a source to see live listings on its own website."}</p>
+                <p className="mb-2 flex items-center gap-2 text-xs font-extrabold tracking-wide text-teal-700"><Sparkles className="h-4 w-4" /> YOUR NEXT OPPORTUNITIES</p>
+                <h2 className="text-xl font-extrabold text-slate-900 sm:text-2xl">{language === "he" ? "המשרות והחיפושים שלכם, במקום אחד" : "Your saved jobs and searches in one place"}</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{language === "he" ? "חזרו למשרות ששמרתם או פתחו חיפוש לפי ההעדפות שלכם." : "Your search is ready — pick a source to see live listings on its own website."}</p>
               </div>
-              <a href={`/find?q=${encodeURIComponent(searchProfile.role || userProfile.targetRole || "")}&country=${encodeURIComponent(searchProfile.country || "")}&city=${encodeURIComponent(searchProfile.location || "")}`} className="inline-flex items-center gap-2 rounded-full border border-violet-300/50 bg-violet-500/20 px-4 py-2 text-sm font-bold text-white transition hover:bg-violet-500/40"><Search className="h-4 w-4" />{language === "he" ? "שינוי חיפוש" : "Edit search"}</a>
+              <a href={`/find?q=${encodeURIComponent(searchProfile.role || userProfile.targetRole || "")}&country=${encodeURIComponent(searchProfile.country || "")}&city=${encodeURIComponent(searchProfile.location || "")}`} className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-900 transition hover:bg-slate-100"><Search className="h-4 w-4" />{language === "he" ? "שינוי חיפוש" : "Edit search"}</a>
             </div>
             {applications.filter(item => item.role.trim() && item.company.trim() && isActiveApplicationStatus(item.status)).length > 0 && (
               <div className="relative mt-5">
-                <h3 className="mb-3 text-sm font-bold text-white">{language === "he" ? "המשרות הפעילות האחרונות שלכם" : "Your recent active jobs"}</h3>
+                <h3 className="mb-3 text-sm font-bold text-slate-900">{language === "he" ? "המשרות הפעילות האחרונות שלכם" : "Your recent active jobs"}</h3>
                 <div className="grid gap-3 sm:grid-cols-3">
                   {applications.filter(item => item.role.trim() && item.company.trim() && isActiveApplicationStatus(item.status)).sort((a, b) => (Date.parse(b.lastActivityAt || b.capturedAt || b.appliedDate || "") || 0) - (Date.parse(a.lastActivityAt || a.capturedAt || a.appliedDate || "") || 0)).slice(0, 3).map(item => (
-                    <div key={item.id} className="flex min-h-32 flex-col justify-between gap-3 rounded-2xl border border-white/25 bg-white/95 p-4 text-slate-900">
+                    <div key={item.id} className="flex min-h-32 flex-col justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 p-4 text-slate-900">
                       <div><p className="font-bold">{item.role}</p><p className="mt-1 text-xs text-slate-600">{item.company}{item.location ? ` · ${item.location}` : ""}</p></div>
-                      {/^https?:\/\//i.test(item.jobUrl.trim()) ? <a href={item.jobUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm font-bold text-violet-700">{language === "he" ? "פתיחת המשרה המקורית" : "Open original job"}<ExternalLink className="h-4 w-4" /></a> : <button type="button" onClick={() => { setWorkspaceApplicationId(item.id); switchView("applications"); }} className="text-start text-sm font-bold text-violet-700">{language === "he" ? "פתיחה במעקב" : "Open in tracker"}</button>}
+                      {/^https?:\/\//i.test(item.jobUrl.trim()) ? <a href={item.jobUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm font-bold text-teal-800">{language === "he" ? "פתיחת המשרה המקורית" : "Open original job"}<ExternalLink className="h-4 w-4" /></a> : <button type="button" onClick={() => { setWorkspaceApplicationId(item.id); switchView("applications"); }} className="text-start text-sm font-bold text-teal-800">{language === "he" ? "פתיחה במעקב" : "Open in tracker"}</button>}
                     </div>
                   ))}
                 </div>
@@ -3756,19 +3756,19 @@ export default function Home() {
             )}
             {searchProfile.role.trim() && (searchProfile.country.trim() || searchProfile.location.trim()) && !searchPreferencesNeedReview(searchProfile) ? (
               <>
-                <p className="mt-5 rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-medium text-white">{searchProfile.role}{searchProfile.country ? ` · ${searchProfile.country}` : ""}{searchProfile.location ? ` · ${searchProfile.location}` : ""}</p>
+                <p className="mt-5 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-900">{searchProfile.role}{searchProfile.country ? ` · ${searchProfile.country}` : ""}{searchProfile.location ? ` · ${searchProfile.location}` : ""}</p>
                 <div className="relative mt-4 grid gap-3 sm:grid-cols-3">
                   {jobSearchSources(searchProfile, language).filter(source => ["linkedin","indeed","google"].includes(source.id)).map(source => (
-                    <a key={source.id} href={source.url} target="_blank" rel="noopener noreferrer" className="group flex min-h-32 flex-col items-start justify-between gap-3 rounded-2xl border border-white/30 bg-white/95 p-5 text-[#30235d] shadow-[0_10px_25px_rgba(12,10,47,0.15)] transition duration-200 hover:-translate-y-1 hover:bg-white hover:shadow-2xl"><span className="flex w-full items-center justify-between gap-2"><span className="text-lg font-black">{source.id === "linkedin" ? "LinkedIn" : source.id === "indeed" ? "Indeed" : "Google Jobs"}</span><ExternalLink className="h-5 w-5 text-violet-600 transition group-hover:translate-x-[-2px]" /></span><span className="text-xs font-medium leading-5 text-slate-600">{source.id === "linkedin" ? (language === "he" ? "לצפייה במשרות וברשת המקצועית" : "Explore jobs and your professional network") : source.id === "indeed" ? (language === "he" ? "עוד משרות ממעסיקים שונים" : "More openings across employers") : (language === "he" ? "חיפוש רחב של משרות ברשת" : "Search job openings across the web")}</span><span className="inline-flex items-center gap-1 text-sm font-extrabold text-violet-700">{language === "he" ? "פתיחת תוצאות" : "Open results"} <ArrowUpRight className="h-4 w-4" /></span></a>
+                    <a key={source.id} href={source.url} target="_blank" rel="noopener noreferrer" className="group flex min-h-32 flex-col items-start justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 p-5 text-slate-900 shadow-sm transition duration-200 hover:-translate-y-1 hover:bg-white hover:shadow-md"><span className="flex w-full items-center justify-between gap-2"><span className="text-lg font-black">{source.id === "linkedin" ? "LinkedIn" : source.id === "indeed" ? "Indeed" : "Google Jobs"}</span><ExternalLink className="h-5 w-5 text-teal-700 transition group-hover:translate-x-[-2px]" /></span><span className="text-xs font-medium leading-5 text-slate-600">{source.id === "linkedin" ? (language === "he" ? "לצפייה במשרות וברשת המקצועית" : "Explore jobs and your professional network") : source.id === "indeed" ? (language === "he" ? "עוד משרות ממעסיקים שונים" : "More openings across employers") : (language === "he" ? "חיפוש רחב של משרות ברשת" : "Search job openings across the web")}</span><span className="inline-flex items-center gap-1 text-sm font-extrabold text-teal-800">{language === "he" ? "פתיחת תוצאות" : "Open results"} <ArrowUpRight className="h-4 w-4" /></span></a>
                   ))}
                 </div>
-                <button type="button" onClick={() => setShowSmartCapture(true)} className="relative mt-4 inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/15 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/25"><Plus className="h-4 w-4" />{language === "he" ? "מצאתי משרה — שמירה למעקב" : "Found a job? Save it to track"}</button>
-                <p className="relative mt-3 text-xs leading-5 text-slate-300">{language === "he" ? "אלו קישורים לחיפושים מותאמים, לא משרות שנאספו או אומתו על ידי CARVIO. בדקו את המיקום והמסננים באתר המקור." : "These are personalized search links, not listings collected or verified by CARVIO. Check location and filters at the source."}</p>
+                <button type="button" onClick={() => setShowSmartCapture(true)} className="relative mt-4 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-900 transition hover:bg-slate-100"><Plus className="h-4 w-4" />{language === "he" ? "מצאתי משרה — שמירה למעקב" : "Found a job? Save it to track"}</button>
+                <p className="relative mt-3 text-xs leading-5 text-slate-600">{language === "he" ? "אלו קישורים לחיפושים מותאמים, לא משרות שנאספו או אומתו על ידי CARVIO. בדקו את המיקום והמסננים באתר המקור." : "These are personalized search links, not listings collected or verified by CARVIO. Check location and filters at the source."}</p>
               </>
             ) : (
-              <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/15 bg-white/10 p-4">
-                <p className="text-sm text-slate-200">{language === "he" ? "כדי להציג חיפוש רלוונטי, הגדירו תפקיד ומיקום ועדכנו מסננים ישנים במידת הצורך." : "Set a role and location, and review outdated filters, to see a relevant search."}</p>
-                <a href="/find" className="rounded-xl bg-violet-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-violet-400">{language === "he" ? "מציאת משרות" : "Find jobs"}</a>
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+                <p className="text-sm text-slate-700">{language === "he" ? "כדי להציג חיפוש רלוונטי, הגדירו תפקיד ומיקום ועדכנו מסננים ישנים במידת הצורך." : "Set a role and location, and review outdated filters, to see a relevant search."}</p>
+                <a href="/find" className="rounded-xl bg-teal-700 px-5 py-3 text-sm font-bold !text-white transition hover:bg-teal-800">{language === "he" ? "מציאת משרות" : "Find jobs"}</a>
               </div>
             )}
           </section>
