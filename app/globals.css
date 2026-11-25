@@ -10873,3 +10873,10 @@ html[data-carvio-theme="light"] {
 .search-return-capture p { margin-block-start: .4rem; font-size: .875rem; }
 .search-return-capture input { min-width: 0; }
 .search-source-open { min-height: 44px; }
+
+/* Saved-job evidence cards: explicit foreground/background pairs across themes. */
+.workspace-evidence-list article.has-evidence { background: #e8f8f2; border-color: #a7d7c7; }
+.workspace-evidence-list article.needs-evidence { background: #fff5df; border-color: #e4c98d; }
+.workspace-evidence-list article strong, .workspace-evidence-list article p { color: #203b36; }
+.workspace-evidence-list article.has-evidence > span { color: #08796c; }
+.workspace-evidence-list article.needs-evidence > span { color: #855500; }
