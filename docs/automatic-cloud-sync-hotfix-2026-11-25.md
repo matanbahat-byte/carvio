@@ -16,6 +16,7 @@ A read-only production inspection found one cloud workspace containing 11 applic
 - Persist SHA-256 baseline digests, not duplicate document contents. Three-way merging preserves independent record/field edits and deliberate deletions. Concurrent conflicting edits remain untouched with a visible error; no last-writer-wins overwrite.
 - Reuse the existing unshipped compare-and-swap helper and account-access gate. Writes are scoped to user ID plus server revision, insert collisions/stale writes re-read and merge, changes made during slow writes replay.
 - The first authenticated account owns legacy local data. Signing out or switching to another account locks that owned workspace before private state hydration. It is preserved for its original account, not reassigned. A second account can use its own separate browser context; convenient multi-account local partitioning is outside this hotfix.
+- A local-only reset disables synchronization and invalidates its baseline, so re-enabling merges cloud records back instead of treating the reset as cloud deletions.
 - Keep the released light palette and all unrelated integration work excluded. No dependencies, schema migration, new service, notification or destructive operation.
 
 ## Verification

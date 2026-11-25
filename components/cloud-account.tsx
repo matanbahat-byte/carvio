@@ -269,7 +269,7 @@ export function CloudAccount({
   }, [workspace, userId, autoSync]);
 
   useEffect(() => {
-    const disable=()=>{engineRef.current?.cancel();try{if(accountRef.current)localStorage.setItem(`carvio.cloud-autosync.v3:${accountRef.current}`,"off");}catch{setSyncState("error");}setAutoSync(false);};
+    const disable=()=>{engineRef.current?.cancel();try{if(accountRef.current){localStorage.setItem(`carvio.cloud-autosync.v3:${accountRef.current}`,"off");localStorage.removeItem(`carvio.sync-checkpoint.v1:${accountRef.current}`);localStorage.removeItem(`carvio.cloud-recovery.v1:${accountRef.current}`);}}catch{setSyncState("error");}setAutoSync(false);};
     window.addEventListener("carvio:disable-cloud-autosync",disable);return ()=>window.removeEventListener("carvio:disable-cloud-autosync",disable);
   }, []);
 

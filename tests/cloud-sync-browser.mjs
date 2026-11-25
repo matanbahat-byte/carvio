@@ -65,7 +65,12 @@ try{
  // A simulated network interruption preserves the phone record and retries on reconnect.
  await phone.context.setOffline(true);await add(phone.page,'Offline Six');assert.equal((await stored(phone.page)).length,6);assert.equal(rows.get(A).workspace_data.applications.length,5);
  await phone.context.setOffline(false);await waitFor(()=>rows.get(A)?.workspace_data.applications.length===6,'online recovery');
+ // A local-only reset must invalidate the baseline, not erase the cloud on re-enable.
+ await phone.page.evaluate(()=>{window.dispatchEvent(new Event('carvio:disable-cloud-autosync'));localStorage.setItem('carvio.applications.v1','[]');});
+ assert.equal(await phone.page.evaluate(id=>localStorage.getItem(`carvio.sync-checkpoint.v1:${id}`),A),null);
+ await phone.page.reload();await phone.page.locator('.hero-cloud-button').waitFor();assert.equal((await stored(phone.page)).length,0);assert.equal(rows.get(A).workspace_data.applications.length,6);
+ await phone.page.locator('.hero-cloud-button').click();await phone.page.locator('.cloud-autosync input').check();await waitFor(async()=>(await stored(phone.page)).length===6,'local reset cannot delete cloud on re-enable');assert.equal(rows.get(A).workspace_data.applications.length,6);
  assert.deepEqual(errors,[]);assert.ok(requests.every(r=>r.actor===r.owner));
- await writeFile(`${output}/report.json`,JSON.stringify({environment:'isolated Auth/PostgREST fixture; no real credentials or production writes',checks:['phone two applications -> desktop','desktop -> phone after reload','slow-write replay','second-account isolation','account switch locks private workspace without deleting it','offline local recovery -> online sync'],requests:requests.length,browserErrors:errors},null,2));
+ await writeFile(`${output}/report.json`,JSON.stringify({environment:'isolated Auth/PostgREST fixture; no real credentials or production writes',checks:['phone two applications -> desktop','desktop -> phone after reload','slow-write replay','second-account isolation','account switch locks private workspace without deleting it','offline local recovery -> online sync','local reset preserves cloud on re-enable'],requests:requests.length,browserErrors:errors},null,2));
  console.log('PASS: two browser contexts, six preserved applications, account isolation, slow writes and offline recovery');
 }finally{await browser.close();}
