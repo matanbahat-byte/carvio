@@ -1,4 +1,4 @@
-type StorageLike = Pick<Storage, "removeItem">;
+type StorageLike = Pick<Storage, "removeItem"> & Partial<Pick<Storage, "key" | "length">>;
 
 export const LOCAL_WORKSPACE_DATA_KEYS = [
   "carvio.applications.v1",
@@ -19,5 +19,12 @@ export function clearLocalWorkspaceData(workspace: StorageLike, local: StorageLi
   local.removeItem("carvio.analytics-last-active-day.v1");
   local.removeItem("carvio.analytics-acquisition-recorded.v1");
   local.removeItem("carvio.workspace-last-visit.v1");
+  local.removeItem("carvio.cloud-local-owner.v1");
+  const recoveryKeys: string[] = [];
+  for (let index = 0; index < (local.length || 0); index += 1) {
+    const key = local.key?.(index);
+    if (key?.startsWith("carvio.cloud-recovery.v1:")) recoveryKeys.push(key);
+  }
+  recoveryKeys.forEach(key => local.removeItem(key));
   ["carvio.analytics-session.v1", "carvio.product-session.workspace", "carvio.product-session.demo"].forEach((key) => session.removeItem(key));
 }
