@@ -22,3 +22,10 @@ Solid-background contrast scanning is a regression check, not a complete WCAG ce
 Merge only this isolated branch once candidate checks are green. Production deployment is authorized by the user for verified styling fixes. Confirm Vercel deploys the resulting main commit, then inspect the public production routes and take release screenshots. Previous main SHA above is the rollback reference; revert the isolated visual commit or restore its previous deployment if a visual regression occurs.
 
 Original full-mission completion remains 55% until release verification. This task does not establish completion of the remaining analytics/cloud/search acceptance criteria.
+
+## Verified candidate checkpoint
+
+- PR #118 candidate `4cea6e82f02ba404a80ba6ae9307342fe0b1a0af` has the same tree as local `79800ba` (`16db04973c729b1f1dcb8d15d9aeac34ab503ff4`).
+- Broad local visual pass: 85 states, zero reported contrast/purple/overflow findings; focused expanded-dialog pass: 22 states, zero findings.
+- Vercel Preview for that candidate: 14 additional remote browser states passed (Hebrew mobile/English desktop, email sign-in form without submission, cloud access panel, public search, light-theme defaults and fictional evidence/gap cards).
+- Final review also corrected placeholder contrast in public/account forms. Overall full-mission development estimate: 56%; production status remains pending until deployment confirmation. This does not raise the implementation or verification estimates for unrelated workstreams.

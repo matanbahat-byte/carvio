@@ -10914,3 +10914,6 @@ html[data-carvio-theme="light"] {
 .carvio-light :is(.apply-readiness-heading span,.apply-readiness-heading > strong,.apply-signal-positive > span) { color: #0f766e; }
 .carvio-light :is(.apply-readiness-heading p,.apply-signal p,.apply-skip) { color: #526b63; }
 .carvio-light :is(.apply-readiness-research .apply-readiness-heading > strong,.apply-signal-attention > span) { color: #92400e; }
+/* Placeholder hints must remain readable on public, account and workspace forms. */
+html:not([data-carvio-theme]) :is(input,textarea)::placeholder,
+html[data-carvio-theme="light"] :is(input,textarea)::placeholder { color: #526b63; opacity: 1; }
