@@ -2,6 +2,9 @@ name: CARVIO visual quality
 on:
   pull_request:
   workflow_dispatch:
+concurrency:
+  group: candidate-quality-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:

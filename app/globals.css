@@ -10923,3 +10923,5 @@ html[data-carvio-theme="light"] :is(input,textarea)::placeholder { color: #526b6
 @media (max-width: 720px) {
   .hero-cloud-button .cloud-status-mobile { display: inline; max-width: 8rem; font-size: .68rem; line-height: 1.25; white-space: normal; }
 }
+
+.welcome-theme-light .welcome-access-divider { color: #526b63; }
