@@ -1,4 +1,5 @@
 "use client";
+import { WorkspaceAccessGate } from "@/components/workspace-access";
 import { JobAvailabilityCheck } from "@/components/job-availability-check";
 import type { VerifiedJobDetails } from "@/lib/job-availability";
 import { SearchRoleAlternatives } from "@/components/search-role-alternatives";
@@ -1330,6 +1331,10 @@ function ApplicationCalendarMenu({ application, language, onClose, onEdit }: { a
 }
 
 export default function Home() {
+  return <WorkspaceAccessGate><WorkspaceHome /></WorkspaceAccessGate>;
+}
+
+function WorkspaceHome() {
   const [demoMode, setDemoMode] = useState(false);
   const [searchTasks, setSearchTasks] = useState<SearchTask[]>([]);
   const [showSearchTaskModal, setShowSearchTaskModal] = useState(false);
