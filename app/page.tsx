@@ -1788,7 +1788,7 @@ function WorkspaceHome() {
   function enterWorkspace() {
     window.history.pushState({ carvioView: "workspace" }, "", demoMode ? "/?workspace=1&demo=1" : "/?workspace=1");
     setShowLanding(false);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
   }
 
   function selectTheme(nextTheme: ColorTheme) {
@@ -1821,7 +1821,7 @@ function WorkspaceHome() {
     setActiveView(view);
     if (view === "more") setInsightPanel(target === "carvio-reset" ? "reset" : target === "preferences" ? "preferences" : target === "pilot-feedback" ? "feedback" : "analytics");
     if (tool) setExpandedTools((current) => ({ ...current, [tool]: true }));
-    window.setTimeout(() => document.getElementById(target)?.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
+    window.setTimeout(() => document.getElementById(target)?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" }), 120);
   }
 
   function switchView(view: AppView) {
@@ -1830,7 +1830,7 @@ function WorkspaceHome() {
     if (view === "more") {
       setInsightPanel("analytics");
     }
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
   }
 
   function openCareerTool(tool: CareerTool) {
@@ -1842,7 +1842,7 @@ function WorkspaceHome() {
       interview: tool === "interview",
       offer: tool === "offer",
     }));
-    window.setTimeout(() => document.getElementById(tool === "studio" ? "message-studio" : tool === "social" ? "social-studio" : tool === "cv" ? "cv-lab" : tool === "interview" ? "interview-prep" : "offer-decision")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+    window.setTimeout(() => document.getElementById(tool === "studio" ? "message-studio" : tool === "social" ? "social-studio" : tool === "cv" ? "cv-lab" : tool === "interview" ? "interview-prep" : "offer-decision")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" }), 80);
   }
 
   const todayFocus = useMemo(() => {
@@ -2730,7 +2730,7 @@ function WorkspaceHome() {
       const fallbackTarget = target === "evidence" ? "requirements" : target;
       const field = document.getElementById(`application-${target}`) || document.getElementById(`application-${fallbackTarget}`);
       field?.focus();
-      field?.scrollIntoView({ behavior: "smooth", block: "center" });
+      field?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "center" });
     }, 80);
   }
 
@@ -3060,7 +3060,7 @@ function WorkspaceHome() {
     setSearchStep(3);
     window.setTimeout(() => {
       const results = document.getElementById("search-results");
-      results?.scrollIntoView({ behavior: "smooth", block: "start" });
+      results?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" });
       results?.focus({ preventScroll: true });
     }, 50);
   }
@@ -3077,7 +3077,7 @@ function WorkspaceHome() {
     emitProductEvent("search_submitted", { method: "broadened" });
     emitProductEvent("search_sources_presented", { count: jobSearchSources(next, language).length });
     setNotice(language === "he" ? "החיפוש המעודכן מוכן. שם התפקיד נשאר ללא שינוי." : "The updated search is ready. The target role remains unchanged.");
-    window.setTimeout(() => document.getElementById("search-results")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+    window.setTimeout(() => document.getElementById("search-results")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" }), 50);
   }
 
   function broadenSearchSafely() {
@@ -3855,7 +3855,7 @@ function WorkspaceHome() {
                     </div>}
                   </div>}
                 </div>
-                {nextBestActions.length > 1 && <button className="dashboard-v2-attention-link" onClick={() => document.getElementById("dashboard-attention")?.scrollIntoView({ behavior: "smooth", block: "center" })} type="button">{language === "he" ? `${nextBestActions.length - 1} פריטים נוספים דורשים תשומת לב` : `${nextBestActions.length - 1} other ${nextBestActions.length === 2 ? "item needs" : "items need"} attention`}<ArrowDown className="h-4 w-4" /></button>}
+                {nextBestActions.length > 1 && <button className="dashboard-v2-attention-link" onClick={() => document.getElementById("dashboard-attention")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "center" })} type="button">{language === "he" ? `${nextBestActions.length - 1} פריטים נוספים דורשים תשומת לב` : `${nextBestActions.length - 1} other ${nextBestActions.length === 2 ? "item needs" : "items need"} attention`}<ArrowDown className="h-4 w-4" /></button>}
               </div>
               <figure aria-hidden="true" className="dashboard-v2-today-visual"><Image alt="" fill priority sizes="(max-width: 700px) calc(100vw - 3rem), 320px" src="/carvio-next-action-recovery-v1.jpg" /></figure>
             </div>
@@ -4604,7 +4604,7 @@ function WorkspaceHome() {
 
       {notice && <div aria-atomic="true" aria-live="polite" className="toast" role="status"><CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-300" /><span>{notice}</span>{offerClosureUndo && <button className="toast-undo" onClick={undoOfferClosure} type="button">{language === "he" ? "ביטול" : "Undo"}</button>}<button aria-label={language === "he" ? "סגירת ההודעה" : "Dismiss notification"} className="ml-1 rounded-full p-1 text-slate-400 transition hover:bg-white/10 hover:text-white" onClick={() => { setNotice(""); setOfferClosureUndo(null); }} type="button"><X className="h-4 w-4" /></button></div>}
 
-      <button aria-label={language === "he" ? "חזרה לראש העמוד ולהגדרות" : "Back to top and settings"} className={`back-to-top ${showBackToTop ? "back-to-top-visible" : ""}`} onClick={() => document.getElementById("dashboard")?.scrollIntoView({ behavior: "smooth", block: "start" })} tabIndex={showBackToTop ? 0 : -1} type="button"><ArrowUp className="h-5 w-5" /><span>{language === "he" ? "למעלה" : "Top"}</span></button>
+      <button aria-label={language === "he" ? "חזרה לראש העמוד ולהגדרות" : "Back to top and settings"} className={`back-to-top ${showBackToTop ? "back-to-top-visible" : ""}`} onClick={() => document.getElementById("dashboard")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" })} tabIndex={showBackToTop ? 0 : -1} type="button"><ArrowUp className="h-5 w-5" /><span>{language === "he" ? "למעלה" : "Top"}</span></button>
 
       {showTrustCenter && (
         <Modal title={language === "he" ? "גיבוי ופרטיות" : "Backup and privacy"} description={demoMode ? (language === "he" ? "זהו גיבוי של נתוני הדמו בלבד, בנפרד מהסביבה האישית." : "This backs up demo data only, separate from your personal workspace.") : (language === "he" ? "הורידו עותק של המידע שלכם או שחזרו קובץ גיבוי קודם." : "Download a copy of your data or restore a previous backup file.")} closeLabel={language === "he" ? "סגירת החלון" : "Close modal"} onClose={() => setShowTrustCenter(false)}>
