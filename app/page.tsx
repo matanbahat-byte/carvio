@@ -1531,6 +1531,9 @@ function WorkspaceHome() {
       window.localStorage.setItem(WORKSPACE_LAST_VISIT_KEY, today);
       workspaceStorage().removeItem(LANDING_KEY);
       setShowLanding(landingVisibleForUrl(window.location.search));
+      const section = window.history.state?.carvioSection;
+      if (section === "home" || section === "search" || section === "applications" || section === "networking" || section === "tools" || section === "more") setActiveView(section);
+      else setActiveView("home");
       setHydrated(true);
     }, 0);
     return () => window.clearTimeout(timeout);
@@ -1826,6 +1829,9 @@ function WorkspaceHome() {
 
   function switchView(view: AppView) {
     setShowMobileMore(false);
+    if (view === activeView) return;
+    window.history.replaceState({ ...window.history.state, carvioSection: activeView }, "");
+    window.history.pushState({ ...window.history.state, carvioSection: view }, "");
     setActiveView(view);
     if (view === "more") {
       setInsightPanel("analytics");
