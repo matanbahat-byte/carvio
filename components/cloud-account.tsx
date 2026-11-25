@@ -335,9 +335,19 @@ export function CloudAccount({
     : syncState === "saved" ? (language === "he" ? "מסונכרן לחשבון" : "Synced to your account")
     : (language === "he" ? "בודק סנכרון…" : "Checking sync…");
 
+  const mobileLabel = !session || !configured
+    ? (language === "he" ? "נשמר רק כאן" : "Saved only here")
+    : syncState === "saving" ? (language === "he" ? "מסנכרן…" : "Syncing…")
+    : syncState === "error" ? (language === "he" ? "לא סונכרן" : "Not synced")
+    : !autoSync ? (language === "he" ? "סנכרון כבוי" : "Sync off")
+    : syncState === "saved" ? (language === "he" ? "מסונכרן" : "Synced")
+    : (language === "he" ? "בודק סנכרון…" : "Checking sync…");
+
   return <>
     <div className="cloud-account">
     <button
+      aria-label={buttonLabel}
+      title={buttonLabel}
       aria-controls="cloud-account-dialog"
       aria-expanded={open}
       aria-haspopup="dialog"
@@ -350,8 +360,9 @@ export function CloudAccount({
       }}
       type="button"
     >
-      {syncState === "saving" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : configured ? <Cloud className="h-4 w-4" /> : <CloudOff className="h-4 w-4" />}
-      <span>{buttonLabel}</span>
+      {syncState === "saving" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : configured && session ? <Cloud className="h-4 w-4" /> : <CloudOff className="h-4 w-4" />}
+      <span className="cloud-status-desktop">{buttonLabel}</span>
+      <span className="cloud-status-mobile" aria-hidden="true">{mobileLabel}</span>
     </button>
     </div>
     {open && typeof document !== "undefined" ? createPortal(<div className="cloud-account-layer">

@@ -44,6 +44,8 @@ const add=async(page,company)=>{await navigateApplications(page);await page.getB
 try{
  const phone=await device(A,true,[{id:'phone-1',company:'Phone One',role:'Engineer'},{id:'phone-2',company:'Phone Two',role:'Designer'}]);
  await waitFor(()=>rows.get(A)?.workspace_data.applications.length===2,'phone automatic upload');
+ await waitFor(async()=>await phone.page.locator('.cloud-status-mobile').isVisible()&&(await phone.page.locator('.cloud-status-mobile').innerText())==='Synced','visible mobile sync acknowledgement');
+ assert.ok(await phone.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  const desktop=await device(A);await waitFor(async()=>(await stored(desktop.page)).length===2,'desktop automatic pull');
  await desktop.page.screenshot({path:`${output}/desktop-two-phone-applications.png`});
  await add(desktop.page,'Desktop Three');await waitFor(()=>rows.get(A)?.workspace_data.applications.length===3,'desktop automatic save');

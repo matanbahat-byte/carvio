@@ -10917,3 +10917,9 @@ html[data-carvio-theme="light"] {
 /* Placeholder hints must remain readable on public, account and workspace forms. */
 html:not([data-carvio-theme]) :is(input,textarea)::placeholder,
 html[data-carvio-theme="light"] :is(input,textarea)::placeholder { color: #526b63; opacity: 1; }
+
+/* Keep acknowledgement visible on phones, rather than implying cloud save with an icon alone. */
+.hero-cloud-button .cloud-status-mobile { display: none; }
+@media (max-width: 720px) {
+  .hero-cloud-button .cloud-status-mobile { display: inline; max-width: 8rem; font-size: .68rem; line-height: 1.25; white-space: normal; }
+}

@@ -73,14 +73,18 @@ export function createCloudSynchronizer<T extends {schemaVersion:number}>(option
     const merged=await mergeCloudWorkspace(checkpoint?.node||null,local,remote?.workspace||null);if(!current())return;
     const [localNode,mergedNode,remoteNode]=await Promise.all([snapshot(local),snapshot(merged),remote?snapshot(remote.workspace):Promise.resolve(null)]);
     // Preserve the local copy before changing either side. Failure stops the sync.
-    if(localNode.hash!==mergedNode.hash)options.preserveLocal(local);
+    const projectedMerge=Object.fromEntries(Object.keys(local).map(key=>[key,(merged as JsonObject)[key]]));
+    if(localNode.hash!==(await snapshot(projectedMerge)).hash)options.preserveLocal(local);
     let revision=remote?.revision||null;
     if(!remoteNode||remoteNode.hash!==mergedNode.hash){if(!current())return;revision=await options.writeRemote(merged,revision);}
     if(!current())return;
     const latest=structuredClone(options.readLocal());
     const rebased=await mergeCloudWorkspace(localNode,latest,merged);if(!current())return;
-    const latestNode=await snapshot(latest),rebasedNode=await snapshot(rebased);
-    if(latestNode.hash!==rebasedNode.hash){options.preserveLocal(latest);options.applyLocal(rebased);}
+    // Cloud-only future fields are retained remotely, but cannot be repeatedly
+    // restored into an older UI that does not represent those root fields.
+    const deviceValue=Object.fromEntries(Object.keys(latest).map(key=>[key,(rebased as JsonObject)[key]])) as T;
+    const [latestNode,deviceNode,rebasedNode]=await Promise.all([snapshot(latest),snapshot(deviceValue),snapshot(rebased)]);
+    if(latestNode.hash!==deviceNode.hash){options.preserveLocal(latest);options.applyLocal(deviceValue);}
     const next:SyncCheckpoint={version:1,userId:options.userId,revision,node:mergedNode};
     options.saveCheckpoint(next);checkpoint=next;
     if(rebasedNode.hash!==mergedNode.hash)requested=true;

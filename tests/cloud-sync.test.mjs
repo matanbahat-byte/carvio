@@ -73,3 +73,8 @@ test('concurrent edit timestamps do not turn independent field changes into a co
 test('older clients preserve future root fields in cloud snapshots',async()=>{
  const remote={...workspace([{id:'a'}]),futureDocuments:[{id:'future',data:'preserve'}]};const local=workspace([{id:'a'}]);const merged=await mergeCloudWorkspace(await snapshot(remote),local,remote);assert.deepEqual(merged.futureDocuments,remote.futureDocuments);
 });
+test('cloud-only future fields do not cause an older UI to enter a restore loop',async()=>{
+ const local=workspace(),remote={...workspace(),futureDocuments:[{id:'future'}]};let applied=0,written=0;
+ const engine=createCloudSynchronizer({userId:'A',checkpoint:{version:1,userId:'A',revision:'1',node:await snapshot(remote)},readLocal:()=>local,applyLocal:()=>{applied++;},readRemote:async()=>({workspace:remote,revision:'1'}),writeRemote:async()=>{written++;return '2';},preserveLocal:()=>{},saveCheckpoint:()=>{},isCurrent:()=>true});
+ await engine.sync();await engine.sync();assert.equal(applied,0);assert.equal(written,0);
+});
