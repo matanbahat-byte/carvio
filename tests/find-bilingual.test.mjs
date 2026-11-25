@@ -22,7 +22,7 @@ registerHooks({
     return nextLoad(url, context);
   },
 });
-const { default: FindJobs } = await import('../app/find/page.tsx');
+const { default: FindJobs, generateMetadata } = await import('../app/find/page.tsx');
 const render = async params => renderToStaticMarkup(await FindJobs({ searchParams: Promise.resolve(params) }));
 const decode = value => value.replaceAll('&amp;', '&').replaceAll('&#x27;', "'");
 
@@ -70,4 +70,26 @@ test('English destinations use English provider labels and Google language while
   const links = [...html.matchAll(/href="([^"]+)"/g)].map(match => new URL(decode(match[1]), 'https://carvio.example'));
   for (const url of links.filter(url => url.hostname === 'www.google.com')) assert.equal(url.searchParams.get('hl'), 'en');
   assert.ok(links.some(url => url.hostname === 'il.indeed.com'));
+});
+
+
+test('public search metadata localizes without echoing search criteria or context', async () => {
+  for (const lang of ['he', 'en']) {
+    const clean = await generateMetadata({ searchParams: Promise.resolve({ lang }) });
+    assert.equal(clean.alternates.canonical, 'https://carvio-pi.vercel.app/find');
+    assert.equal(clean.robots.index, true);
+    assert.ok(clean.title.includes(lang === 'he' ? 'חיפוש משרות' : 'Search jobs'));
+    for (const params of [
+      { lang, q: 'private-person@example.com', country: 'Private location', city: 'Private city' },
+      { lang, city: 'Private city' }, { lang, workspace: '1' },
+      { lang, q: ['private-person@example.com', 'another'] },
+    ]) {
+      const metadata = await generateMetadata({ searchParams: Promise.resolve(params) });
+      assert.equal(metadata.robots.index, false);
+      assert.equal(metadata.robots.follow, true);
+      assert.equal(metadata.alternates.canonical, 'https://carvio-pi.vercel.app/find');
+      assert.equal(metadata.openGraph.url, 'https://carvio-pi.vercel.app/find');
+      assert.doesNotMatch(JSON.stringify(metadata), /private-person|Private location|Private city|workspace=/);
+    }
+  }
 });

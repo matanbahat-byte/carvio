@@ -1,9 +1,37 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { FindSearchAnalytics } from "@/components/find-search-analytics";
 import { BriefcaseBusiness, MapPin, Search, Sparkles, ExternalLink, CheckCircle2, ArrowLeft } from "lucide-react";
 import { emptySearchProfile, jobSearchSources, suggestedRoleAlternatives, officialSearchUrl } from "@/lib/job-search";
 export const dynamic = "force-dynamic";
-export default async function FindJobs({searchParams}:{searchParams:Promise<{q?:string;country?:string;city?:string;lang?:string}>}) {
+
+type FindSearchParams = { [key: string]: string | string[] | undefined };
+
+export async function generateMetadata({ searchParams }: { searchParams: Promise<FindSearchParams> }): Promise<Metadata> {
+  const params = await searchParams;
+  const he = params.lang !== "en";
+  const title = he ? "CARVIO — חיפוש משרות בעברית ובאנגלית" : "CARVIO — Search jobs in Hebrew and English";
+  const description = he
+    ? "חפשו לפי תפקיד, מדינה ועיר. גלו מקורות חיפוש ואתרי קריירה של מעסיקים ללא הרשמה."
+    : "Search by job title, country and city. Explore job search sources and employer career sites without an account.";
+  // Search criteria can contain personal text. Do not copy them into SEO/social
+  // metadata or canonical URLs, and do not index parameterized result pages.
+  const resultsOrContext = Object.keys(params).some(key => key !== "lang");
+  const preview = Boolean(process.env.VERCEL_ENV && process.env.VERCEL_ENV !== "production");
+  return {
+    title,
+    description,
+    alternates: { canonical: "https://carvio-pi.vercel.app/find" },
+    robots: { index: !resultsOrContext && !preview, follow: true },
+    openGraph: {
+      title, description, url: "https://carvio-pi.vercel.app/find", siteName: "CARVIO", type: "website",
+      images: [{ url: "/carvio-og.png", width: 1200, height: 630, alt: "CARVIO job search" }],
+    },
+    twitter: { card: "summary_large_image", title, description, images: ["/carvio-og.png"] },
+  };
+}
+
+export default async function FindJobs({searchParams}:{searchParams:Promise<FindSearchParams>}) {
  const p=await searchParams;
  const language = p.lang === "en" ? "en" : "he";
  const he = language === "he";
