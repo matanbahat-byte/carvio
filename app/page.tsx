@@ -19,7 +19,7 @@ import { completionLoopOptions } from "@/lib/completion-loop";
 import { localProductMetrics, goalMetrics, readinessStates, isCompatibleRecord, messageSubject, generateOutreachMessage, normalizeUsageIntent, goalAction, migrateSource, sourceOutcomes, hasPersonalAnchor, linkContactIds, privateEventProperties, safeSourceUrl, type ProductEventName, type MessageProfile, type UsageIntent, type SourceType } from "@/lib/decision-support";
 
 import Image from "next/image";
-import { selectedRoleAlternatives, suggestedRoleAlternatives, googleJobSearch, officialSearchUrl, changeSearchRole, searchPreferencesNeedReview, emptySearchProfile, sanitizeSearchProfile, normalizedSearchProfile, migrateSearchProfile, nextSearchDateWindow, skillSuggestionsForRole, localizedSearchFilter, companyJobSearchRoute, jobSearchSources, searchProfileChanged, broadenSearchProfile, patchSearchProfile, captureJobLink, jobLinkIdentity, type SearchProfile, type SearchOutcome, type JobSearchSource } from "@/lib/job-search";
+import { publicSearchHandoffProfile, selectedRoleAlternatives, suggestedRoleAlternatives, googleJobSearch, officialSearchUrl, changeSearchRole, searchPreferencesNeedReview, emptySearchProfile, sanitizeSearchProfile, normalizedSearchProfile, migrateSearchProfile, nextSearchDateWindow, skillSuggestionsForRole, localizedSearchFilter, companyJobSearchRoute, jobSearchSources, searchProfileChanged, broadenSearchProfile, patchSearchProfile, captureJobLink, jobLinkIdentity, type SearchProfile, type SearchOutcome, type JobSearchSource } from "@/lib/job-search";
 import { agendaEntries, scheduledTimestamp } from "@/lib/schedule";
 import { greetingForHour, meaningfulMomentum } from "@/lib/ux-context";
 import { clearLocalWorkspaceData } from "@/lib/local-data";
@@ -1505,7 +1505,7 @@ export default function Home() {
       const incomingRole = incoming.get("findRole")?.trim().slice(0, 80);
       if (incomingRole && incoming.get("workspace") === "1") {
         const country = incoming.get("findCountry")?.trim().slice(0, 80) || "";
-        setSearchProfile({ ...restoredSearch, role: incomingRole, country, location: incoming.get("findCity")?.trim().slice(0, 80) || "" });
+        setSearchProfile(publicSearchHandoffProfile(incomingRole, country, incoming.get("findCity") || ""));
         setActiveView("search");
         ["findRole", "findCountry", "findCity"].forEach(key => incoming.delete(key));
         window.history.replaceState(window.history.state, "", `/?${incoming.toString()}`);
