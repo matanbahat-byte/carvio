@@ -1,24 +1,36 @@
-export function createAccountSession(storage: { get(key: string): string | null; set(key: string, value: string): void; remove(key: string): void }, makeId: () => string, shared?: { get(key: string): string | null; set(key: string, value: string): void }) {
+type Storage = { get(key: string): string | null; set(key: string, value: string): void; remove(key: string): void };
+export function createAccountSession(storage: Storage, makeId: () => string, shared?: Pick<Storage, "get" | "set">, now = Date.now) {
   const prefix = "carvio.analytics-session.v2";
+  const ttl = 30 * 60_000;
   let owner: string | null = null;
   let id = makeId();
+  function coordinate() {
+    if (!owner || !shared) return id;
+    const key = `carvio.analytics-shared.v1:${owner}`;
+    const raw = shared.get(key);
+    let valid = false;
+    if (raw) {
+      try {
+        const value = JSON.parse(raw);
+        if (typeof value.id === "string" && value.id && Number.isFinite(value.at) && now() >= value.at && now() - value.at < ttl) {
+          id = value.id;
+          valid = true;
+        }
+      } catch { /* Invalid storage is ignored. */ }
+    }
+    if (!valid) id = makeId();
+    shared.set(key, JSON.stringify({ id, at: now() }));
+    return id;
+  }
   return {
-    get id() {
-      if (owner && shared) id = shared.get(`${prefix}:${owner}`) || id;
-      return id;
-    },
+    get id() { return coordinate(); },
     setOwner(next: string | null) {
       if (next === owner) return id;
       if (owner) storage.remove(`${prefix}:${owner}`);
       owner = next;
       id = next ? storage.get(`${prefix}:${next}`) || makeId() : makeId();
-      if (next) {
-        const key = `${prefix}:${next}`;
-        id = shared?.get(key) || id;
-        shared?.set(key, id);
-        storage.set(key, id);
-      }
-      return id;
+      if (next) storage.set(`${prefix}:${next}`, id);
+      return coordinate();
     },
   };
 }
