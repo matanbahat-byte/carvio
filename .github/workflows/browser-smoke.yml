@@ -52,6 +52,14 @@ jobs:
         run: node tests/find-bilingual-browser.mjs
         env:
           CARVIO_BASE_URL: http://127.0.0.1:3000
+      - name: Check owned workspace privacy lock
+        run: node tests/workspace-access-browser.mjs
+        env:
+          CARVIO_BASE_URL: http://127.0.0.1:3000
+      - name: Check public metadata over HTTP
+        run: node --test tests/public-metadata-http.mjs
+        env:
+          CARVIO_BASE_URL: http://127.0.0.1:3000
       - name: Upload browser screenshots
         if: always()
         uses: actions/upload-artifact@v4

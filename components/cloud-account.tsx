@@ -7,6 +7,7 @@ import type { Session } from "@supabase/supabase-js";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { authErrorMessage } from "@/lib/supabase/auth-feedback";
 import { emitProductEvent } from "@/lib/product-analytics";
+import { createCloudSaveReplay } from "@/lib/cloud-save-replay";
 import { canSaveCloudWorkspace, isCloudWorkspace, writeCloudWorkspace, WorkspaceConflictError, type WorkspaceBaseline } from "@/lib/cloud-workspace";
 
 const LOCAL_OWNER_KEY = "carvio.cloud-local-owner.v1";
@@ -147,6 +148,8 @@ export function CloudAccount({
   const baselineRef = useRef<WorkspaceBaseline | null>(null);
   const accountRef = useRef<string | null>(null);
   const operationRef = useRef(false);
+  const saveReplayRef = useRef(createCloudSaveReplay<CloudWorkspacePayload>());
+  const [saveRevision, setSaveRevision] = useState(0);
   const [syncReady, setSyncReady] = useState(false);
   const [recoveryKey, setRecoveryKey] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -196,6 +199,7 @@ export function CloudAccount({
     const applySession = (next: Session | null) => {
       const id = next?.user.id || null;
       if (accountRef.current !== id) {
+        saveReplayRef.current.reset();
         accountRef.current = id;
         baselineRef.current = null;
         setSyncReady(false);
@@ -207,6 +211,7 @@ export function CloudAccount({
       }
       setSession(next);
     };
+    const replay = saveReplayRef.current;
     let alive = true;
     let authChanged = false;
     supabase.auth.getSession().then(({ data }) => {
@@ -217,7 +222,7 @@ export function CloudAccount({
       applySession(nextSession);
       if (event === "SIGNED_IN" && nextSession) emitProductEvent("cloud_sign_in_completed", { method: "authenticated" });
     });
-    return () => { alive = false; data.subscription.unsubscribe(); };
+    return () => { alive = false; replay.reset(); data.subscription.unsubscribe(); };
   }, []);
 
   const userId = session?.user.id;
@@ -255,6 +260,7 @@ export function CloudAccount({
 
   useEffect(() => {
     const disableAutoSync = () => {
+      saveReplayRef.current.reset();
       setAutoSync(false);
       baselineRef.current = null;
       setSyncReady(false);
@@ -266,11 +272,12 @@ export function CloudAccount({
 
   useEffect(() => {
     if (!session || !autoSync || !remoteExists || !syncReady) return;
+    if (!saveReplayRef.current.observe(workspace)) return;
     const timeout = window.setTimeout(() => void saveToCloud(true), 1400);
     return () => window.clearTimeout(timeout);
     // workspace is intentionally the trigger for the debounced backup.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workspace, session, autoSync, remoteExists, syncReady]);
+  }, [workspace, session, autoSync, remoteExists, syncReady, saveRevision]);
 
   async function sendMagicLink(event: FormEvent) {
     event.preventDefault();
@@ -299,6 +306,8 @@ export function CloudAccount({
     if (!supabase || !session || !baseline || operationRef.current) return;
     const id = session.user.id;
     if (accountRef.current !== id) return;
+    const replayToken = saveReplayRef.current.begin(workspace);
+    let succeeded = false;
     operationRef.current = true;
     setSyncState("saving");
     try {
@@ -309,14 +318,15 @@ export function CloudAccount({
       // upload the same local data to a second account, even after a failed save.
       window.localStorage.setItem(LOCAL_OWNER_KEY, id);
       const next = await writeCloudWorkspace(supabase, baseline, workspace);
-      if (accountRef.current !== id) return;
+      if (accountRef.current !== id || !saveReplayRef.current.isCurrent(replayToken)) return;
       baselineRef.current = next;
+      succeeded = true;
       setRemoteExists(true);
       setSyncReady(true);
       setSyncState("saved");
       if (!silent) setMessage(language === "he" ? "המידע במכשיר גובה לענן." : "This device is backed up to the cloud.");
     } catch (error) {
-      if (accountRef.current !== id) return;
+      if (accountRef.current !== id || !saveReplayRef.current.isCurrent(replayToken)) return;
       setAutoSync(false);
       setSyncState("error");
       if (error instanceof WorkspaceConflictError) {
@@ -328,6 +338,9 @@ export function CloudAccount({
       }
     } finally {
       operationRef.current = false;
+      // A debounce may already have fired while this operation held the lock.
+      // Wake the effect for the newest snapshot, using the new CAS revision.
+      if (saveReplayRef.current.finish(replayToken, succeeded)) setSaveRevision((value) => value + 1);
     }
   }
 
@@ -336,6 +349,7 @@ export function CloudAccount({
     if (!supabase || !session || operationRef.current) return;
     const id = session.user.id;
     operationRef.current = true;
+    saveReplayRef.current.reset();
     setAutoSync(false);
     setSyncState("saving");
     try {
@@ -370,10 +384,12 @@ export function CloudAccount({
   function toggleAutoSync() {
     if (!session || !syncReady) return;
     const next = !autoSync;
+    if (!next) saveReplayRef.current.reset();
     try {
       window.localStorage.setItem(`carvio.cloud-autosync.v2:${session.user.id}`, next ? "on" : "off");
       setAutoSync(next);
     } catch {
+      saveReplayRef.current.reset();
       setAutoSync(false);
       setSyncState("error");
     }
@@ -397,6 +413,8 @@ export function CloudAccount({
   }
 
   async function signOut() {
+    saveReplayRef.current.reset();
+    setAutoSync(false);
     await supabaseRef.current?.auth.signOut();
     setRemoteExists(null);
     setAutoSync(false);
