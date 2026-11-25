@@ -28,8 +28,8 @@ try {
     await page.reload();
     await page.locator('#workspace-locked-title').waitFor();
     assert.equal(await page.locator('body').innerText().then(text => /PRIVATE_/.test(text)), false);
-    await page.locator('a[href="/find"]').click();
-    await page.waitForURL('**/find');
+    await page.locator('a[href^="/find?lang="]').click();
+    await page.waitForURL(url => url.pathname === '/find' && url.searchParams.get('lang') === language);
     assert.equal(await page.locator('input[name="q"]').count(), 1);
     assert.deepEqual(errors, []);
     await context.close();

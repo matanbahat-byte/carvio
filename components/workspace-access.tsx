@@ -100,7 +100,7 @@ export function WorkspaceAccessGate({ children }: { children: ReactNode }) {
         </form>
       </>}
       <p className="mt-4" role="status">{message}</p>
-      <div className="mt-6 flex flex-wrap gap-4"><a className="font-bold text-violet-700 underline" href="/find">{language === "he" ? "חיפוש משרות ללא פתיחת הנתונים" : "Search jobs without unlocking data"}</a><button className="underline" type="button" onClick={() => window.location.reload()}>{language === "he" ? "ניסיון נוסף" : "Retry"}</button></div>
+      <div className="mt-6 flex flex-wrap gap-4"><a className="font-bold text-violet-700 underline" href={`/find?lang=${language}`}>{language === "he" ? "חיפוש משרות ללא פתיחת הנתונים" : "Search jobs without unlocking data"}</a><button className="underline" type="button" onClick={() => window.location.reload()}>{language === "he" ? "ניסיון נוסף" : "Retry"}</button></div>
     </section>
   </main>;
 }
