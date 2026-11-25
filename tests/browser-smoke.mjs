@@ -5,7 +5,7 @@ import { mkdir } from "node:fs/promises";
 const base = process.env.CARVIO_BASE_URL || "https://carvio-pi.vercel.app/?workspace=1";
 const output = "artifacts/browser-smoke";
 await mkdir(output, { recursive: true });
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, ...(process.env.CARVIO_CHROMIUM_PATH ? { executablePath: process.env.CARVIO_CHROMIUM_PATH } : {}) });
 let failed = false;
 try {
   for (const [name, options] of [
