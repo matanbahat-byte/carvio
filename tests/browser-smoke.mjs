@@ -8,11 +8,18 @@ await mkdir(output, { recursive: true });
 const browser = await chromium.launch({ headless: true, ...(process.env.CARVIO_CHROMIUM_PATH ? { executablePath: process.env.CARVIO_CHROMIUM_PATH } : {}) });
 let failed = false;
 try {
-  for (const [name, options] of [
-    ["desktop", { viewport: { width: 1440, height: 900 } }],
-    ["mobile", { ...devices["Pixel 7"] }],
+  for (const [name, language, options] of [
+    ["desktop-en", "en", { viewport: { width: 1440, height: 900 } }],
+    ["desktop-he", "he", { viewport: { width: 1440, height: 900 } }],
+    ["android-en", "en", { ...devices["Pixel 7"] }],
+    ["android-he", "he", { ...devices["Pixel 7"] }],
+    ["iphone-he", "he", { ...devices["iPhone 13"] }],
   ]) {
     const context = await browser.newContext(options);
+    await context.addInitScript((locale) => {
+      // Set a real supported preference in this disposable test context.
+      localStorage.setItem("carvio.language.v1", JSON.stringify(locale));
+    }, language);
     const page = await context.newPage();
     const exceptions = [];
     page.on("pageerror", (error) => exceptions.push(error.message));
@@ -32,9 +39,9 @@ try {
       await searchEntry.first().click();
       const roleInput = page.locator('input[list="carvio-role-options"]');
       await roleInput.waitFor({ state: "visible", timeout: 10000 });
-      await roleInput.fill("Supply Chain Manager");
+      await roleInput.fill(language === "he" ? "מנהל שרשרת אספקה" : "Supply Chain Manager");
       const countrySelect = page.locator(".search-form-grid select").first();
-      await countrySelect.selectOption({ label: "Israel" });
+      await countrySelect.selectOption("Israel");
       const launch = page.locator(".search-launch-button");
       assert.ok(await launch.isEnabled(), name + ": search launch disabled after valid role and country");
       await launch.click();
