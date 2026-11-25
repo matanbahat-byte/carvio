@@ -8,7 +8,7 @@ const output=process.env.CARVIO_VISUAL_OUTPUT || 'artifacts/visual/after';
 const report=[];await mkdir(output,{recursive:true});
 const browser=await chromium.launch(launch);
 try{
-for(const language of ['en','he'])for(const viewport of [{width:1440,height:1000},{width:390,height:844}]){
+for(const language of ['en','he'].filter(value=>!process.env.CARVIO_VISUAL_LANGUAGE||value===process.env.CARVIO_VISUAL_LANGUAGE))for(const viewport of [{width:1440,height:1000},{width:390,height:844}].filter(value=>!process.env.CARVIO_VISUAL_WIDTH||String(value.width)===process.env.CARVIO_VISUAL_WIDTH)){
  const name=`${language}-${viewport.width}`;
  const context=await browser.newContext({viewport,colorScheme:'dark',reducedMotion:'reduce'});
  await context.addInitScript(locale=>{for(const storage of [localStorage,sessionStorage]){storage.setItem('carvio.language.v1',JSON.stringify(locale));for(const version of ['v1','v2']){storage.setItem(`carvio.theme.${version}`,'"plum"');storage.setItem(`carvio.theme-explicit.${version}`,'true');}}},language);
@@ -58,7 +58,7 @@ for(const language of ['en','he'])for(const viewport of [{width:1440,height:1000
  const storedData=await page.evaluate(()=>Object.fromEntries(['carvio.applications.v1','carvio.contacts.v1','carvio.resumes.v1'].map(key=>[key,sessionStorage.getItem(key)])));
  for(const [index,label] of ['home','applications','search','networking','tools','insights'].entries()){
   if(index)await navigate(index);await capture(label);
-  if(index===0){const why=page.locator('.recommendation-why-trigger');if(await why.isVisible().catch(()=>false)){await why.click();await capture('recommendation-explanation');await why.click();}const saved=page.getByRole('button',{name:/^Open in tracker$|^פתיחה במעקב$/}).first();if(await saved.isVisible().catch(()=>false)){await saved.click();await page.getByRole('dialog').last().waitFor();await capture('saved-job-evidence');await closeDialog();}}
+  if(index===0){const why=page.locator('.recommendation-why-trigger');if(await why.isVisible().catch(()=>false)){await why.click();await capture('recommendation-explanation');await why.click();}const saved=page.getByRole('button',{name:/^Open in tracker$|^פתיחה במעקב$/}).first();if(await saved.isVisible().catch(()=>false)){await saved.click();await page.getByRole('dialog').last().waitFor();for(const detail of await page.getByRole('dialog').last().locator('details').all()){if(await detail.isVisible()&&!(await detail.evaluate(el=>el.open)))await detail.locator(':scope > summary').click();}await capture('saved-job-evidence');await closeDialog();}}
   if(index===1||index===3){const button=page.getByRole('button',{name:index===1?/^Add application$|^הוספת מועמדות$/:/^Add contact$|^הוספת איש קשר$/}).first();await button.click();await page.getByRole('dialog').last().waitFor();await capture(label+'-form');await closeDialog();}
   if(index===4)for(let tool=0;tool<5;tool++){await page.locator('.tools-picker button').nth(tool).click();await capture('tool-'+tool);}
  }

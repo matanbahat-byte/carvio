@@ -10907,3 +10907,10 @@ html[data-carvio-theme="light"] {
 .carvio-light .recommendation-explanation p { color: #203b36; }
 .carvio-light .recommendation-explanation footer > span { color: #526b63; }
 .carvio-light .recommendation-explanation footer button { border-color: #a7d7c7; }
+.carvio-light .workspace-next-action > div:first-child > span { color: #0f766e; }
+.carvio-light .workspace-next-action small { color: #526b63; }
+.carvio-light .apply-readiness { background: #f0faf7; border-color: #a7d7c7; }
+.carvio-light .apply-signal { background: #ffffff; border-color: #d8e8e1; }
+.carvio-light :is(.apply-readiness-heading span,.apply-readiness-heading > strong,.apply-signal-positive > span) { color: #0f766e; }
+.carvio-light :is(.apply-readiness-heading p,.apply-signal p,.apply-skip) { color: #526b63; }
+.carvio-light :is(.apply-readiness-research .apply-readiness-heading > strong,.apply-signal-attention > span) { color: #92400e; }
