@@ -20,7 +20,7 @@ try{for(const lang of ['he','en'])for(const width of [390,1440]){
  await page.evaluate(()=>window.qaMode='native');await button.click();await page.getByText(lang==='he'?'החיפוש שותף.':'Search shared.',{exact:true}).waitFor();assert.equal(await page.evaluate(()=>window.qaShared[0]),shared);
  await page.evaluate(()=>window.qaMode='fallback');await button.click();await page.getByText(lang==='he'?'קישור החיפוש הועתק.':'Search link copied.',{exact:true}).waitFor();assert.equal(await page.evaluate(()=>window.qaCopied.length),2);
  await page.evaluate(()=>window.qaMode='cancel');await button.click();await page.waitForFunction(()=>!document.querySelector('#search-sources button').disabled);assert.equal(await page.evaluate(()=>window.qaCopied.length),2);
- await page.evaluate(()=>window.qaMode='error');await button.click();await page.getByRole('alert').waitFor();assert.equal(await page.evaluate(()=>window.qaCopied.length),2);
+ await page.evaluate(()=>window.qaMode='error');await button.click();await page.locator('#search-sources').getByRole('alert').waitFor();assert.equal(await page.evaluate(()=>window.qaCopied.length),2);
  assert.deepEqual(await page.locator('[data-search-provider]').evaluateAll(els=>els.map(e=>e.href)),sources);
  await page.goto(shared);assert.equal(await page.locator('input[name=q]').inputValue(),role);assert.equal(await page.locator('input[name=country]').inputValue(),'Israel');assert.equal(await page.locator('input[name=city]').inputValue(),city);
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
