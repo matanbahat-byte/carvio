@@ -21,6 +21,7 @@ import { completionLoopOptions } from "@/lib/completion-loop";
 import { localProductMetrics, goalMetrics, readinessStates, isCompatibleRecord, messageSubject, generateOutreachMessage, normalizeUsageIntent, goalAction, migrateSource, sourceOutcomes, hasPersonalAnchor, linkContactIds, privateEventProperties, safeSourceUrl, type ProductEventName, type MessageProfile, type UsageIntent, type SourceType } from "@/lib/decision-support";
 
 import Image from "next/image";
+import { readCvDraft, writeCvDraft, replaceCvDraft, emptyCvDraft, type CvDraft } from "@/lib/cv-draft";
 import { reviewResumeText, cleanResumeDraft } from "@/lib/resume-review";
 import { readPublicSearchHandoff, selectedRoleAlternatives, suggestedRoleAlternatives, googleJobSearch, officialSearchUrl, changeSearchRole, searchPreferencesNeedReview, emptySearchProfile, sanitizeSearchProfile, normalizedSearchProfile, migrateSearchProfile, nextSearchDateWindow, skillSuggestionsForRole, localizedSearchFilter, companyJobSearchRoute, jobSearchSources, searchProfileChanged, broadenSearchProfile, patchSearchProfile, captureJobLink, jobLinkIdentity, type SearchProfile, type SearchOutcome, type JobSearchSource } from "@/lib/job-search";
 import { agendaEntries, scheduledTimestamp } from "@/lib/schedule";
@@ -1345,7 +1346,10 @@ function WorkspaceHome() {
   const [resumes, setResumes] = useState<ResumeFile[]>([]);
   const [selectedResumeId, setSelectedResumeId] = useState<string | null>(null);
   const [resumeText, setResumeText] = useState("");
-  const [rewriteDraft, setRewriteDraft] = useState("");
+  const [rewriteState, setRewriteState] = useState<CvDraft>(emptyCvDraft);
+  const rewriteDraft = rewriteState.current;
+  const [rewriteReady, setRewriteReady] = useState(false);
+  const [rewriteStorageError, setRewriteStorageError] = useState(false);
   const [interviewPrepDraft, setInterviewPrepDraft] = useState("");
   const [interviewPrepApplicationId, setInterviewPrepApplicationId] = useState<string | null>(null);
   const [interviewPreparationDraft, setInterviewPreparationDraft] = useState<InterviewPreparation>(emptyApplication.interviewPreparation);
@@ -1496,6 +1500,10 @@ function WorkspaceHome() {
       setApplications(readStored<Partial<Application>[]>(APPLICATIONS_KEY, isDemo ? relativeDemoApplications() : []).map(normalizeApplication));
       setContacts(readStored<(Partial<Contact> & { companyRole?: string })[]>(CONTACTS_KEY, isDemo ? demoContacts.map((item) => ({ ...item, nextActionDue: "", eventDateTime: "", lastContactDate: "" })) : []).map(normalizeContact));
       setResumes(readStored<ResumeFile[]>(RESUMES_KEY, []));
+      try {
+        setRewriteState(readCvDraft(workspaceStorage()));
+        setRewriteReady(true);
+      } catch { setRewriteStorageError(true); }
       const restoredSearch = migrateSearchProfile(readStored<Partial<SearchProfile>>(SEARCH_PROFILE_KEY, emptySearchProfile));
       const incoming = new URLSearchParams(window.location.search);
       const handoff = readPublicSearchHandoff(incoming);
@@ -2670,10 +2678,10 @@ function WorkspaceHome() {
   }
 
   function openCvSupport(application: Application) {
+    if (!replaceRewriteDraft("")) return;
     setWorkspaceApplicationId(null);
     setCvEvidenceApplicationId(application.id);
     if (application.linkedResumeId) { const linkedResume = resumes.find(item => item.id === application.linkedResumeId); if (linkedResume) selectResume(linkedResume); }
-    setRewriteDraft("");
     setExpandedTools((current) => ({ ...current, cv: true, interview: false, offer: false, studio: false, social: false }));
     navigateToSection("cv-lab");
     setNotice(language === "he" ? "המשרה נבחרה במיפוי הראיות. הדביקו או בחרו קורות חיים לבדיקה." : "Role selected in the evidence mapping. Paste or select a CV to review.");
@@ -2961,7 +2969,6 @@ function WorkspaceHome() {
     }
     const selected = Array.from(files).slice(0, available);
     setResumeProcessing(true);
-    setRewriteDraft("");
     setResumeText("");
     const additions = await Promise.all(selected.map(async (file) => {
       let extractedText = "";
@@ -2987,7 +2994,6 @@ function WorkspaceHome() {
   function selectResume(resume: ResumeFile) {
     setSelectedResumeId(resume.id);
     setResumeText(resume.extractedText || "");
-    setRewriteDraft("");
   }
 
   function removeResume(resume: ResumeFile) {
@@ -2996,9 +3002,35 @@ function WorkspaceHome() {
     if (selectedResumeId === resume.id) {
       setSelectedResumeId(null);
       setResumeText("");
-      setRewriteDraft("");
     }
     setNotice("CV version removed.");
+  }
+
+  function saveRewriteState(next: CvDraft) {
+    if (!rewriteReady) return false;
+    try {
+      writeCvDraft(workspaceStorage(), next);
+      setRewriteState(next);
+      setRewriteStorageError(false);
+      return true;
+    } catch {
+      setRewriteStorageError(true);
+      return false;
+    }
+  }
+
+  function replaceRewriteDraft(next: string, restoring = false) {
+    if (!rewriteReady) return false;
+    if (rewriteDraft.length && !window.confirm(language === "he"
+      ? "להחליף את טיוטת קורות החיים הקיימת? עותק קודם אחד יישמר במכשיר ויהיה ניתן לשחזור גם לאחר רענון."
+      : "Replace the existing CV draft? One previous copy will be saved on this device and can be restored after refresh.")) return false;
+    return saveRewriteState(restoring ? { ...rewriteState, current: next, previous: rewriteDraft } : replaceCvDraft(rewriteState, next));
+  }
+
+  function restoreRewriteDraft() {
+    if (rewriteState.previous === null) return;
+    if (!replaceRewriteDraft(rewriteState.previous, true)) return;
+    setNotice(language === "he" ? "העותק הקודם שוחזר." : "Previous draft restored.");
   }
 
   function createRewriteDraft() {
@@ -3007,7 +3039,7 @@ function WorkspaceHome() {
       setNotice(language === "he" ? "הדביקו תחילה את טקסט קורות החיים." : "Paste your CV text first.");
       return;
     }
-    setRewriteDraft(cleanResumeDraft(text));
+    if (!replaceRewriteDraft(cleanResumeDraft(text))) return;
     setNotice(language === "he" ? "נוצרה טיוטה נקייה מהטקסט המקורי." : "Clean draft created from your original text.");
   }
 
@@ -4309,8 +4341,10 @@ function WorkspaceHome() {
               </div>
               <details className="mt-4" open={!resumeText.trim()}><summary className="cursor-pointer text-sm font-medium text-slate-400 hover:text-slate-200">{language === "he" ? "הדבקת טקסט או עריכת הטקסט שחולץ" : "Paste text or edit extracted text"}</summary><Field label={language === "he" ? "טקסט קורות החיים לבדיקה" : "CV text for review"}><textarea className="form-control mt-1 min-h-44 resize-y" onChange={(event) => setResumeText(event.target.value)} placeholder={language === "he" ? "הדביקו את טקסט קורות החיים כאן" : "Paste CV text here if the file is scanned or could not be read."} value={resumeText} /></Field></details>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">{reviewResumeText(resumeText, language).map((item, index) => <div className="insight-box" key={item}><p className="text-xs font-semibold text-cyan-300">{language === "he" ? `נקודת בדיקה ${index + 1}` : `Review point ${index + 1}`}</p><p className="mt-2 text-sm leading-6 text-slate-300">{item}</p></div>)}</div>
-              <div className="mt-5 flex flex-wrap items-center gap-3"><button className="primary-button bg-teal-700 hover:bg-teal-700" onClick={createRewriteDraft} type="button"><WandSparkles className="h-4 w-4" /> {language === "he" ? "יצירת טיוטה נקייה" : "Create clean draft"}</button><span className="text-xs leading-5 text-slate-500">{language === "he" ? "עריכת ריווח בלבד, ללא שינוי עובדות או שכתוב באמצעות AI." : "Spacing cleanup only; no factual changes or AI rewriting."}</span></div>
-              {rewriteDraft && <div className="mt-5"><Field label={language === "he" ? "טיוטה נקייה להעתקה" : "Clean draft to copy"}><textarea className="form-control min-h-64 resize-y" onChange={(event) => setRewriteDraft(event.target.value)} value={rewriteDraft} /></Field><button className="secondary-button mt-3" onClick={() => { void navigator.clipboard.writeText(rewriteDraft); setNotice(language === "he" ? "הטיוטה הועתקה." : "Draft copied."); }} type="button">📋 {language === "he" ? "העתקת טיוטה" : "Copy draft"}</button></div>}
+              <div className="mt-5 flex flex-wrap items-center gap-3"><button className="primary-button bg-teal-700 hover:bg-teal-700" disabled={!rewriteReady} onClick={createRewriteDraft} type="button"><WandSparkles className="h-4 w-4" /> {language === "he" ? "יצירת טיוטה נקייה" : "Create clean draft"}</button><span className="text-xs leading-5 text-slate-500">{language === "he" ? "עריכת ריווח בלבד, ללא שינוי עובדות או שכתוב באמצעות AI." : "Spacing cleanup only; no factual changes or AI rewriting."}</span></div>
+              {rewriteStorageError && <p className="mt-3 text-sm" role="alert">{language === "he" ? "לא ניתן לקרוא או לשמור את הטיוטה במכשיר. הטיוטה השמורה לא הוחלפה. בדקו את האחסון ורעננו לפני ניסיון נוסף." : "The draft could not be read or saved on this device. The saved draft was not replaced. Check storage and reload before retrying."}</p>}
+              {rewriteState.previous !== null && <details className="mt-4 rounded-2xl border border-teal-700/20 p-4" data-cv-draft-recovery><summary className="cursor-pointer font-medium">{language === "he" ? "עותק קודם ושחזור טיוטה" : "Previous copy and draft recovery"}</summary><p className="my-3 text-sm">{language === "he" ? "עותק קודם אחד נשמר במכשיר, גם לאחר רענון. שחזור מחליף את הטיוטה הנוכחית ושומר אותה כעותק הקודם." : "One previous copy is saved on this device, including after refresh. Restoring replaces the current draft and keeps it as the previous copy."}</p><Field label={language === "he" ? "תצוגת העותק הקודם" : "Previous draft preview"}><textarea className="form-control min-h-32" readOnly value={rewriteState.previous} /></Field><button className="secondary-button mt-3" disabled={!rewriteReady} onClick={restoreRewriteDraft} type="button">{language === "he" ? "שחזור הטיוטה הקודמת" : "Restore previous draft"}</button></details>}
+              {rewriteDraft && <div className="mt-5"><Field label={language === "he" ? "טיוטה נקייה להעתקה" : "Clean draft to copy"}><textarea className="form-control min-h-64 resize-y" onChange={(event) => { saveRewriteState({ ...rewriteState, current: event.target.value }); }} value={rewriteDraft} /></Field><button className="secondary-button mt-3" onClick={() => { void navigator.clipboard.writeText(rewriteDraft); setNotice(language === "he" ? "הטיוטה הועתקה." : "Draft copied."); }} type="button">📋 {language === "he" ? "העתקת טיוטה" : "Copy draft"}</button></div>}
             </div>
           </div>
           )}
