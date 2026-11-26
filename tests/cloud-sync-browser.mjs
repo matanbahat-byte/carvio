@@ -13,7 +13,7 @@ async function device(id,mobile=false,seed=[]){
  const user={id,email:`${id===A?'alice':'bob'}@example.test`,aud:'authenticated',role:'authenticated',app_metadata:{provider:'email'},user_metadata:{},created_at:'2026-01-01T00:00:00Z'};
  const session={access_token:jwt(id),refresh_token:'isolated-fixture-refresh',expires_in:3600,expires_at:Math.floor(Date.now()/1000)+3600,token_type:'bearer',user};
  await context.addCookies([{name:'sb-cloud-fixture-auth-token',value:'base64-'+Buffer.from(JSON.stringify(session)).toString('base64url'),url:base,sameSite:'Lax'}]);
- await context.addInitScript(({seed})=>{if(!localStorage.getItem('fixture-seeded')){localStorage.setItem('carvio.applications.v1',JSON.stringify(seed));localStorage.setItem('carvio.language.v1','"en"');localStorage.setItem('fixture-seeded','1');}},{seed});
+ await context.addInitScript(({seed})=>{if(!localStorage.getItem('fixture-seeded')){localStorage.setItem('carvio.applications.v1',JSON.stringify(seed));localStorage.setItem('carvio.language.v1','"en"');localStorage.setItem('fixture-seeded','1');localStorage.setItem('carvio.cloud-autosync.v1','off');localStorage.setItem('carvio.cloud-autosync.v3:11111111-1111-4111-8111-111111111111','off');}},{seed});
  await context.route('https://cloud-fixture.invalid/**',async route=>{
   const req=route.request(),url=new URL(req.url()),method=req.method();
   const headers={'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'GET,POST,PATCH,DELETE,OPTIONS','content-type':'application/json'};
@@ -38,7 +38,7 @@ async function device(id,mobile=false,seed=[]){
  return {context,page,id};
 }
 const stored=page=>page.evaluate(()=>JSON.parse(localStorage.getItem('carvio.applications.v1')||'[]'));
-const waitFor=async(check,label)=>{for(let i=0;i<100;i++){if(await check())return;await new Promise(r=>setTimeout(r,100));}throw new Error('Timeout: '+label);};
+const waitFor=async(check,label,limit=100)=>{for(let i=0;i<limit;i++){if(await check())return;await new Promise(r=>setTimeout(r,100));}throw new Error('Timeout: '+label);};
 const navigateApplications=async page=>{const mobile=page.viewportSize().width<768;await page.locator(mobile?'.calm-mobile-nav button':'.calm-desktop-nav .calm-nav-button').nth(1).click();};
 const add=async(page,company)=>{await navigateApplications(page);await page.getByRole('button',{name:'Add application',exact:true}).first().click();await page.locator('#application-company').fill(company);await page.locator('#application-role').fill('Engineer');await page.getByRole('dialog').getByRole('button',{name:'Add application',exact:true}).click();};
 try{
@@ -54,7 +54,7 @@ try{
  // A slow request must not discard a second application saved while it is in flight.
  slowNextWrite=true;const started=new Promise(r=>{writeStarted=r;});await add(phone.page,'Slow Four');await started;
  await add(phone.page,'During Slow Five');releaseWrite();await waitFor(()=>rows.get(A)?.workspace_data.applications.length===5,'dirty replay');
- await desktop.page.reload();await waitFor(async()=>(await stored(desktop.page)).length===5,'desktop receives all five');
+ await desktop.page.bringToFront();await waitFor(async()=>(await stored(desktop.page)).length===5,'desktop updates automatically without reload or sync click',400);
  // Isolated second account neither sees nor uploads A's data.
  const bob=await device(B);await waitFor(()=>rows.has(B),'second account initialization');assert.equal(rows.get(B).workspace_data.applications.length,0);assert.ok(!(await bob.page.locator('body').innerText()).includes('Phone One'));
  // Existing owned device switched to another account is locked before private hydration.
@@ -68,8 +68,8 @@ try{
  // A local-only reset must invalidate the baseline, not erase the cloud on re-enable.
  await phone.page.evaluate(()=>{window.dispatchEvent(new Event('carvio:disable-cloud-autosync'));localStorage.setItem('carvio.applications.v1','[]');});
  assert.equal(await phone.page.evaluate(id=>localStorage.getItem(`carvio.sync-checkpoint.v1:${id}`),A),null);
- await phone.page.reload();await phone.page.locator('.hero-cloud-button').waitFor();assert.equal((await stored(phone.page)).length,0);assert.equal(rows.get(A).workspace_data.applications.length,6);
- await phone.page.locator('.hero-cloud-button').click();await phone.page.locator('.cloud-autosync input').check();await waitFor(async()=>(await stored(phone.page)).length===6,'local reset cannot delete cloud on re-enable');assert.equal(rows.get(A).workspace_data.applications.length,6);
+ await phone.page.reload();await phone.page.locator('.hero-cloud-button').waitFor();assert.equal(rows.get(A).workspace_data.applications.length,6);
+ await waitFor(async()=>(await stored(phone.page)).length===6,'automatic resume after local reset without pressing any sync button');assert.equal(rows.get(A).workspace_data.applications.length,6);
  assert.deepEqual(errors,[]);assert.ok(requests.every(r=>r.actor===r.owner));
  await writeFile(`${output}/report.json`,JSON.stringify({environment:'isolated Auth/PostgREST fixture; no real credentials or production writes',checks:['phone two applications -> desktop','desktop -> phone after reload','slow-write replay','second-account isolation','account switch locks private workspace without deleting it','offline local recovery -> online sync','local reset preserves cloud on re-enable'],requests:requests.length,browserErrors:errors},null,2));
  console.log('PASS: two browser contexts, six preserved applications, account isolation, slow writes and offline recovery');
