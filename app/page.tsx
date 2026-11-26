@@ -8,6 +8,7 @@ import { validApplicationLinks } from "@/lib/backup-links";
 import { linkedOutreachContact } from "@/lib/contact-links";
 import { MessageTrustCard } from "@/components/message-trust-card";
 import { messageProvenance, messageInputsChanged, type MessageProvenance } from "@/lib/message-provenance";
+import { interviewSuggestions, appendInterviewSuggestion, initialInterviewPreparation } from "@/lib/interview-preparation";
 import { EvidenceLinksEditor } from "@/components/evidence-links-editor";
 import { relinkEvidence, evidenceForRequirements, evidenceContext, restorableRequirementEvidence, firstApplicationEvidence } from "@/lib/evidence-links";
 import { messageFollowUpTarget, followUpDate, captureReviewAction, captureStageChange } from "@/lib/message-follow-up";
@@ -414,7 +415,7 @@ const emptyMessageProfile: MessageProfile = { recipientType: "Recruiter", tone: 
 
 const statusStyles: Record<ApplicationStatus, string> = {
   Considering: "border-cyan-400/25 bg-cyan-400/10 text-cyan-800",
-  Applied: "border-sky-400/25 bg-sky-400/10 text-sky-200",
+  Applied: "border-sky-400/25 bg-sky-400/10 text-sky-800",
   Interview: "border-teal-700/25 bg-teal-700/10 text-teal-700",
   Offer: "border-emerald-400/25 bg-emerald-400/10 text-emerald-200",
   Accepted: "border-teal-500/30 bg-teal-500/12 text-teal-700",
@@ -2655,7 +2656,7 @@ function WorkspaceHome() {
   function openInterviewPreparation(application: Application) {
     setWorkspaceApplicationId(null);
     setInterviewPrepApplicationId(application.id);
-    setInterviewPreparationDraft({ ...emptyApplication.interviewPreparation, ...application.interviewPreparation });
+    setInterviewPreparationDraft(initialInterviewPreparation(application, { ...emptyApplication.interviewPreparation, ...application.interviewPreparation }, language));
   }
 
   function saveInterviewPreparation(openThankYou = false) {
@@ -4757,6 +4758,18 @@ function WorkspaceHome() {
         <Modal title={language === "he" ? "מרכז הכנה לראיון" : "Interview preparation workspace"} description={`${interviewPrepApplication.role} · ${interviewPrepApplication.company}`} closeLabel={language === "he" ? "סגירת מרכז ההכנה" : "Close preparation workspace"} onClose={() => { setInterviewPrepApplicationId(null); setWorkspaceApplicationId(interviewPrepApplication.id); }} wide>
           <div className="interview-preparation-editor">
             <header><div><span>{language === "he" ? "הכנה ממוקדת ואמיתית" : "Focused, evidence-led preparation"}</span><h3>{interviewPrepApplication.eventType || (language === "he" ? "הראיון הבא" : "Your next interview")}</h3><p>{interviewPrepApplication.eventDateTime ? formatDate(language, interviewPrepApplication.eventDateTime, true) : (language === "he" ? "לא נקבע מועד — אפשר להתחיל להתכונן כבר עכשיו." : "No date is set—you can still start preparing now.")}</p></div><figure className="workflow-illustration workflow-illustration-compact"><Image alt={language === "he" ? "איור של הכנה רגועה לראיון" : "Illustration of calm interview preparation"} fill sizes="150px" src="/carvio-interview-preparation-v1.jpg" /></figure></header>
+            <section className="workspace-evidence-map" aria-label={language === "he" ? "הצעות הכנה לעריכה" : "Editable preparation suggestions"}>
+              <h4>{language === "he" ? "הצעות הכנה מהדרישות והדוגמאות השמורות" : "Preparation suggestions from saved requirements and examples"}</h4>
+              <p>{language === "he" ? "שאלות לתרגול, לא תחזית לשאלות החברה או הערכה של היכולות שלכם. דוגמה חסרה פירושה שלא נשמרה דוגמה מקושרת. הוסיפו הצעה לשדות למטה, ערכו ושמרו." : "Practice prompts, not predicted company questions or an assessment of your abilities. A missing example means no linked example is saved. Add a suggestion to the fields below, edit, and save."}</p>
+              <div className="workspace-evidence-list">
+                {interviewSuggestions(interviewPrepApplication, language).map((suggestion, index) => <article key={index}>
+                  <div><strong>{suggestion.requirement}</strong><p className="whitespace-pre-wrap">{suggestion.question}</p><p className="whitespace-pre-wrap">{suggestion.context}</p>
+                    <button className="secondary-button" type="button" onClick={() => setInterviewPreparationDraft(current => ({ ...current, [suggestion.field]: appendInterviewSuggestion(current[suggestion.field], suggestion.text) }))}>{language === "he" ? "הוספה להכנה לעריכה" : "Add to preparation for editing"}</button>
+                  </div>
+                </article>)}
+                {!interviewPrepApplication.requirementEvidence.length && <p>{language === "he" ? "שמרו דרישות במשרה כדי לקבל הצעות ממוקדות." : "Save role requirements to get focused suggestions."}</p>}
+              </div>
+            </section>
             <div className="interview-preparation-grid">
               <Field label={language === "he" ? "מחקר על החברה והתפקיד" : "Company and role research"}><textarea className="form-control" onChange={(event) => setInterviewPreparationDraft((current) => ({ ...current, companyResearch: event.target.value }))} placeholder={language === "he" ? "המוצר, השוק, הצוות, האתגר המרכזי ומה ידוע על המראיינים…" : "Product, market, team, core challenge, and what you know about the interviewers…"} value={interviewPreparationDraft.companyResearch} /></Field>
               <Field label={language === "he" ? "סיפורי STAR שכדאי לספר" : "STAR stories to prepare"}><textarea className="form-control" onChange={(event) => setInterviewPreparationDraft((current) => ({ ...current, starStories: event.target.value }))} placeholder={language === "he" ? "מצב · משימה · פעולה · תוצאה. השתמשו רק בדוגמאות אמיתיות." : "Situation · Task · Action · Result. Use only real examples."} value={interviewPreparationDraft.starStories} /></Field>
