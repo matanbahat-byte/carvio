@@ -8,7 +8,7 @@ import { validApplicationLinks } from "@/lib/backup-links";
 import { linkedOutreachContact } from "@/lib/contact-links";
 import { MessageTrustCard } from "@/components/message-trust-card";
 import { messageProvenance, messageInputsChanged, type MessageProvenance } from "@/lib/message-provenance";
-import { interviewSuggestions, appendInterviewSuggestion } from "@/lib/interview-preparation";
+import { interviewSuggestions, appendInterviewSuggestion, initialInterviewPreparation } from "@/lib/interview-preparation";
 import { EvidenceLinksEditor } from "@/components/evidence-links-editor";
 import { relinkEvidence, evidenceForRequirements, evidenceContext, restorableRequirementEvidence, firstApplicationEvidence } from "@/lib/evidence-links";
 import { messageFollowUpTarget, followUpDate, captureReviewAction, captureStageChange } from "@/lib/message-follow-up";
@@ -2656,7 +2656,7 @@ function WorkspaceHome() {
   function openInterviewPreparation(application: Application) {
     setWorkspaceApplicationId(null);
     setInterviewPrepApplicationId(application.id);
-    setInterviewPreparationDraft({ ...emptyApplication.interviewPreparation, ...application.interviewPreparation });
+    setInterviewPreparationDraft(initialInterviewPreparation(application, { ...emptyApplication.interviewPreparation, ...application.interviewPreparation }, language));
   }
 
   function saveInterviewPreparation(openThankYou = false) {

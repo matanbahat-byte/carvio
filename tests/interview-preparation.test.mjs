@@ -48,3 +48,15 @@ test('explicit additions preserve manual content, avoid duplicates, and survive 
   assert.equal(saved.interviewPreparation.starStories, 'Edited preparation');
   assert.equal(saved.interviewPreparation.gapsToExplain, '');
 });
+
+test('first-open drafts fill empty preparation fields and never replace saved or manual content',async()=>{
+ const {initialInterviewPreparation}=await import('../lib/interview-preparation.ts');
+ const application={id:'a',requirementEvidence:[{requirement:'SQL',evidence:'Built a verified report'},{requirement:'Python',evidence:''}]};
+ const blank={starStories:'',interviewerQuestions:'',gapsToExplain:'',updatedAt:'',companyResearch:'manual research'};
+ for(const language of ['he','en']){
+  const first=initialInterviewPreparation(application,blank,language);assert.match(first.starStories,/Built a verified report/);assert.match(first.interviewerQuestions,/SQL/);assert.match(first.gapsToExplain,/Python/);assert.equal(first.companyResearch,'manual research');
+  assert.equal(initialInterviewPreparation(application,{...blank,starStories:'Manual STAR'},language).starStories,'Manual STAR');
+  const saved={...first,starStories:'',interviewerQuestions:'Edited',updatedAt:'2026-11-26T10:00:00Z'};
+  assert.deepEqual(initialInterviewPreparation(application,saved,language),saved);
+ }
+});

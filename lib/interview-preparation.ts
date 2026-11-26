@@ -26,3 +26,15 @@ export function appendInterviewSuggestion(current: string, suggestion: string) {
   if (current.includes(suggestion)) return current;
   return current ? `${current}\n\n${suggestion}` : suggestion;
 }
+
+export function initialInterviewPreparation<T extends { starStories: string; interviewerQuestions: string; gapsToExplain: string; updatedAt: string }>(application: PreparationSource, saved: T, language: "he" | "en"): T {
+  // A saved draft may deliberately contain blank fields. Never regenerate it on reopen.
+  if (saved.updatedAt) return { ...saved };
+  const suggestions = interviewSuggestions(application, language);
+  return {
+    ...saved,
+    interviewerQuestions: saved.interviewerQuestions || suggestions.map(item => item.question).join("\n\n"),
+    starStories: saved.starStories || suggestions.filter(item => item.field === "starStories").map(item => item.text).join("\n\n"),
+    gapsToExplain: saved.gapsToExplain || suggestions.filter(item => item.field === "gapsToExplain").map(item => item.text).join("\n\n"),
+  };
+}
