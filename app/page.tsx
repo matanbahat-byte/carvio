@@ -1513,7 +1513,7 @@ function WorkspaceHome() {
       setSearchProfile(handoff?.profile || restoredSearch);
       if (handoff) {
         setActiveView("search");
-        for (const key of ["findRole", "findCountry", "findCity", "findLang"]) incoming.delete(key);
+        for (const key of ["findRole", "findCountry", "findCity", "findLang", "findSearchedAt"]) incoming.delete(key);
         window.history.replaceState(window.history.state, "", `${window.location.pathname}?${incoming}${window.location.hash}`);
       }
       setRecoveryEntries(readStored<RecoveryEntry[]>(RECOVERY_KEY, []));
@@ -3757,7 +3757,7 @@ function WorkspaceHome() {
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <button type="button" onClick={() => setShowSmartCapture(true)} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-teal-700 px-4 py-3 text-sm font-bold !text-white transition hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700"><LinkIcon className="h-4 w-4" />{language === "he" ? "שמירת משרה מקישור" : "Save a job from a link"}</button>
-              <a href={`/find?lang=${language}&q=${encodeURIComponent(searchProfile.role || userProfile.targetRole || "")}&country=${encodeURIComponent(searchProfile.country || "")}&city=${encodeURIComponent(searchProfile.location || "")}`} className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-900 transition hover:bg-slate-100"><Search className="h-4 w-4" />{language === "he" ? "שינוי חיפוש" : "Edit search"}</a>
+              <a href={`/find?lang=${language}&q=${encodeURIComponent(searchProfile.role || userProfile.targetRole || "")}&country=${encodeURIComponent(searchProfile.country || "")}&city=${encodeURIComponent(searchProfile.location || "")}&searchedAt=${encodeURIComponent(searchProfile.lastSearchedAt || "")}`} className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-900 transition hover:bg-slate-100"><Search className="h-4 w-4" />{language === "he" ? "שינוי חיפוש" : "Edit search"}</a>
               </div>
             </div>
             {applications.filter(item => item.role.trim() && item.company.trim() && isActiveApplicationStatus(item.status)).length > 0 && (
@@ -4355,7 +4355,7 @@ function WorkspaceHome() {
             </div>
           </div>
 
-          {searchProfile.lastSearchedAt && !showSearchResults && <div className="search-return-capture"><strong>{language === "he" ? "ממשיכים מהחיפוש הקודם" : "Continue your search"}</strong><p>{searchProfile.role} · {[searchProfile.location, localizedSearchFilter(searchProfile.country, language)].filter(Boolean).join(", ")}</p><button type="button" className="secondary-button" disabled={!resolvedSearch.role || !resolvedSearch.country || resolvedSearch.country === "Other"} onClick={runJobSearch}>{language === "he" ? "פתיחת המקורות עם ההעדפות השמורות" : "Open sources with saved preferences"}</button></div>}
+          {searchProfile.lastSearchedAt && !showSearchResults && <div className="search-return-capture"><strong>{language === "he" ? "ממשיכים מהחיפוש הקודם" : "Continue your search"}</strong><p>{searchProfile.role} · {[searchProfile.location, localizedSearchFilter(searchProfile.country, language)].filter(Boolean).join(", ")}</p><button type="button" className="secondary-button" disabled={!resolvedSearch.role || !resolvedSearch.country || resolvedSearch.country === "Other"} onClick={runJobSearch}>{language === "he" ? "פתיחת המקורות עם ההעדפות השמורות" : "Open sources with saved preferences"}</button><a className="secondary-button" href={`/find?lang=${language}&q=${encodeURIComponent(searchProfile.role)}&country=${encodeURIComponent(searchProfile.country)}&city=${encodeURIComponent(searchProfile.location)}&searchedAt=${encodeURIComponent(searchProfile.lastSearchedAt || "")}`}>{language === "he" ? "שינוי חיפוש" : "Edit search"}</a></div>}
           {searchTasks.length > 0 && <section className="mt-5 space-y-3" aria-label={language === "he" ? "משימות החיפוש" : "Search tasks"}><h3>{language === "he" ? "משימות החיפוש שלכם" : "Your search tasks"}</h3>{searchTasks.map((task) => <article className="content-card" key={task.id}><strong>{task.role} · {task.location}</strong><p>{task.action}</p><small>{task.due ? formatDate(language, task.due, true) : (language === "he" ? "ללא מועד" : "No date")}</small><button className="secondary-button" onClick={() => setSearchTasks((items) => items.map((item) => item.id === task.id ? { ...item, completed: !item.completed } : item))} type="button">{task.completed ? (language === "he" ? "בוצע · פתיחה מחדש" : "Done · reopen") : (language === "he" ? "סימון כבוצע" : "Mark done")}</button></article>)}</section>}
 
           {expandedTools.search && (<div className={`advanced-section-body mobile-search-flow mobile-search-flow-${searchStep}`}>
