@@ -41,15 +41,16 @@ const supplyChainSkillSuggestions = ["Inventory management", "Demand planning", 
 const hrSkillSuggestions = ["Business partnering", "Talent management", "Employee relations", "Organizational development", "Change management", "Workforce planning", "Coaching", "HR analytics", "People strategy", "Recruitment", "Compensation & benefits", "Labor law"];
 
 /** An explicit public search starts without hidden filters from an older workspace search. */
-export function publicSearchHandoffProfile(role: string, country: string, city: string): SearchProfile {
+export function publicSearchHandoffProfile(role: string, country: string, city: string, searchedAt?: string): SearchProfile {
   return { ...emptySearchProfile, role: role.trim().slice(0, 80), country: country.trim().slice(0, 80),
+    ...(searchedAt && Number.isFinite(Date.parse(searchedAt)) ? { lastSearchedAt: new Date(searchedAt).toISOString() } : {}),
     location: city.trim().slice(0, 80), employmentType: "", datePosted: "Any time", radius: "" };
 }
 
 export function readPublicSearchHandoff(params: URLSearchParams) {
   if (params.get("workspace") !== "1" || !params.get("findRole")?.trim()) return null;
   return {
-    profile: publicSearchHandoffProfile(params.get("findRole") || "", params.get("findCountry") || "", params.get("findCity") || ""),
+    profile: publicSearchHandoffProfile(params.get("findRole") || "", params.get("findCountry") || "", params.get("findCity") || "", params.get("findSearchedAt") || undefined),
     language: params.get("findLang") === "en" ? "en" as const : "he" as const,
   };
 }

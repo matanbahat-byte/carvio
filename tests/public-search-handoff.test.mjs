@@ -32,3 +32,11 @@ test('handoff requires an explicit workspace search and retains its language', a
   assert.equal(input.get('findRole'),'מנהל מוצר');
  }
 });
+
+test('public search handoff retains a valid timestamp without inventing one for old links', async()=>{
+ const {readPublicSearchHandoff}=await import('../lib/job-search.ts');
+ const params=new URLSearchParams({workspace:'1',findRole:'Engineer',findCountry:'Israel',findCity:'Tel Aviv',findSearchedAt:'2026-11-26T10:00:00.000Z'});
+ assert.equal(readPublicSearchHandoff(params).profile.lastSearchedAt,'2026-11-26T10:00:00.000Z');
+ params.set('findSearchedAt','invalid');assert.equal(readPublicSearchHandoff(params).profile.lastSearchedAt,undefined);
+ params.delete('findSearchedAt');assert.equal(readPublicSearchHandoff(params).profile.lastSearchedAt,undefined);
+});
