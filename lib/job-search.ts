@@ -47,6 +47,11 @@ export function publicSearchHandoffProfile(role: string, country: string, city: 
     location: city.trim().slice(0, 80), employmentType: "", datePosted: "Any time", radius: "" };
 }
 
+/** Sharing intentionally carries only public search criteria, never current-page parameters. */
+export function publicSearchSharePath(role: string, country: string, city: string) {
+  return `/find?${new URLSearchParams({ q: role.trim().slice(0, 80), country: country.trim().slice(0, 80), city: city.trim().slice(0, 80) })}#search-sources`;
+}
+
 export function readPublicSearchHandoff(params: URLSearchParams) {
   if (params.get("workspace") !== "1" || !params.get("findRole")?.trim()) return null;
   return {
