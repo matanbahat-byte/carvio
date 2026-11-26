@@ -15,7 +15,7 @@ test('published requires matching structured job identity and title', async () =
     return json({id:123,title:' Electronics Engineer ',company_name:'Example Engineering',location:{name:'Haifa'}});
   });
   assert.equal(result.status, 'published'); assert.ok(Date.parse(result.checkedAt));
-  assert.deepEqual(result.details, {role:'Electronics Engineer',company:'Example Engineering',location:'Haifa'});
+  assert.deepEqual(result.details, {role:'Electronics Engineer',company:'Example Engineering',location:'Haifa',descriptionStatus:'missing'});
   assert.equal((await checkJobAvailability(url, async () => json({id:456,title:'Other'}))).status, 'unknown');
 });
 test('404 alone never proves closure; a valid board must also omit the posting', async () => {
@@ -38,7 +38,7 @@ test('unsupported destinations are not fetched and Lever matches posting IDs', a
   const id = '12345678-abcd-abcd-abcd-123456789012';
   const result = await checkJobAvailability(`https://jobs.lever.co/example/${id}`, async () => json({id,text:'Engineer',categories:{location:'Tel Aviv'}}));
   assert.equal(result.status,'published');
-  assert.deepEqual(result.details, {role:'Engineer',company:'',location:'Tel Aviv'});
+  assert.deepEqual(result.details, {role:'Engineer',company:'',location:'Tel Aviv',descriptionStatus:'missing'});
 });
 
 test('unconfirmed identities and board-only availability do not supply autofill details', async () => {
@@ -64,4 +64,14 @@ test('verified Lever plain description is preserved, unknown listings never supp
   assert.equal(good.details.jobDescription,'Work with teams');
   const wrong = await checkJobAvailability(url,async () => json({id:999,title:'Engineer',content:'Secret'}));
   assert.equal(wrong.details,undefined);
+});
+test('Lever imports all sections and source organization metadata without guessing',async()=>{
+ const id='12345678-abcd-abcd-abcd-123456789012',url=`https://jobs.lever.co/example/${id}`;
+ const result=await checkJobAvailability(url,async target=>target===url?new Response('<script type="application/ld+json">{"@type":"JobPosting","hiringOrganization":{"name":"Verified Employer"}}</script>',{headers:{'content-type':'text/html'}}):json({id,text:'Engineer',descriptionPlain:'About us\nOur company introduction.',lists:[{text:'What We Require',content:'<ul><li>3 years of experience</li><li>SQL</li></ul>'}],additionalPlain:'Marketing and benefits.'}));
+ assert.equal(result.details.company,'Verified Employer');assert.equal(result.details.descriptionStatus,'available');
+ assert.match(result.details.jobDescription,/Our company introduction/);assert.match(result.details.jobDescription,/SQL/);assert.match(result.details.jobDescription,/Marketing and benefits/);
+});
+test('intro-only Lever descriptions are explicitly partial and company is never guessed from the board slug',async()=>{
+ const id='12345678-abcd-abcd-abcd-123456789012';const result=await checkJobAvailability(`https://jobs.lever.co/not-a-company-name/${id}`,async()=>json({id,text:'Engineer',descriptionPlain:'About us\nWe build a better future for everyone.'}));
+ assert.equal(result.details.descriptionStatus,'partial');assert.equal(result.details.company,'');
 });
