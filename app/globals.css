@@ -10955,3 +10955,6 @@ html[data-carvio-theme="light"] :is(input,textarea)::placeholder { color: #526b6
   text-align: start;
   margin-top: .65rem;
 }
+
+/* Keep the one contextual tool visible outside the optional details accordion. */
+.application-workspace-v2 > .workspace-context-tool { width: 100%; min-height: 44px; justify-content: center; white-space: normal; text-align: center; }
