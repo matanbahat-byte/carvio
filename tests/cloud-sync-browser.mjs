@@ -8,7 +8,7 @@ await mkdir(output,{recursive:true});
 const A='11111111-1111-4111-8111-111111111111',B='22222222-2222-4222-8222-222222222222';
 const rows=new Map(),errors=[],requests=[],analytics=[],deniedRequests=[];let slowNextWrite=false,writeStarted,releaseWrite;
 const jwt=id=>Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')+'.'+Buffer.from(JSON.stringify({sub:id,role:'authenticated',aud:'authenticated',exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.fixture-signature';
-async function device(id,mobile=false,seed=[]){
+async function device(id,mobile=false,seed=[],handoff=""){
  const context=await browser.newContext({viewport:mobile?{width:390,height:844}:{width:1440,height:1000}});
  const user={id,email:`${id===A?'alice':'bob'}@example.test`,aud:'authenticated',role:'authenticated',app_metadata:{provider:'email'},user_metadata:{},created_at:'2026-01-01T00:00:00Z'};
  const session={access_token:jwt(id),refresh_token:'isolated-fixture-refresh',expires_in:3600,expires_at:Math.floor(Date.now()/1000)+3600,token_type:'bearer',user};
@@ -43,7 +43,7 @@ async function device(id,mobile=false,seed=[]){
   rows.set(owner,structuredClone(incoming));return send(represent([{updated_at:incoming.updated_at}]),method==='POST'?201:200);
  });
  const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
- await page.goto(`${base}/?workspace=1`);await page.locator('.hero-cloud-button').waitFor({timeout:30000});
+ await page.goto(`${base}/?workspace=1${handoff}`);await page.locator('.hero-cloud-button').waitFor({timeout:30000,state:handoff?'attached':'visible'});
  return {context,page,id};
 }
 const stored=page=>page.evaluate(()=>JSON.parse(localStorage.getItem('carvio.applications.v1')||'[]'));
@@ -79,6 +79,13 @@ try{
  assert.equal(await phone.page.evaluate(id=>localStorage.getItem(`carvio.sync-checkpoint.v1:${id}`),A),null);
  await phone.page.reload();await phone.page.locator('.hero-cloud-button').waitFor();assert.equal(rows.get(A).workspace_data.applications.length,6);
  await waitFor(async()=>(await stored(phone.page)).length===6,'automatic resume after local reset without pressing any sync button');assert.equal(rows.get(A).workspace_data.applications.length,6);
+ // Explicit public-search intent survives initial authenticated cloud restoration.
+ const handoff=await device(A,false,[], '&'+new URLSearchParams({findRole:'מנהל מוצר',findCountry:'Israel',findCity:'Tel Aviv',findLang:'he'}));
+ await waitFor(async()=>(await stored(handoff.page)).length===6,'handoff preserves cloud applications');
+ await waitFor(()=>rows.get(A)?.workspace_data.searchProfile.role==='מנהל מוצר','handoff automatically persists its newer search');
+ assert.equal(await handoff.page.locator('input[list=carvio-role-options]').inputValue(),'מנהל מוצר');
+ assert.equal(await handoff.page.evaluate(()=>JSON.parse(localStorage.getItem('carvio.language.v1'))),'he');
+ await handoff.context.close();
  assert.deepEqual(errors,[]);assert.ok(requests.every(r=>r.actor===r.owner));
  const aSessions=new Set(analytics.filter(e=>e.user_id===A).map(e=>e.properties.sessionId));const bSessions=new Set(analytics.filter(e=>e.user_id===B).map(e=>e.properties.sessionId));assert.ok(aSessions.size&&bSessions.size);assert.ok([...aSessions].every(id=>!bSessions.has(id)));
  await writeFile(`${output}/report.json`,JSON.stringify({environment:'isolated Auth/PostgREST fixture; no real credentials or production writes',checks:['phone two applications -> desktop','desktop -> phone after reload','slow-write replay','second-account isolation','account switch locks private workspace without deleting it','offline local recovery -> online sync','local reset preserves cloud on re-enable'],requests:requests.length,analyticsEvents:analytics.length,deniedCrossAccountRequests:deniedRequests.length,analyticsAccountIsolation:true,browserErrors:errors},null,2));
