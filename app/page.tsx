@@ -20,7 +20,7 @@ import { completionLoopOptions } from "@/lib/completion-loop";
 import { localProductMetrics, goalMetrics, readinessStates, isCompatibleRecord, messageSubject, generateOutreachMessage, normalizeUsageIntent, goalAction, migrateSource, sourceOutcomes, hasPersonalAnchor, linkContactIds, privateEventProperties, safeSourceUrl, type ProductEventName, type MessageProfile, type UsageIntent, type SourceType } from "@/lib/decision-support";
 
 import Image from "next/image";
-import { selectedRoleAlternatives, suggestedRoleAlternatives, googleJobSearch, officialSearchUrl, changeSearchRole, searchPreferencesNeedReview, emptySearchProfile, sanitizeSearchProfile, normalizedSearchProfile, migrateSearchProfile, nextSearchDateWindow, skillSuggestionsForRole, localizedSearchFilter, companyJobSearchRoute, jobSearchSources, searchProfileChanged, broadenSearchProfile, patchSearchProfile, captureJobLink, jobLinkIdentity, type SearchProfile, type SearchOutcome, type JobSearchSource } from "@/lib/job-search";
+import { readPublicSearchHandoff, selectedRoleAlternatives, suggestedRoleAlternatives, googleJobSearch, officialSearchUrl, changeSearchRole, searchPreferencesNeedReview, emptySearchProfile, sanitizeSearchProfile, normalizedSearchProfile, migrateSearchProfile, nextSearchDateWindow, skillSuggestionsForRole, localizedSearchFilter, companyJobSearchRoute, jobSearchSources, searchProfileChanged, broadenSearchProfile, patchSearchProfile, captureJobLink, jobLinkIdentity, type SearchProfile, type SearchOutcome, type JobSearchSource } from "@/lib/job-search";
 import { agendaEntries, scheduledTimestamp } from "@/lib/schedule";
 import { greetingForHour, meaningfulMomentum } from "@/lib/ux-context";
 import { clearLocalWorkspaceData } from "@/lib/local-data";
@@ -1461,6 +1461,7 @@ function WorkspaceHome() {
   const [showStaleReview, setShowStaleReview] = useState(false);
   const [focusExplanationId, setFocusExplanationId] = useState<string | null>(null);
   const [actionEvents, setActionEvents] = useState<ActionEvent[]>([]);
+  const publicHandoffRef = useRef<ReturnType<typeof readPublicSearchHandoff>>(null);
   const productSessionRef = useRef("");
   const lastProductEventRef = useRef<{ name: ProductEventName; targetId: string } | null>(null);
   const returnCardTrackedRef = useRef(false);
@@ -1506,7 +1507,15 @@ function WorkspaceHome() {
       setContacts(readStored<(Partial<Contact> & { companyRole?: string })[]>(CONTACTS_KEY, isDemo ? demoContacts.map((item) => ({ ...item, nextActionDue: "", eventDateTime: "", lastContactDate: "" })) : []).map(normalizeContact));
       setResumes(readStored<ResumeFile[]>(RESUMES_KEY, []));
       const restoredSearch = migrateSearchProfile(readStored<Partial<SearchProfile>>(SEARCH_PROFILE_KEY, emptySearchProfile));
-      setSearchProfile(restoredSearch);
+      const incoming = new URLSearchParams(window.location.search);
+      const handoff = readPublicSearchHandoff(incoming);
+      publicHandoffRef.current = handoff;
+      setSearchProfile(handoff?.profile || restoredSearch);
+      if (handoff) {
+        setActiveView("search");
+        for (const key of ["findRole", "findCountry", "findCity", "findLang"]) incoming.delete(key);
+        window.history.replaceState(window.history.state, "", `${window.location.pathname}?${incoming}${window.location.hash}`);
+      }
       setRecoveryEntries(readStored<RecoveryEntry[]>(RECOVERY_KEY, []));
       const sessionKey = `carvio.product-session.${isDemo ? "demo" : "workspace"}`;
       const sessionId = window.sessionStorage.getItem(sessionKey) || makeId("session");
@@ -1519,7 +1528,7 @@ function WorkspaceHome() {
       setTheme("light");
       workspaceStorage().setItem(THEME_KEY, JSON.stringify("light"));
       workspaceStorage().setItem(THEME_EXPLICIT_KEY, JSON.stringify(false));
-      setLanguage(readStored<Language>(LANGUAGE_KEY, "en"));
+      setLanguage(handoff?.language || readStored<Language>(LANGUAGE_KEY, "en"));
       const savedProfile = { ...emptyUserProfile, ...readStored<Partial<UserProfile>>(PROFILE_KEY, emptyUserProfile) };
       setUserProfile({ ...savedProfile, usageIntent: normalizeUsageIntent(savedProfile.usageIntent) });
       const checkIn = readStored<{ date: string; mood: DailyMood }>(CHECKIN_KEY, { date: "", mood: "" });
@@ -3630,13 +3639,16 @@ function WorkspaceHome() {
     if (Array.isArray(payload.applications)) setApplications((payload.applications as Partial<Application>[]).map(normalizeApplication));
     if (Array.isArray(payload.contacts)) setContacts((payload.contacts as Partial<Contact>[]).map(normalizeContact));
     if (Array.isArray(payload.resumes)) setResumes(payload.resumes as ResumeFile[]);
-    if (payload.searchProfile) setSearchProfile(migrateSearchProfile(payload.searchProfile as Partial<SearchProfile>));
+    // The incoming search is newer user intent than the first cloud snapshot.
+    const handoff = publicHandoffRef.current;
+    publicHandoffRef.current = null;
+    if (!handoff && payload.searchProfile) setSearchProfile(migrateSearchProfile(payload.searchProfile as Partial<SearchProfile>));
     if (Array.isArray(payload.recoveryEntries)) setRecoveryEntries(payload.recoveryEntries as RecoveryEntry[]);
     if (payload.userProfile) setUserProfile({ ...emptyUserProfile, ...(payload.userProfile as Partial<UserProfile>), usageIntent: normalizeUsageIntent((payload.userProfile as Partial<UserProfile>).usageIntent) });
     if (Array.isArray(payload.actionEvents)) setActionEvents(payload.actionEvents as ActionEvent[]);
     if (Array.isArray(payload.searchTasks)) setSearchTasks(payload.searchTasks as SearchTask[]);
     if (["", "ready", "low", "difficult"].includes(payload.dailyMood)) setDailyMood(payload.dailyMood as DailyMood);
-    if (["en", "he"].includes(payload.language)) setLanguage(payload.language);
+    if (!handoff && ["en", "he"].includes(payload.language)) setLanguage(payload.language);
     setTheme("light"); // Restored data must not reactivate a legacy appearance.
     // Automatic refresh reports its acknowledgement in the cloud indicator.
   }

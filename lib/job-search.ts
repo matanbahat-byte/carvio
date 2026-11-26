@@ -40,6 +40,20 @@ export const emptySearchProfile: SearchProfile = { role: "", filterRole: "", loc
 const supplyChainSkillSuggestions = ["Inventory management", "Demand planning", "Procurement", "Logistics", "S&OP", "ERP", "Supplier management", "Warehouse operations", "Forecasting"];
 const hrSkillSuggestions = ["Business partnering", "Talent management", "Employee relations", "Organizational development", "Change management", "Workforce planning", "Coaching", "HR analytics", "People strategy", "Recruitment", "Compensation & benefits", "Labor law"];
 
+/** An explicit public search starts without hidden filters from an older workspace search. */
+export function publicSearchHandoffProfile(role: string, country: string, city: string): SearchProfile {
+  return { ...emptySearchProfile, role: role.trim().slice(0, 80), country: country.trim().slice(0, 80),
+    location: city.trim().slice(0, 80), employmentType: "", datePosted: "Any time", radius: "" };
+}
+
+export function readPublicSearchHandoff(params: URLSearchParams) {
+  if (params.get("workspace") !== "1" || !params.get("findRole")?.trim()) return null;
+  return {
+    profile: publicSearchHandoffProfile(params.get("findRole") || "", params.get("findCountry") || "", params.get("findCity") || ""),
+    language: params.get("findLang") === "en" ? "en" as const : "he" as const,
+  };
+}
+
 export function normalizeSearchText(value: string) {
   return value.trim().replace(/\s+/g, " ");
 }
