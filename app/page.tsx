@@ -1931,7 +1931,13 @@ function WorkspaceHome() {
         cta: language === "he" ? "בדיקת הסטטוס" : "Review status",
         canComplete: false,
       };
-      if (action.id.startsWith("app-due-") || action.id.startsWith("app-wait-")) return {
+      if (action.id.startsWith("app-due-")) return {
+        headline: displayApplicationAction(application, language).trim() || (language === "he" ? `הצעד הבא עבור ${roleAtCompany}` : `Next step for ${roleAtCompany}`),
+        reason: language === "he" ? `${roleAtCompany} · הפעולה הייתה מיועדת ל־${formatDate(language, application.nextStepDue)}.` : `${roleAtCompany} · The action was due ${formatDate(language, application.nextStepDue)}.`,
+        cta: language === "he" ? "פתיחת המשרה" : "Open opportunity",
+        canComplete: true,
+      };
+      if (action.id.startsWith("app-wait-")) return {
         headline: language === "he" ? `ביצוע פעולת המשך עבור ${roleAtCompany}` : `Follow up on your ${roleAtCompany} application`,
         reason: application.nextStepDue ? (language === "he" ? `פעולת ההמשך הייתה מיועדת ל־${formatDate(language, application.nextStepDue)}.` : `The follow-up was due ${formatDate(language, application.nextStepDue)}.`) : action.detail,
         cta: language === "he" ? "כתיבת הודעת המשך" : "Send follow-up",
@@ -2006,11 +2012,11 @@ function WorkspaceHome() {
     };
     if (application && action.id.startsWith("app-due-")) return {
       action,
-      headline: language === "he" ? `ביצוע פעולת המשך עבור ${applicationContext}` : `Follow up on ${applicationContext}`,
-      reason: validDate(application.nextStepDue) ? (language === "he" ? `פעולת ההמשך הייתה מיועדת ל־${formatDate(language, application.nextStepDue)}.` : `The follow-up was due ${formatDate(language, application.nextStepDue)}.`) : (language === "he" ? "פעולת ההמשך עדיין ממתינה לטיפול." : "The follow-up is still waiting for action."),
+      headline: displayApplicationAction(application, language).trim() || (language === "he" ? `הצעד הבא עבור ${applicationContext}` : `Next step for ${applicationContext}`),
+      reason: validDate(application.nextStepDue) ? (language === "he" ? `${applicationContext} · הפעולה הייתה מיועדת ל־${formatDate(language, application.nextStepDue)}.` : `${applicationContext} · The action was due ${formatDate(language, application.nextStepDue)}.`) : action.detail,
       urgency: language === "he" ? "באיחור" : "Overdue",
       tone: "overdue",
-      cta: language === "he" ? "כתיבת הודעה" : "Follow up",
+      cta: language === "he" ? "פתיחת המשרה" : "Open opportunity",
       icon: "overdue",
     };
     if (application && action.id.startsWith("app-wait-")) {

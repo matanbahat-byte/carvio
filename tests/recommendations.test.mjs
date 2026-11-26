@@ -62,3 +62,12 @@ test('stale review identifies only open records with genuinely old activity or d
  assert.equal(staleReviewAge(app('Interview',{lastActivityAt:'2026-10-20',nextStepDue:'2026-10-20'}),now),null);
  assert.equal(staleReviewAge(app('Withdrawn',{lastActivityAt:'2026-08-01'}),now),null);
 });
+test('overdue saved actions retain their text and open the opportunity without assuming submission',()=>{
+ for(const language of ['he','en'])for(const status of ['Considering','Applied'])for(const nextStep of [language==='he'?'לבדוק דרישות ולשלוח תיק עבודות':'Review requirements and send portfolio','']){
+  const record=app(status,{nextStep,nextStepDue:'2026-10-29'}),before=JSON.stringify(record);
+  const action=rank([record],{language})[0];
+  assert.equal(action.id,`app-due-${status}`);assert.equal(action.intent,'open');
+  assert.equal(action.label,nextStep||(language==='he'?'הצעד הבא עבור QA':'Next step for QA'));
+  assert.equal(JSON.stringify(record),before);
+ }
+});
