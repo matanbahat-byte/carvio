@@ -5,6 +5,7 @@ export const LOCAL_WORKSPACE_DATA_KEYS = [
   "carvio.contacts.v1",
   "carvio.feedback.v1",
   "carvio.resumes.v1",
+  "carvio.cv-draft.v1",
   "carvio.search-profile.v1",
   "carvio.recovery.v1",
   "carvio.profile.v1",
