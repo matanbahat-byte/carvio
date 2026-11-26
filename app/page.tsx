@@ -3755,7 +3755,10 @@ function WorkspaceHome() {
                 <h2 className="text-xl font-extrabold text-slate-900 sm:text-2xl">{language === "he" ? "המשרות והחיפושים שלכם, במקום אחד" : "Your saved jobs and searches in one place"}</h2>
                 <p className="mt-2 text-sm leading-6 text-slate-600">{language === "he" ? "חזרו למשרות ששמרתם או פתחו חיפוש לפי ההעדפות שלכם." : "Your search is ready — pick a source to see live listings on its own website."}</p>
               </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button type="button" onClick={() => setShowSmartCapture(true)} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-teal-700 px-4 py-3 text-sm font-bold !text-white transition hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700"><LinkIcon className="h-4 w-4" />{language === "he" ? "שמירת משרה מקישור" : "Save a job from a link"}</button>
               <a href={`/find?lang=${language}&q=${encodeURIComponent(searchProfile.role || userProfile.targetRole || "")}&country=${encodeURIComponent(searchProfile.country || "")}&city=${encodeURIComponent(searchProfile.location || "")}`} className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-900 transition hover:bg-slate-100"><Search className="h-4 w-4" />{language === "he" ? "שינוי חיפוש" : "Edit search"}</a>
+              </div>
             </div>
             {applications.filter(item => item.role.trim() && item.company.trim() && isActiveApplicationStatus(item.status)).length > 0 && (
               <div className="relative mt-5">
@@ -3781,7 +3784,6 @@ function WorkspaceHome() {
                     <a key={source.id} href={source.url} target="_blank" rel="noopener noreferrer" className="group flex min-h-32 flex-col items-start justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 p-5 text-slate-900 shadow-sm transition duration-200 hover:-translate-y-1 hover:bg-white hover:shadow-md"><span className="flex w-full items-center justify-between gap-2"><span className="text-lg font-black">{source.id === "linkedin" ? "LinkedIn" : source.id === "indeed" ? "Indeed" : "Google Jobs"}</span><ExternalLink className="h-5 w-5 text-teal-700 transition group-hover:translate-x-[-2px]" /></span><span className="text-xs font-medium leading-5 text-slate-600">{source.id === "linkedin" ? (language === "he" ? "לצפייה במשרות וברשת המקצועית" : "Explore jobs and your professional network") : source.id === "indeed" ? (language === "he" ? "עוד משרות ממעסיקים שונים" : "More openings across employers") : (language === "he" ? "חיפוש רחב של משרות ברשת" : "Search job openings across the web")}</span><span className="inline-flex items-center gap-1 text-sm font-extrabold text-teal-800">{language === "he" ? "פתיחת תוצאות" : "Open results"} <ArrowUpRight className="h-4 w-4" /></span></a>
                   ))}
                 </div>
-                <button type="button" onClick={() => setShowSmartCapture(true)} className="relative mt-4 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-900 transition hover:bg-slate-100"><Plus className="h-4 w-4" />{language === "he" ? "מצאתי משרה — שמירה למעקב" : "Found a job? Save it to track"}</button>
                 <p className="relative mt-3 text-xs leading-5 text-slate-600">{language === "he" ? "אלו קישורים לחיפושים מותאמים, לא משרות שנאספו או אומתו על ידי CARVIO. בדקו את המיקום והמסננים באתר המקור." : "These are personalized search links, not listings collected or verified by CARVIO. Check location and filters at the source."}</p>
               </>
             ) : (
