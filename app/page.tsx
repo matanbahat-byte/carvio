@@ -25,6 +25,7 @@ import { agendaEntries, scheduledTimestamp } from "@/lib/schedule";
 import { greetingForHour, meaningfulMomentum } from "@/lib/ux-context";
 import { clearLocalWorkspaceData } from "@/lib/local-data";
 import { emitProductEvent, isReturningVisit, localDateKey } from "@/lib/product-analytics";
+import { cleanJobDescription } from "@/lib/job-description";
 import { extractJobRequirements, splitRequirementText, uniqueRequirements, requirementCategory } from "@/lib/job-requirements";
 import { ChangeEvent, FormEvent, Fragment, ReactNode, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import {
@@ -2395,7 +2396,9 @@ function WorkspaceHome() {
   }
 
   function detectDraftRequirements() {
-    const detected = extractJobRequirements(applicationDraft.jobDescription);
+    const description = cleanJobDescription(applicationDraft.jobDescription);
+    setApplicationDraft((current) => ({ ...current, jobDescription: description }));
+    const detected = extractJobRequirements(description);
     if (!detected.length) {
       setNotice(language === "he" ? "לא זוהו דרישות ברורות. אפשר להוסיף אותן ידנית." : "No clear requirements were detected. You can add them manually.");
       return;
@@ -2457,7 +2460,7 @@ function WorkspaceHome() {
       ...captured,
       role: captured.role || (activeView === "search" && !searchDraftChanged ? submittedSearch?.role || "" : ""),
       location: activeView === "search" && !searchDraftChanged ? submittedSearch?.location || "" : "",
-      jobDescription: smartCaptureText.trim(),
+      jobDescription: cleanJobDescription(smartCaptureText),
       requirements: detectedRequirements.join("\n"),
       requirementEvidence: detectedRequirements.map((requirement) => ({ requirement, evidence: "", category: requirementCategory(requirement) })),
       capturedAt: new Date().toISOString(),
@@ -4693,7 +4696,7 @@ function WorkspaceHome() {
               <button type="button" className="secondary-button w-full" onClick={async () => { try { const value = await navigator.clipboard.readText(); if (!/^https?:\/\//i.test(value.trim())) { setSmartCaptureError(language === "he" ? "בלוח ההעתקה לא נמצא קישור למשרה." : "No job URL found on your clipboard."); return; } setSmartCaptureUrl(value.trim()); setSmartCaptureError(""); } catch { setSmartCaptureError(language === "he" ? "לא ניתן לקרוא מהלוח. הדביקו את הקישור בשדה למעלה." : "Clipboard access unavailable. Paste the link above."); } }} >{language === "he" ? "הדבקת קישור מהלוח" : "Paste link from clipboard"}</button>
               <p className="text-xs text-slate-400">{language === "he" ? "בחלק מאתרי המשרות CARVIO יכול לזהות תפקיד ומיקום באופן אוטומטי. אם המידע אינו זמין, משלימים רק את החסר." : "CARVIO can detect role and location from some job boards. Fill only what cannot be verified."}</p>
               <details className="smart-capture-optional"><summary>{language === "he" ? "הוספת תיאור המשרה (אופציונלי)" : "Add the job description (optional)"}</summary><Field label={language === "he" ? "תיאור המשרה" : "Job description"}><textarea className="form-control smart-capture-description" onChange={(event) => setSmartCaptureText(event.target.value)} placeholder={language === "he" ? "אפשר להדביק את תוכן המודעה כדי לשמור צילום מצב ולזהות דרישות." : "Paste the listing to keep a snapshot and detect requirements."} value={smartCaptureText} /></Field></details>
-              {smartCaptureText.trim() && <div className="smart-capture-detection"><CheckCircle2 className="h-4 w-4" /><span><strong>{extractJobRequirements(smartCaptureText).length}</strong>{language === "he" ? " דרישות מרכזיות זוהו מקומית." : " key requirements detected locally."}</span></div>}
+              {smartCaptureText.trim() && <div className="smart-capture-detection"><span>{extractJobRequirements(smartCaptureText).length ? (language === "he" ? `${extractJobRequirements(smartCaptureText).length} דרישות זוהו מקומית. בדקו אותן לפני השמירה.` : `${extractJobRequirements(smartCaptureText).length} requirements detected locally. Review before saving.`) : (language === "he" ? "אין מספיק מידע לזיהוי דרישות ברורות. אפשר להדביק את סעיף הדרישות או להוסיף אותן ידנית." : "Not enough information to identify clear requirements. Paste the requirements section or add them manually.")}</span></div>}
               {smartCaptureError && <p id="capture-error" role="alert" className="form-error">{smartCaptureError}</p>}
               <p>{language === "he" ? "הקישור נשמר כמקור. CARVIO לא ימציא פרטים שלא נמצאו." : "The link stays as the source. CARVIO will not invent missing details."}</p>
               <button className="primary-button w-full" onClick={smartCaptureApplication} type="button"><ArrowRight className="h-4 w-4" />{language === "he" ? "בדיקת הפרטים" : "Review details"}</button>

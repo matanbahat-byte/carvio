@@ -1,3 +1,4 @@
+import { cleanJobDescription } from "./job-description.ts";
 type RequirementCategory = "Experience" | "Skills" | "Tools" | "Education" | "Other";
 
 const requirementLabel = "required|requirements?|qualifications?|what you(?:'|’)ll bring|what we(?:'|’)re looking for|skills?|experience|דרישות(?: חובה)?|חובה|כישורים|מה נדרש|ניסיון";
@@ -49,7 +50,7 @@ export function extractJobRequirements(description: string) {
   const other: string[] = [];
   let section: "required" | "optional" | "other" | null = null;
   let preferredLabel = "";
-  for (const fragment of splitRequirementText(description)) {
+  for (const fragment of splitRequirementText(cleanJobDescription(description))) {
     const heading = requirementHeading.exec(fragment)?.groups;
     if (heading) {
       section = optionalHeading.test(heading.label) ? "optional" : "required";
@@ -58,6 +59,7 @@ export function extractJobRequirements(description: string) {
       section = "other";
       continue;
     }
+    if (section === "other") continue;
     const body = heading ? heading.body : fragment;
     if (!body) continue;
     for (const item of splitSkillList(body)) {
@@ -67,5 +69,5 @@ export function extractJobRequirements(description: string) {
     }
   }
   const signaled = other.filter((item) => requirementSignal.test(item) || roleSignal.test(item));
-  return uniqueRequirements([...candidates, ...signaled, ...(!candidates.length && !signaled.length ? other.filter((item) => item.length >= 28 && item.length <= 220) : [])]);
+  return uniqueRequirements([...candidates, ...signaled]);
 }

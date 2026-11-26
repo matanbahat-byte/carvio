@@ -1,3 +1,4 @@
+import { cleanJobDescription } from "./job-description.ts";
 export type VerifiedJobDetails = { role: string; company: string; location: string; jobDescription?: string };
 export type Availability = { status: "published" | "not-published" | "unknown"; reason: "listed" | "absent" | "unsupported" | "unreachable"; checkedAt: string; details?: VerifiedJobDetails };
 type Target = { provider: "greenhouse" | "lever"; id: string; detail: string; board: string };
@@ -50,12 +51,8 @@ function verifiedField(value: unknown): string {
 }
 
 // Keep only readable plain text from the official ATS response; never render source HTML.
-function jobDescriptionText(value: unknown, html = false): string {
-  if (typeof value !== "string") return "";
-  const plain = html
-    ? value.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ").replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ")
-    : value;
-  return plain.replace(/&nbsp;|&#160;/gi, " ").replace(/&amp;/gi, "&").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">").replace(/&quot;/gi, '"').replace(/&#39;/gi, "'").replace(/\s+/g, " ").trim().slice(0, 20000);
+function jobDescriptionText(value: unknown): string {
+  return typeof value === "string" ? cleanJobDescription(value) : "";
 }
 
 export async function checkJobAvailability(input: string, request: typeof fetch = fetch): Promise<Availability> {
@@ -87,7 +84,7 @@ export async function checkJobAvailability(input: string, request: typeof fetch 
           role,
           company: lever ? "" : verifiedField(job.company_name),
           location: verifiedField(lever ? job.categories?.location : job.location?.name),
-          ...(jobDescriptionText(lever ? job.descriptionPlain : job.content, !lever) ? { jobDescription: jobDescriptionText(lever ? job.descriptionPlain : job.content, !lever) } : {}),
+          ...(jobDescriptionText(lever ? job.descriptionPlain : job.content) ? { jobDescription: jobDescriptionText(lever ? job.descriptionPlain : job.content) } : {}),
         },
       };
     }
