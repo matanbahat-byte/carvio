@@ -10931,3 +10931,27 @@ html[data-carvio-theme="light"] :is(input,textarea)::placeholder { color: #526b6
   .carvio-workspace-language { margin-bottom: 0; }
   .carvio-public-search-shortcut { margin-bottom: .25rem; }
 }
+
+/* Interview suggestions have text, not the icon column used by evidence cards. */
+.interview-preparation-editor .workspace-evidence-list article {
+  grid-template-columns: minmax(0, 1fr);
+}
+.interview-preparation-editor .workspace-evidence-list article > div {
+  min-width: 0;
+}
+.interview-preparation-editor .workspace-evidence-list article strong,
+.interview-preparation-editor .workspace-evidence-list article p {
+  display: block;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+  overflow-wrap: anywhere;
+  font-size: .875rem;
+  line-height: 1.6;
+}
+.interview-preparation-editor .workspace-evidence-list article button {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: start;
+  margin-top: .65rem;
+}
