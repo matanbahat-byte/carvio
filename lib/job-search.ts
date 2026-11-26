@@ -156,8 +156,8 @@ export function linkedInKeywordQuery(profile: SearchProfile) {
   const quote = (value: string) => `"${value.replace(/["“”]/g, "").trim()}"`;
   const roleTerms = searchRoleTerms(profile);
   const roleQuery = roleTerms.length > 1
-    ? `(${roleTerms.map(quote).join(" OR ")})`
-    : quote(roleTerms[0] || profile.role);
+    ? `(${roleTerms.join(" OR ")})`
+    : (roleTerms[0] || profile.role);
   const userExclusions = profile.exclude
     .split(",")
     .map((term) => normalizeSearchText(term).replace(/^-+/, ""))
@@ -314,7 +314,7 @@ export function companyJobSearchRoute(profile: SearchProfile, company: string, r
   const provider = routeIndex % 3;
 
   if (provider === 0) {
-    const query = encodeURIComponent(`"${clean.role}" "${company}"`);
+    const query = encodeURIComponent(`${clean.role} "${company}"`);
     const location = encodeURIComponent(clean.location);
     return {
       provider: `Indeed · ${company}`,
@@ -333,7 +333,7 @@ export function companyJobSearchRoute(profile: SearchProfile, company: string, r
   }
 
   const params = new URLSearchParams({
-    keywords: `"${clean.role}" "${company}"`,
+    keywords: `${clean.role} "${company}"`,
     location: clean.location,
     distance: linkedInDistanceFromKilometers(clean.radius),
     sortBy: "DD",
@@ -374,7 +374,7 @@ export function jobSearchSources(profile: SearchProfile, language: Language = "e
   const supplement = skills.map(quote);
   const negative = exclusions.map((term) => `-${quote(term)}`);
   const indeedRoles = [clean.role, ...selectedRoleAlternatives(clean)];
-  const indeedRoleQuery = indeedRoles.length > 1 ? `(${indeedRoles.map(quote).join(" OR ")})` : quote(clean.role);
+  const indeedRoleQuery = indeedRoles.length > 1 ? `(${indeedRoles.map(role => role.replace(/["“”]/g, "").trim()).join(" OR ")})` : clean.role.replace(/["“”]/g, "").trim();
   const indeedQuery = [indeedRoleQuery, ...supplement.map((term) => `AND ${term}`), ...negative, clean.workModel ? `AND ${quote(clean.workModel)}` : ""].filter(Boolean).join(" ");
   const google = googleJobSearch(profile, language);
   const indeedAge = clean.datePosted === "Past 24 hours" ? "1" : clean.datePosted === "Past week" ? "7" : clean.datePosted === "Past month" ? "30" : "";
