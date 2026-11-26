@@ -21,3 +21,13 @@ No schema or historical-row changes; no customer account or production analytics
 Anonymous collection/identity bridging, cross-tab shared-session coordination, inactivity-based session expiration, trusted internal/preview/test classification, a connected secure management dashboard, real hosted-account cross-device acceptance, and live relevance benchmarking remain pending. This is an account-isolation/active-time release, not a complete analytics single source of truth. Failed in-memory queues are not durable across full browser termination.
 
 Original 18-section mission estimate remains 57% at this checkpoint. No new production approval is implied for this separate analytics package. Publish the candidate PR and exact checks, then obtain final release approval. Next executable task after this package: anonymous search funnel continuity, using the existing public-search work rather than rebuilding it.
+
+## Focused public-search handoff candidate (2026-11-26)
+
+Branch: `fix/find-workspace-context-20261126`, based on released main `a64b6794e92e7efc3738e5dd2e284f1e8c6f2779` (PR #121). Extracts only public-search handoff intent from unmerged PR #117; does not merge its other changes.
+
+The `/find` workspace link now carries submitted role, canonical country/city and language. Workspace hydration selects Search, initializes only those explicit criteria without stale advanced filters, and removes the consumed URL parameters. Other workspace records are unchanged. The first cloud restore preserves the incoming search/language, including edits made while it loads; subsequent cloud updates behave normally.
+
+Local verification: 183 unit tests passed; TypeScript passed; ESLint has no errors (one pre-existing unused analytics constant warning); production build passed. Dedicated Playwright matrix checks Hebrew/English at 390px/1440px using isolated demo storage, exact input values, locale, clean URL and refresh persistence. CI includes this matrix alongside existing cloud/database regression suites. No real account, database or production data is modified. Authenticated handoff against the live backend remains unverified.
+
+Overall mission completion remains 57%. This candidate is implemented, with release CI and preview pending. Production unchanged; no merge/deployment until the focused release is approved. Next executable task: finish candidate CI/preview and verify authenticated handoff in an isolated environment.
