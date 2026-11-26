@@ -10925,3 +10925,9 @@ html[data-carvio-theme="light"] :is(input,textarea)::placeholder { color: #526b6
 }
 
 .welcome-theme-light .welcome-access-divider { color: #526b63; }
+
+/* Keep both workspace shortcuts and their touch targets; reduce mobile-only gaps. */
+@media (max-width: 767px) {
+  .carvio-workspace-language { margin-bottom: 0; }
+  .carvio-public-search-shortcut { margin-bottom: .25rem; }
+}
