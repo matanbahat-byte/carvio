@@ -285,6 +285,11 @@ export function officialSearchUrl(profile: SearchProfile, language: Language = "
 export function localizedSearchFilter(value: string, language: Language) {
   if (language === "en") return value;
   return ({
+    Low: "נמוכה", Medium: "בינונית", High: "גבוהה",
+    "Company careers": "אתר החברה", "Company careers page": "אתר החברה",
+    Netherlands: "הולנד", Israel: "ישראל", "United Kingdom": "בריטניה",
+    Germany: "גרמניה", France: "צרפת", Spain: "ספרד", Portugal: "פורטוגל",
+    Belgium: "בלגיה", "United States": "ארצות הברית", Canada: "קנדה", Other: "אחר",
     "Past 24 hours": "24 השעות האחרונות",
     "Past week": "השבוע האחרון",
     "Past month": "החודש האחרון",
@@ -352,7 +357,7 @@ export function searchFilterSummary(profile: SearchProfile, source: "linkedin" |
   const add = (name: string, value: string, supported = true) => { if (value) (supported ? applied : notApplied).push(`${name}: ${value}`); };
   add(source === "google" ? (he ? "מילות התפקיד" : "Role keywords") : (he ? "ביטוי תפקיד (כולל חלופות מוצגות בשאילתה)" : "Role phrase (aliases shown in query)"), profile.role);
   add(he ? "טייטלים נוספים שנבחרו" : "Selected alternative titles", selectedRoleAlternatives(profile).join(", "));
-  add(he ? "מיקום מבוקש" : "Requested location", [profile.location, profile.country].filter(Boolean).join(", "));
+  add(he ? "מיקום מבוקש" : "Requested location", [profile.location, localizedSearchFilter(profile.country, language)].filter(Boolean).join(", "));
   add(he ? "רדיוס" : "Radius", `${profile.radius} km`, source !== "google");
   add(he ? "מועד פרסום" : "Date posted", localizedSearchFilter(profile.datePosted, language), ["Past 24 hours", "Past week", "Past month", "Any time"].includes(profile.datePosted));
   add(he ? "סוג העסקה" : "Employment type", localizedSearchFilter(profile.employmentType, language), source !== "google" && ["Full-time", "Part-time", "Contract", "Temporary", "Internship"].includes(profile.employmentType));

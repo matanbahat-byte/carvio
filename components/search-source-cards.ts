@@ -1,5 +1,5 @@
 import { createElement as h, type ReactNode } from "react";
-import type { JobSearchSource, SearchProfile } from "../lib/job-search";
+import { localizedSearchFilter, type JobSearchSource, type SearchProfile } from "../lib/job-search.ts";
 
 export function SearchSourceCards({ sources, profile, language, careerUrl, anyTimeUrl, onCopy, onOpen, filterNotice }: { sources: JobSearchSource[]; profile: SearchProfile; language: "he" | "en"; careerUrl: string; anyTimeUrl?: string; onCopy: (query: string) => void; onOpen: (source: "LinkedIn" | "Google" | "Indeed") => void; filterNotice: (source: JobSearchSource) => ReactNode }) {
   const he = language === "he";
@@ -13,7 +13,7 @@ export function SearchSourceCards({ sources, profile, language, careerUrl, anyTi
       h("span", { className: "search-source-icon", "aria-hidden": true }, source.emoji),
       h("h3", { className: "search-source-title" }, google ? (he ? "Google — משרות ברחבי הרשת" : "Google — jobs across the web") : indeed ? "Indeed" : "LinkedIn"),
       h("p", { className: "search-source-description" }, google ? (he ? "חיפוש מודעות בלוחות דרושים, באתרי חברות ובאתרי קריירה — לא רק ב־LinkedIn." : "Search job boards, company websites and career pages — not just LinkedIn.") : source.description),
-      h("div", { className: "search-source-signals" }, h("span", null, source.freshness), h("span", null, [profile.location, profile.country].filter(Boolean).join(" · "))),
+      h("div", { className: "search-source-signals" }, h("span", null, source.freshness), h("span", null, [profile.location, localizedSearchFilter(profile.country, language)].filter(Boolean).join(" · "))),
       h("div", { className: "search-source-actions" }, external(he ? `חיפוש ב־${provider}` : `Search ${provider}`, source.url, true, `search-route-${google ? 1 : indeed ? 2 : 0}`, () => onOpen(provider))),
       google && h("div", { className: "search-source-actions" },
 
