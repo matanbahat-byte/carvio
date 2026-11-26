@@ -28,5 +28,14 @@ try{
  await assert.rejects(actor(A,tx=>writeCloudWorkspace(adapter(tx),baseline,{schemaVersion:1,applications:[]})),WorkspaceConflictError);
  const final=await actor(A,async tx=>(await tx.query('select workspace_data from public.user_workspaces')).rows[0].workspace_data);
  assert.equal(final.applications.length,3);assert.equal(final.contacts.length,1);assert.equal(final.searchTasks.length,1);
+ const eventTable=schema.match(/create table if not exists public\.product_events \([\s\S]*?\n\);/)?.[0];
+ const eventPolicy=schema.match(/create policy "Users can manage their own product events"[\s\S]*?with check \(auth\.uid\(\) = user_id\);/)?.[0];assert.ok(eventTable&&eventPolicy);
+ await db.exec(eventTable);await db.exec('alter table public.product_events enable row level security;grant select,insert,update,delete on public.product_events to authenticated,anon;');await db.exec(eventPolicy);
+ const eventId='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+ const insertEvent=()=>actor(A,tx=>tx.query("insert into public.product_events(id,user_id,event_name)values($1,$2,'session_started')on conflict(id)do nothing returning id",[eventId,A]));
+ assert.equal((await insertEvent()).rows.length,1);assert.equal((await insertEvent()).rows.length,0);
+ assert.deepEqual(await actor(B,async tx=>(await tx.query('select id from public.product_events')).rows),[]);
+ await assert.rejects(actor(B,tx=>tx.query("insert into public.product_events(user_id,event_name)values($1,'forged')",[A])),error=>error.code==='42501');
+ console.log('PASS: analytics stable-ID retries create one row and ownership RLS denies cross-account events');
  console.log('PASS: real PostgreSQL ownership RLS, signed-out denial, stale-write rejection and preservation of applications/contacts/saved searches');
 }finally{await db.close();}
