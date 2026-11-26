@@ -16,7 +16,7 @@ try{for(const lang of ['he','en'])for(const width of [390,1440]){
  const button=page.getByRole('button',{name:lang==='he'?'שיתוף החיפוש':'Share search',exact:true});
  await button.click();await page.getByText(lang==='he'?'קישור החיפוש הועתק.':'Search link copied.',{exact:true}).waitFor();
  const shared=await page.evaluate(()=>window.qaCopied[0]),url=new URL(shared);
- assert.deepEqual([...url.searchParams.keys()],['q','country','city']);assert.equal(url.searchParams.get('q'),role);assert.equal(url.searchParams.get('city'),city);assert.equal(url.origin,new URL(base).origin);
+ assert.deepEqual([...url.searchParams.keys()],['q','country','city','lang']);assert.equal(url.searchParams.get('lang'),lang);assert.equal(url.searchParams.get('q'),role);assert.equal(url.searchParams.get('city'),city);assert.equal(url.origin,new URL(base).origin);
  await page.evaluate(()=>window.qaMode='native');await button.click();await page.getByText(lang==='he'?'החיפוש שותף.':'Search shared.',{exact:true}).waitFor();assert.equal(await page.evaluate(()=>window.qaShared[0]),shared);
  await page.evaluate(()=>window.qaMode='fallback');await button.click();await page.getByText(lang==='he'?'קישור החיפוש הועתק.':'Search link copied.',{exact:true}).waitFor();assert.equal(await page.evaluate(()=>window.qaCopied.length),2);
  await page.evaluate(()=>window.qaMode='cancel');await button.click();await page.waitForFunction(()=>!document.querySelector('#search-sources button').disabled);assert.equal(await page.evaluate(()=>window.qaCopied.length),2);

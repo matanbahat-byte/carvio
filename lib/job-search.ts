@@ -48,8 +48,8 @@ export function publicSearchHandoffProfile(role: string, country: string, city: 
 }
 
 /** Sharing intentionally carries only public search criteria, never current-page parameters. */
-export function publicSearchSharePath(role: string, country: string, city: string) {
-  return `/find?${new URLSearchParams({ q: role.trim().slice(0, 80), country: country.trim().slice(0, 80), city: city.trim().slice(0, 80) })}#search-sources`;
+export function publicSearchSharePath(role: string, country: string, city: string, language: Language) {
+  return `/find?${new URLSearchParams({ q: role.trim().slice(0, 80), country: country.trim().slice(0, 80), city: city.trim().slice(0, 80), lang: language })}#search-sources`;
 }
 
 export function readPublicSearchHandoff(params: URLSearchParams) {
