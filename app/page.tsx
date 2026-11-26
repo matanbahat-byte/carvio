@@ -1214,6 +1214,9 @@ const trafficLightMeta: Record<TrafficLight, { label: string; dot: string; card:
   red: { label: "Blocked / closed", dot: "bg-rose-400", card: "border-rose-400/25" },
 };
 
+const activeModalLayers = new Set<HTMLElement>();
+let modalBodyOverflow = "";
+
 function Modal({
   title,
   description,
@@ -1239,15 +1242,22 @@ function Modal({
   }, [onClose]);
 
   useEffect(() => {
+    const layer = modalRef.current;
+    if (!layer) return;
+    if (!activeModalLayers.size) modalBodyOverflow = document.body.style.overflow;
+    activeModalLayers.add(layer);
+    const isTopLayer = () => Array.from(document.querySelectorAll<HTMLElement>(".modal-overlay [role='dialog']")).filter(item => activeModalLayers.has(item)).at(-1) === layer;
     const previouslyFocused = document.activeElement as HTMLElement | null;
     const focusableSelector = "button, input, select, textarea, [tabindex]:not([tabindex='-1'])";
-    window.setTimeout(() => {
+    const focusTimer = window.setTimeout(() => {
+      if (!isTopLayer()) return;
       const preferred = modalRef.current?.querySelector<HTMLElement>("[autofocus]");
       const first = modalRef.current?.querySelector<HTMLElement>(focusableSelector);
       (preferred || first)?.focus();
     }, 0);
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onCloseRef.current();
+      if (!isTopLayer() || event.defaultPrevented) return;
+      if (event.key === "Escape") { event.preventDefault(); onCloseRef.current(); }
       if (event.key === "Tab" && modalRef.current) {
         const focusable = Array.from(modalRef.current.querySelectorAll<HTMLElement>(focusableSelector));
         const first = focusable[0];
@@ -1264,9 +1274,12 @@ function Modal({
     document.addEventListener("keydown", onKeyDown);
     document.body.style.overflow = "hidden";
     return () => {
+      window.clearTimeout(focusTimer);
       document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = "";
-      previouslyFocused?.focus();
+      activeModalLayers.delete(layer);
+      if (!activeModalLayers.size) document.body.style.overflow = modalBodyOverflow;
+      const remaining = Array.from(document.querySelectorAll<HTMLElement>(".modal-overlay [role='dialog']")).filter(item => activeModalLayers.has(item)).at(-1);
+      if (previouslyFocused?.isConnected && (!remaining || remaining.contains(previouslyFocused))) previouslyFocused.focus();
     };
   }, []);
 
