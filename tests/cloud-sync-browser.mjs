@@ -6,7 +6,7 @@ let launch={headless:true};if(process.env.CARVIO_CHROMIUM_PACKAGE){const {defaul
 const browser=await chromium.launch(launch),base=process.env.CARVIO_BASE_URL||'http://127.0.0.1:3121',output='artifacts/cloud-sync';
 await mkdir(output,{recursive:true});
 const A='11111111-1111-4111-8111-111111111111',B='22222222-2222-4222-8222-222222222222';
-const rows=new Map(),errors=[],requests=[],analytics=[];let slowNextWrite=false,writeStarted,releaseWrite;
+const rows=new Map(),errors=[],requests=[],analytics=[],deniedRequests=[];let slowNextWrite=false,writeStarted,releaseWrite;
 const jwt=id=>Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')+'.'+Buffer.from(JSON.stringify({sub:id,role:'authenticated',aud:'authenticated',exp:Math.floor(Date.now()/1000)+3600})).toString('base64url')+'.fixture-signature';
 async function device(id,mobile=false,seed=[]){
  const context=await browser.newContext({viewport:mobile?{width:390,height:844}:{width:1440,height:1000}});
@@ -19,19 +19,23 @@ async function device(id,mobile=false,seed=[]){
   const headers={'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'GET,POST,PATCH,DELETE,OPTIONS','content-type':'application/json'};
   const send=(data,status=200)=>route.fulfill({status,headers,body:JSON.stringify(data)});
   if(method==='OPTIONS')return route.fulfill({status:204,headers});
-  if(url.pathname.startsWith('/auth/'))return send(url.pathname.endsWith('/user')?user:{});
+  if(url.pathname.startsWith('/auth/')){const token=req.headers().authorization?.split(' ')[1];const authId=token?.split('.')[1]?JSON.parse(Buffer.from(token.split('.')[1],'base64url')).sub:id;return send(url.pathname.endsWith('/user')?{...user,id:authId,email:`${authId===A?'alice':'bob'}@example.test`}:{});}
   if(url.pathname.endsWith('/product_events')){
    const actor=JSON.parse(Buffer.from((req.headers().authorization||'').split(' ')[1].split('.')[1],'base64url')).sub;
    assert.match(req.headers().prefer||'',/resolution=ignore-duplicates/);
-   for(const row of req.postDataJSON()){assert.equal(row.user_id,actor,'analytics crossed accounts');assert.ok(row.properties.sessionId);if(row.event_name==='session_started')assert.equal(row.id,row.properties.sessionId);if(row.event_name==='acquisition_attributed')assert.equal(row.id,actor);analytics.push(row);}
+   if(req.postDataJSON().some(row=>row.user_id!==actor)){deniedRequests.push({table:'product_events',actor});return send({code:'42501',message:'ownership policy'},403);}
+   for(const row of req.postDataJSON()){assert.equal(row.user_id,actor,'accepted analytics crossed accounts');assert.ok(row.properties.sessionId);if(row.event_name==='session_started')assert.equal(row.id,row.properties.sessionId);if(row.event_name==='acquisition_attributed')assert.equal(row.id,actor);analytics.push(row);}
    return send([],201);
   }
   assert.ok(url.pathname.endsWith('/user_workspaces'),url.pathname);
   const actor=JSON.parse(Buffer.from((req.headers().authorization||'').split(' ')[1].split('.')[1],'base64url')).sub;
   const incoming=method==='POST'||method==='PATCH'?req.postDataJSON():null;
   const owner=incoming?.user_id||url.searchParams.get('user_id')?.slice(3);
-  requests.push({actor,owner,method});assert.equal(owner,actor,'cross-account request');
   const represent=data=>req.headers().accept?.includes('vnd.pgrst.object')?(data[0]||null):data;
+  // An auth-cookie change may race an already-started request. Model real RLS:
+  // reads/updates see no foreign rows, and foreign inserts are forbidden.
+  if(owner!==actor){deniedRequests.push({table:'user_workspaces',actor,owner,method});return method==='GET'||method==='PATCH'?send(represent([])):send({code:'42501',message:'ownership policy'},403);}
+  requests.push({actor,owner,method});
   if(method==='GET'){const row=rows.get(owner);const fields=url.searchParams.get('select');return send(represent(row?[fields==='updated_at'?{updated_at:row.updated_at}:structuredClone(row)]:[]));}
   if(slowNextWrite){slowNextWrite=false;writeStarted?.();await new Promise(r=>{releaseWrite=r;});}
   if(method==='POST'&&rows.has(owner))return send({code:'23505',message:'already exists'},409);
@@ -77,6 +81,6 @@ try{
  await waitFor(async()=>(await stored(phone.page)).length===6,'automatic resume after local reset without pressing any sync button');assert.equal(rows.get(A).workspace_data.applications.length,6);
  assert.deepEqual(errors,[]);assert.ok(requests.every(r=>r.actor===r.owner));
  const aSessions=new Set(analytics.filter(e=>e.user_id===A).map(e=>e.properties.sessionId));const bSessions=new Set(analytics.filter(e=>e.user_id===B).map(e=>e.properties.sessionId));assert.ok(aSessions.size&&bSessions.size);assert.ok([...aSessions].every(id=>!bSessions.has(id)));
- await writeFile(`${output}/report.json`,JSON.stringify({environment:'isolated Auth/PostgREST fixture; no real credentials or production writes',checks:['phone two applications -> desktop','desktop -> phone after reload','slow-write replay','second-account isolation','account switch locks private workspace without deleting it','offline local recovery -> online sync','local reset preserves cloud on re-enable'],requests:requests.length,analyticsEvents:analytics.length,analyticsAccountIsolation:true,browserErrors:errors},null,2));
+ await writeFile(`${output}/report.json`,JSON.stringify({environment:'isolated Auth/PostgREST fixture; no real credentials or production writes',checks:['phone two applications -> desktop','desktop -> phone after reload','slow-write replay','second-account isolation','account switch locks private workspace without deleting it','offline local recovery -> online sync','local reset preserves cloud on re-enable'],requests:requests.length,analyticsEvents:analytics.length,deniedCrossAccountRequests:deniedRequests.length,analyticsAccountIsolation:true,browserErrors:errors},null,2));
  console.log('PASS: two browser contexts, six preserved applications, account isolation, slow writes and offline recovery');
 }finally{await browser.close();}
