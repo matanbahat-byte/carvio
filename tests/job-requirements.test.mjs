@@ -30,3 +30,14 @@ test('recognizes standalone skills across separators and languages', () => {
   assert.deepEqual(extractJobRequirements('יתרון:\nSQL, AWS'), ['יתרון: SQL', 'יתרון: AWS']);
   assert.deepEqual(extractJobRequirements('Required: C++; R\nPreferred:\nAWS\nSQL'), ['C++', 'R', 'Preferred: AWS', 'Preferred: SQL']);
 });
+
+test('encoded ATS HTML preserves requirement sections and excludes code and marketing',()=>{
+ const source='&lt;h2&gt;About us&lt;/h2&gt;&lt;p&gt;Build the best customer experience in the world.&lt;/p&gt;&lt;h2&gt;Requirements&lt;/h2&gt;&lt;ul&gt;&lt;li&gt;3 years of experience&lt;/li&gt;&lt;li&gt;SQL&lt;/li&gt;&lt;/ul&gt;&lt;script&gt;const experience = "fake";&lt;/script&gt;&lt;h2&gt;Benefits&lt;/h2&gt;&lt;p&gt;Experience our advanced benefits platform.&lt;/p&gt;';
+ assert.deepEqual(extractJobRequirements(source),['3 years of experience','SQL']);
+});
+test('marketing-only prose and code do not produce guessed requirements',()=>{
+ for(const source of ['We are excited to welcome you to our growing global family.','<script>const required = "SQL";</script>','<style>.experience { color: red; }</style>','About us\nWe build advanced software and deliver a great experience.'])assert.deepEqual(extractJobRequirements(source),[]);
+});
+test('Hebrew HTML requirements and preferred skills remain distinguishable',()=>{
+ assert.deepEqual(extractJobRequirements('<h2>דרישות</h2><ul><li>ניסיון בניהול מלאי</li><li>אנגלית חובה</li></ul><h2>יתרון</h2><p>SQL</p>'),['ניסיון בניהול מלאי','אנגלית חובה','יתרון: SQL']);
+});

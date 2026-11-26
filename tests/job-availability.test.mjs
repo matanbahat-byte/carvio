@@ -56,7 +56,7 @@ test('unconfirmed identities and board-only availability do not supply autofill 
 test('verified Greenhouse HTML is converted into bounded plain-text JD', async () => {
   const result = await checkJobAvailability(url, async () => json({id:123,title:'Engineer',content:'<h2>Responsibilities</h2><p>Build &amp; test</p><script>alert(1)</script>'}));
   assert.equal(result.status,'published');
-  assert.equal(result.details.jobDescription,'Responsibilities Build & test');
+  assert.equal(result.details.jobDescription,'Responsibilities\nBuild & test');
 });
 test('verified Lever plain description is preserved, unknown listings never supply JD', async () => {
   const id = '12345678-abcd-abcd-abcd-123456789012';
