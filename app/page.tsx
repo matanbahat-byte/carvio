@@ -1461,6 +1461,7 @@ function WorkspaceHome() {
   const lastProductEventRef = useRef<{ name: ProductEventName; targetId: string } | null>(null);
   const returnCardTrackedRef = useRef(false);
   const messageDraftRef = useRef<HTMLTextAreaElement | null>(null);
+  const applicationMessageDrafts = useRef(new Map<string, { profile: MessageProfile; context: MessageContext; body: string; subject: string; provenance: MessageProvenance | null; edited: boolean }>());
   const todayOverflowRef = useRef<HTMLDivElement | null>(null);
 
   const openCloudAccount = useCallback((entryPoint: "mobile_more" | "settings") => {
@@ -3163,7 +3164,17 @@ function WorkspaceHome() {
   }
 
   function openOutreachForApplication(application: Application, preserveDraft = false) {
-    if (preserveDraft && messageContext?.applicationId === application.id) {
+    if (preserveDraft && messageContext?.applicationId) {
+      applicationMessageDrafts.current.set(messageContext.applicationId, { profile: messageProfile, context: messageContext, body: generatedMessage, subject: messageSubjectDraft, provenance: draftProvenance, edited: draftManuallyEdited });
+    }
+    const savedDraft = preserveDraft ? applicationMessageDrafts.current.get(application.id) : null;
+    if (savedDraft) {
+      setMessageProfile(savedDraft.profile);
+      setMessageContext(savedDraft.context);
+      setGeneratedMessage(savedDraft.body);
+      setMessageSubjectDraft(savedDraft.subject);
+      setDraftProvenance(savedDraft.provenance);
+      setDraftManuallyEdited(savedDraft.edited);
       setWorkspaceApplicationId(null);
       setExpandedTools(current => ({ ...current, studio: true }));
       navigateToSection("message-studio");
