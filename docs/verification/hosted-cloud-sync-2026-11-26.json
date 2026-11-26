@@ -1,0 +1,32 @@
+{
+  "result": "passed",
+  "environment": "production with explicitly authorized dedicated QA account",
+  "physicalAndroidDevice": false,
+  "independentBrowserContexts": true,
+  "auth": "real Supabase email-confirmed session",
+  "workspaceApiMocked": false,
+  "analyticsSuppressed": true,
+  "applicationCount": 2,
+  "checks": [
+    {
+      "name": "anonymous API sees no workspaces"
+    },
+    {
+      "name": "two phone applications saved to real Supabase",
+      "elapsedMs": 11351
+    },
+    {
+      "name": "desktop automatically receives phone applications",
+      "elapsedMs": 11781
+    },
+    {
+      "name": "desktop status saved to real Supabase",
+      "elapsedMs": 3940
+    },
+    {
+      "name": "phone automatically receives desktop status without reload",
+      "elapsedMs": 19139
+    }
+  ],
+  "browserErrors": []
+}
