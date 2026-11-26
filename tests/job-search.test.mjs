@@ -32,7 +32,7 @@ test('first search starts with a week; stored explicit time choice is preserved'
 test('preferred skills and unmapped industry are disclosed, not silently enforced', () => {
   const source = linkedIn(profile({ industry: 'Healthcare', skills: 'Python, SQL', exclude: 'sales, internship' }));
   const url = new URL(source.url);
-  assert.equal(url.searchParams.get('keywords'), '"Software Engineer" NOT "sales" NOT "internship"');
+  assert.equal(url.searchParams.get('keywords'), 'Software Engineer NOT "sales" NOT "internship"');
   assert.ok(source.notApplied.some(x => x.includes('Healthcare')));
   assert.ok(source.notApplied.some(x => x.includes('Python, SQL')));
   assert.equal(url.searchParams.has('f_I'), false);
@@ -74,7 +74,7 @@ test('24 hours to week changes only posting time, not user intent', () => {
 test('Hebrew and punctuation survive URL encoding without extra exclusions', () => {
   const source = linkedIn(profile({role:'חשמלאי מוסמך',location:'באר שבע',exclude:'מכירות, התמחות'}));
   const url = new URL(source.url);
-  assert.equal(url.searchParams.get('keywords'), '"חשמלאי מוסמך" NOT "מכירות" NOT "התמחות"');
+  assert.equal(url.searchParams.get('keywords'), 'חשמלאי מוסמך NOT "מכירות" NOT "התמחות"');
   assert.equal(url.searchParams.get('location'), 'באר שבע, Israel');
   assert.equal(linkedIn(profile({role:'HRBP'})).query.includes('Controller'), false);
 });
