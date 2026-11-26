@@ -21,6 +21,7 @@ import { completionLoopOptions } from "@/lib/completion-loop";
 import { localProductMetrics, goalMetrics, readinessStates, isCompatibleRecord, messageSubject, generateOutreachMessage, normalizeUsageIntent, goalAction, migrateSource, sourceOutcomes, hasPersonalAnchor, linkContactIds, privateEventProperties, safeSourceUrl, type ProductEventName, type MessageProfile, type UsageIntent, type SourceType } from "@/lib/decision-support";
 
 import Image from "next/image";
+import { applicationContextTool } from "@/lib/application-context-tool";
 import { readCvDraft, writeCvDraft, replaceCvDraft, emptyCvDraft, type CvDraft } from "@/lib/cv-draft";
 import { reviewResumeText, cleanResumeDraft } from "@/lib/resume-review";
 import { readPublicSearchHandoff, selectedRoleAlternatives, suggestedRoleAlternatives, googleJobSearch, officialSearchUrl, changeSearchRole, searchPreferencesNeedReview, emptySearchProfile, sanitizeSearchProfile, normalizedSearchProfile, migrateSearchProfile, nextSearchDateWindow, skillSuggestionsForRole, localizedSearchFilter, companyJobSearchRoute, jobSearchSources, searchProfileChanged, broadenSearchProfile, patchSearchProfile, captureJobLink, jobLinkIdentity, type SearchProfile, type SearchOutcome, type JobSearchSource } from "@/lib/job-search";
@@ -1692,6 +1693,7 @@ function WorkspaceHome() {
     () => applications.find((item) => item.id === messageContext?.applicationId) || null,
     [applications, messageContext?.applicationId],
   );
+  const workspaceTool = workspaceApplication ? applicationContextTool(workspaceApplication) : null;
   const workspaceReadiness = workspaceApplication ? jobReadinessChecklist(workspaceApplication, language) : null;
   const workspaceApplyReadiness = workspaceApplication && workspaceApplication.status === "Considering" ? applyReadiness(workspaceApplication, language) : null;
   const workspaceEvidence = workspaceApplication ? evidenceForRequirements(workspaceApplication.requirementEvidence, workspaceApplication.evidenceItems || [], workspaceApplication.id) : [];
@@ -2677,8 +2679,8 @@ function WorkspaceHome() {
     setNotice(language === "he" ? "הכנת הראיון נשמרה בתוך המועמדות." : "Interview preparation saved to this application.");
   }
 
-  function openCvSupport(application: Application) {
-    if (!replaceRewriteDraft("")) return;
+  function openCvSupport(application: Application, preserveDraft = false) {
+    if (!preserveDraft && !replaceRewriteDraft("")) return;
     setWorkspaceApplicationId(null);
     setCvEvidenceApplicationId(application.id);
     if (application.linkedResumeId) { const linkedResume = resumes.find(item => item.id === application.linkedResumeId); if (linkedResume) selectResume(linkedResume); }
@@ -3160,7 +3162,13 @@ function WorkspaceHome() {
     }
   }
 
-  function openOutreachForApplication(application: Application) {
+  function openOutreachForApplication(application: Application, preserveDraft = false) {
+    if (preserveDraft && messageContext?.applicationId === application.id) {
+      setWorkspaceApplicationId(null);
+      setExpandedTools(current => ({ ...current, studio: true }));
+      navigateToSection("message-studio");
+      return;
+    }
     const linkedContact = linkedOutreachContact(application, contacts);
     const evidence = firstApplicationEvidence(application);
     const recipientName = linkedContact?.name || application.contactName || "";
@@ -4809,6 +4817,12 @@ function WorkspaceHome() {
           <div className="application-workspace application-workspace-v2">
             <header><span aria-hidden="true" className={`application-company-logo ${workspaceApplication.logoUrl ? "application-company-logo-image" : ""}`} style={workspaceApplication.logoUrl ? { backgroundImage: `url("${workspaceApplication.logoUrl}")` } : undefined}>{workspaceApplication.logoUrl ? "" : workspaceApplication.company.slice(0, 1)}</span><div><span className={statusStyles[workspaceApplication.status]}>{statusLabel(workspaceApplication.status)}</span><h3>{workspaceApplication.role}</h3><p>{workspaceApplication.company}{workspaceApplication.location ? ` · ${workspaceApplication.location}` : ""}</p></div><i className={trafficLightMeta[workspaceApplication.trafficLight].dot} /></header>
             <section className="workspace-next-action"><div><span>⚡ {language === "he" ? "הפעולה המומלצת עכשיו" : "Recommended now"}</span><strong>{workspaceApplication.nextStep || (language === "he" ? "הגדירו את הצעד הבא" : "Define the next move")}</strong><small>{workspaceApplication.nextStepDue ? formatDate(language, workspaceApplication.nextStepDue) : (language === "he" ? "ללא תאריך יעד" : "No due date")}</small><p className="workspace-action-reason"><CircleHelp className="h-4 w-4" /><span><b>{language === "he" ? "למה עכשיו?" : "Why this?"}</b>{workspaceActionReason(workspaceApplication, language)}</span></p></div><div className="workspace-primary-action"><button className="workspace-action-primary" onClick={() => workspaceApplication.nextStep ? completeApplicationAction(workspaceApplication) : openEditApplication(workspaceApplication)} type="button">{workspaceApplication.nextStep ? <CheckCircle2 className="h-4 w-4" /> : <Plus className="h-4 w-4" />}{workspaceApplication.nextStep ? (language === "he" ? "סימון כבוצע" : "Mark done") : (language === "he" ? "הגדרת פעולה" : "Set action")}</button></div></section>
+            {workspaceTool && <button className="primary-button workspace-context-tool" data-application-context-tool={workspaceTool} type="button" onClick={() => {
+              if (workspaceTool === "interview") openInterviewPreparation(workspaceApplication);
+              else if (workspaceTool === "offer") openOfferDecision(workspaceApplication);
+              else if (workspaceTool === "cv") openCvSupport(workspaceApplication, true);
+              else openOutreachForApplication(workspaceApplication, true);
+            }}>{workspaceTool === "interview" ? <Target className="h-4 w-4" /> : workspaceTool === "offer" ? <Scale className="h-4 w-4" /> : workspaceTool === "cv" ? <FileCheck2 className="h-4 w-4" /> : <MessagesSquare className="h-4 w-4" />}{language === "he" ? ({ interview: "הכנה לראיון הזה", offer: "בדיקת ההצעה", cv: "התאמת קורות חיים למשרה", followUp: "ניסוח הודעת מעקב" })[workspaceTool] : ({ interview: "Prepare for this interview", offer: "Review this offer", cv: "Tailor CV to this role", followUp: "Draft a follow-up message" })[workspaceTool]}</button>}
             {workspaceApplyReadiness && <section className={`apply-readiness apply-readiness-${workspaceApplyReadiness.state}`} aria-label={language === "he" ? "מוכנות לפני הגשה" : "Apply readiness"}>
               <div className="apply-readiness-heading"><div><span>{language === "he" ? "לפני שמגישים" : "Before you apply"}</span><h4>{workspaceApplyReadiness.state === "ready" ? (language === "he" ? "יש מספיק הקשר להחלטה" : "Enough context to decide") : (language === "he" ? "כדאי להשלים בדיקה קצרה" : "A short review will improve the decision")}</h4><p>{language === "he" ? "בדיקה עובדתית של המידע ששמרתם — ללא ציון התאמה מומצא." : "A factual check of what you saved—without an invented fit score."}</p></div><strong>{workspaceApplyReadiness.state === "ready" ? (language === "he" ? "מוכן להחלטה" : "Decision ready") : (language === "he" ? "מחקר קודם" : "Research first")}</strong></div>
               <p>{language === "he" ? "מה תומך בהחלטה, מה דורש בדיקה, ומה הצעד הבא? הסימנים הבאים מבוססים על המידע שהזנתם, ולא על ניתוח אוטומטי של קורות החיים." : "What supports this decision, what needs checking, and what comes next? These signals use information you entered, not an automated CV match."}</p>
