@@ -7,6 +7,9 @@ import type { Session } from "@supabase/supabase-js";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { authErrorMessage } from "@/lib/supabase/auth-feedback";
 import { emitProductEvent } from "@/lib/product-analytics";
+import { createCloudSynchronizer, SyncConflictError, type SyncCheckpoint } from "@/lib/cloud-sync";
+import { isCloudWorkspace, writeCloudWorkspace } from "@/lib/cloud-workspace";
+import { LOCAL_WORKSPACE_OWNER_KEY } from "@/lib/workspace-access";
 
 export type CloudWorkspacePayload = {
   schemaVersion: 1;
@@ -182,49 +185,93 @@ export function CloudAccount({
     });
   }, [autoSync, configured, onStatusChange, remoteExists, session, syncState]);
 
+  const workspaceRef = useRef(workspace);
+  const restoreRef = useRef(onRestore);
+  const accountRef = useRef<string | null>(null);
+  const engineRef = useRef<ReturnType<typeof createCloudSynchronizer<CloudWorkspacePayload>> | null>(null);
+  const languageRef = useRef(language);
+  useEffect(() => { workspaceRef.current = workspace; restoreRef.current = onRestore; languageRef.current = language; }, [workspace, onRestore, language]);
+
   useEffect(() => {
     const supabase = supabaseRef.current;
     if (!supabase) return;
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
-      setSession(nextSession);
-      if (event === "SIGNED_IN" && nextSession) emitProductEvent("cloud_sign_in_completed", { method: "email_link" });
-    });
-    return () => data.subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (!session) return;
-    const supabase = supabaseRef.current;
-    if (!supabase) return;
-    supabase
-      .from("user_workspaces")
-      .select("updated_at")
-      .eq("user_id", session.user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        const exists = Boolean(data);
-        setRemoteExists(exists);
-        setAutoSync(window.localStorage.getItem("carvio.cloud-autosync.v1") === "on" && exists);
-      });
-  }, [session]);
-
-  useEffect(() => {
-    const disableAutoSync = () => {
-      setAutoSync(false);
-      window.localStorage.setItem("carvio.cloud-autosync.v1", "off");
+    let alive = true, changed = false;
+    const apply = (next: Session | null) => {
+      if (!alive) return;
+      const id = next?.user.id || null;
+      if (accountRef.current !== id) {
+        engineRef.current?.cancel(); engineRef.current = null;
+        accountRef.current = id;
+        setRemoteExists(null); setSyncState("idle"); setMessage("");
+        try {
+          const preference = id ? localStorage.getItem(`carvio.cloud-autosync.v3:${id}`) : "off";
+          setAutoSync(Boolean(id) && preference !== "off" && (preference === "on" || localStorage.getItem("carvio.cloud-autosync.v1") !== "off"));
+        } catch { setAutoSync(false); setSyncState("error"); }
+      }
+      setSession(next);
     };
-    window.addEventListener("carvio:disable-cloud-autosync", disableAutoSync);
-    return () => window.removeEventListener("carvio:disable-cloud-autosync", disableAutoSync);
+    void supabase.auth.getSession().then(({data})=>{if(!changed)apply(data.session);}).catch(()=>{if(!changed)apply(null);});
+    const {data} = supabase.auth.onAuthStateChange((event,next)=>{changed=true;apply(next);if(event==="SIGNED_IN"&&next)emitProductEvent("cloud_sign_in_completed",{method:"authenticated"});});
+    return ()=>{alive=false;engineRef.current?.cancel();data.subscription.unsubscribe();};
   }, []);
 
+  const userId = session?.user.id;
   useEffect(() => {
-    if (!session || !autoSync || !remoteExists) return;
-    const timeout = window.setTimeout(() => void saveToCloud(true), 1400);
-    return () => window.clearTimeout(timeout);
-    // workspace is intentionally the trigger for the debounced backup.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [workspace, session, autoSync, remoteExists]);
+    if (!userId || !autoSync) return;
+    const supabase = supabaseRef.current;
+    if (!supabase) return;
+    let active = true;
+    const checkpointKey = `carvio.sync-checkpoint.v1:${userId}`;
+    let checkpoint: SyncCheckpoint | null = null;
+    try {
+      if (localStorage.getItem(LOCAL_WORKSPACE_OWNER_KEY) !== userId) throw new Error("owner");
+      const stored = JSON.parse(localStorage.getItem(checkpointKey) || "null");
+      if (stored?.version === 1 && stored.userId === userId && typeof stored.node?.hash === "string" && stored.node?.kind === "object") checkpoint = stored;
+    } catch { queueMicrotask(()=>{if(active){setSyncState("error");setMessage(languageRef.current === "he" ? "לא ניתן לאמת בעלות או גישה לשמירה המקומית. המידע לא נשלח לענן." : "Local ownership or storage could not be verified. No data was uploaded.");}});return ()=>{active=false;}; }
+    let cached: {workspace: CloudWorkspacePayload; revision: string} | null = null;
+    const engine = createCloudSynchronizer<CloudWorkspacePayload>({
+      userId, checkpoint,
+      isCurrent:()=>active && accountRef.current===userId && localStorage.getItem(LOCAL_WORKSPACE_OWNER_KEY)===userId,
+      readLocal:()=>workspaceRef.current,
+      preserveLocal:value=>localStorage.setItem(`carvio.cloud-recovery.v1:${userId}`,JSON.stringify({savedAt:new Date().toISOString(),workspace:value})),
+      applyLocal:value=>{workspaceRef.current=value;restoreRef.current(value);},
+      saveCheckpoint:value=>localStorage.setItem(checkpointKey,JSON.stringify(value)),
+      readRemote:async()=>{
+        const revision = await supabase.from("user_workspaces").select("updated_at").eq("user_id",userId).maybeSingle();
+        if(revision.error)throw revision.error;
+        if(!revision.data){setRemoteExists(false);cached=null;return null;}
+        if(cached?.revision===revision.data.updated_at)return cached;
+        const {data,error}=await supabase.from("user_workspaces").select("workspace_data, updated_at").eq("user_id",userId).maybeSingle();
+        if(error)throw error;
+        if(!data)return null;
+        if(!isCloudWorkspace(data.workspace_data)||typeof data.updated_at!=="string")throw new Error("invalid-cloud-workspace");
+        if(active)setRemoteExists(true);
+        cached={workspace:data.workspace_data as CloudWorkspacePayload,revision:data.updated_at};return cached;
+      },
+      writeRemote:async(value,revision)=>{
+        const result=await writeCloudWorkspace(supabase,{userId,updatedAt:revision},value);
+        cached={workspace:value,revision:result.updatedAt!};return result.updatedAt!;
+      },
+    });
+    engineRef.current=engine;
+    const refresh=()=>{if(document.visibilityState==="visible")void saveToCloud();};
+    const timer=window.setInterval(refresh,30000);
+    window.addEventListener("focus",refresh);window.addEventListener("online",refresh);document.addEventListener("visibilitychange",refresh);
+    void saveToCloud();
+    return ()=>{active=false;engine.cancel();if(engineRef.current===engine)engineRef.current=null;window.clearInterval(timer);window.removeEventListener("focus",refresh);window.removeEventListener("online",refresh);document.removeEventListener("visibilitychange",refresh);};
+    // Identity and opt-out control the lifetime; current workspace/language are refs.
+  }, [userId, autoSync]);
+
+  useEffect(() => {
+    if(!userId || !autoSync)return;
+    const timer=window.setTimeout(()=>void saveToCloud(),700);
+    return ()=>window.clearTimeout(timer);
+  }, [workspace, userId, autoSync]);
+
+  useEffect(() => {
+    const disable=()=>{engineRef.current?.cancel();try{if(accountRef.current){localStorage.setItem(`carvio.cloud-autosync.v3:${accountRef.current}`,"off");localStorage.removeItem(`carvio.sync-checkpoint.v1:${accountRef.current}`);localStorage.removeItem(`carvio.cloud-recovery.v1:${accountRef.current}`);}}catch{setSyncState("error");}setAutoSync(false);};
+    window.addEventListener("carvio:disable-cloud-autosync",disable);return ()=>window.removeEventListener("carvio:disable-cloud-autosync",disable);
+  }, []);
 
   async function sendMagicLink(event: FormEvent) {
     event.preventDefault();
@@ -247,68 +294,60 @@ export function CloudAccount({
     }
   }
 
-  async function saveToCloud(silent = false) {
-    const supabase = supabaseRef.current;
-    if (!supabase || !session) return;
-    setSyncState("saving");
-    const { error } = await supabase.from("user_workspaces").upsert({
-      user_id: session.user.id,
-      schema_version: workspace.schemaVersion,
-      workspace_data: workspace,
-      updated_at: new Date().toISOString(),
-    });
-    if (error) {
-      setSyncState("error");
-      if (!silent) setMessage(error.message);
+  async function saveToCloud() {
+    const id=accountRef.current,engine=engineRef.current;
+    if(!id)return;
+    if(!engine){
+      try {localStorage.setItem(`carvio.cloud-autosync.v3:${id}`,"on");setAutoSync(true);} catch {setSyncState("error");}
       return;
     }
-    setRemoteExists(true);
-    setSyncState("saved");
-    if (!silent) setMessage(language === "he" ? "המידע במכשיר גובה לענן." : "This device is backed up to the cloud.");
-  }
-
-  async function restoreFromCloud() {
-    const supabase = supabaseRef.current;
-    if (!supabase || !session) return;
     setSyncState("saving");
-    const { data, error } = await supabase
-      .from("user_workspaces")
-      .select("workspace_data")
-      .eq("user_id", session.user.id)
-      .single();
-    if (error || !data?.workspace_data) {
+    try {
+      await engine.sync();
+      if(accountRef.current!==id||engineRef.current!==engine)return;
+      setRemoteExists(true);setSyncState("saved");
+      setMessage(languageRef.current==="he"?"המידע מסונכרן עם החשבון, וזמין גם במכשירים אחרים המחוברים אליו.":"Your workspace is synced and available on other devices signed in to this account.");
+    } catch(error){
+      if(accountRef.current!==id||engineRef.current!==engine)return;
       setSyncState("error");
-      setMessage(error?.message || (language === "he" ? "לא נמצא גיבוי בענן." : "No cloud backup was found."));
-      return;
+      setMessage(error instanceof SyncConflictError
+        ? (languageRef.current==="he"?"אותו פרט השתנה בשני מכשירים. שני העותקים נשמרו; לא דרסנו מידע. הורידו עותק מקומי לפני פתרון ההתנגשות.":"The same information changed on two devices. Both copies are preserved; nothing was overwritten. Download a local copy before resolving the conflict.")
+        : (languageRef.current==="he"?"לא ניתן לסנכרן כרגע. המידע נשמר במכשיר. ננסה שוב אוטומטית; אפשר להוריד עותק מקומי לשחזור.":"Sync is unavailable. Your data remains on this device. We will retry automatically; you can download a local recovery copy."));
     }
-    onRestore(data.workspace_data as CloudWorkspacePayload);
-    setSyncState("saved");
-    setMessage(language === "he" ? "הגיבוי מהענן נטען למכשיר הזה." : "The cloud backup is now on this device.");
   }
-
-  function toggleAutoSync() {
-    const next = !autoSync;
-    setAutoSync(next);
-    window.localStorage.setItem("carvio.cloud-autosync.v1", next ? "on" : "off");
-    if (next && !remoteExists) void saveToCloud();
+  async function restoreFromCloud(){await saveToCloud();}
+  function toggleAutoSync(){
+    if(!userId)return;
+    try{localStorage.setItem(`carvio.cloud-autosync.v3:${userId}`,autoSync?"off":"on");if(autoSync)engineRef.current?.cancel();setAutoSync(!autoSync);setSyncState("idle");}
+    catch{setSyncState("error");}
   }
-
-  async function signOut() {
-    await supabaseRef.current?.auth.signOut();
-    setRemoteExists(null);
-    setAutoSync(false);
-    setOpen(false);
+  function downloadLocalCopy(){
+    const url=URL.createObjectURL(new Blob([JSON.stringify({version:1,...workspaceRef.current})],{type:"application/json"}));
+    const link=document.createElement("a");link.href=url;link.download="carvio-local-recovery.json";link.click();window.setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
+  async function signOut(){engineRef.current?.cancel();await supabaseRef.current?.auth.signOut();setRemoteExists(null);setAutoSync(false);setOpen(false);}
 
-  const buttonLabel = !configured
-    ? language === "he" ? "נשמר במכשיר" : "Saved locally"
-    : session
-      ? syncState === "saving" ? (language === "he" ? "שומר…" : "Saving…") : (language === "he" ? "ענן" : "Cloud")
-      : language === "he" ? "גיבוי בענן" : "Cloud backup";
+  const buttonLabel = !configured || !session
+    ? (language === "he" ? "נשמר במכשיר · התחברות לסנכרון" : "Saved on this device · Sign in to sync")
+    : syncState === "saving" ? (language === "he" ? "מסנכרן…" : "Syncing…")
+    : syncState === "error" ? (language === "he" ? "לא סונכרן · נשמר במכשיר" : "Not synced · Saved on this device")
+    : !autoSync ? (language === "he" ? "סנכרון כבוי · נשמר במכשיר" : "Sync off · Saved on this device")
+    : syncState === "saved" ? (language === "he" ? "מסונכרן לחשבון" : "Synced to your account")
+    : (language === "he" ? "בודק סנכרון…" : "Checking sync…");
+
+  const mobileLabel = !session || !configured
+    ? (language === "he" ? "נשמר רק כאן" : "Saved only here")
+    : syncState === "saving" ? (language === "he" ? "מסנכרן…" : "Syncing…")
+    : syncState === "error" ? (language === "he" ? "לא סונכרן" : "Not synced")
+    : !autoSync ? (language === "he" ? "סנכרון כבוי" : "Sync off")
+    : syncState === "saved" ? (language === "he" ? "מסונכרן" : "Synced")
+    : (language === "he" ? "בודק סנכרון…" : "Checking sync…");
 
   return <>
     <div className="cloud-account">
     <button
+      aria-label={buttonLabel}
+      title={buttonLabel}
       aria-controls="cloud-account-dialog"
       aria-expanded={open}
       aria-haspopup="dialog"
@@ -321,8 +360,9 @@ export function CloudAccount({
       }}
       type="button"
     >
-      {syncState === "saving" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : configured ? <Cloud className="h-4 w-4" /> : <CloudOff className="h-4 w-4" />}
-      <span>{buttonLabel}</span>
+      {syncState === "saving" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : configured && session ? <Cloud className="h-4 w-4" /> : <CloudOff className="h-4 w-4" />}
+      <span className="cloud-status-desktop">{buttonLabel}</span>
+      <span className="cloud-status-mobile" aria-hidden="true">{mobileLabel}</span>
     </button>
     </div>
     {open && typeof document !== "undefined" ? createPortal(<div className="cloud-account-layer">
@@ -340,7 +380,7 @@ export function CloudAccount({
         role="dialog"
       >
       <div className="cloud-account-heading"><div><ShieldCheck className="h-5 w-5" /><span><strong>{language === "he" ? "המידע שלכם, בשליטתכם" : "Your data, under your control"}</strong><small>{language === "he" ? "המשך מקומי או סנכרון אופציונלי" : "Stay local or add optional sync"}</small></span></div><button aria-label="Close" onClick={() => setOpen(false)} type="button"><X className="h-4 w-4" /></button></div>
-      {!configured ? <div className="cloud-local-note"><CloudOff className="h-5 w-5" /><p><strong>{language === "he" ? "מצב מקומי פעיל" : "Local mode is active"}</strong><span>{language === "he" ? "הכול ממשיך לעבוד ולהישמר בדפדפן. בעל האתר יכול להפעיל Supabase Free בהמשך." : "Everything keeps working in this browser. The owner can enable Supabase Free later."}</span></p></div> : !session ? <form onSubmit={sendMagicLink}><label>{language === "he" ? "מייל לקבלת קישור כניסה" : "Email for a secure sign-in link"}<span><Mail className="h-4 w-4" /><input autoComplete="email" onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" type="email" value={email} /></span></label><button disabled={syncState === "saving"} type="submit">{language === "he" ? "שליחת קישור כניסה" : "Email me a sign-in link"}</button><p>{language === "he" ? "אין סיסמה לזכור. החשבון דרוש רק לסנכרון בין מכשירים." : "No password to remember. An account is only needed for cross-device sync."}</p></form> : <div className="cloud-session"><p className="cloud-session-email"><CheckCircle2 className="h-4 w-4" />{session.user.email}</p>{remoteExists === false && <div className="cloud-choice"><strong>{language === "he" ? "זהו החשבון הראשון שלכם" : "This is your first cloud backup"}</strong><span>{language === "he" ? "שמרו את המידע שכבר נמצא במכשיר הזה." : "Start by backing up the data already on this device."}</span></div>}<div className="cloud-account-actions"><button onClick={() => void saveToCloud()} type="button"><UploadCloud className="h-4 w-4" />{language === "he" ? "גיבוי המכשיר לענן" : "Back up this device"}</button><button disabled={!remoteExists} onClick={() => void restoreFromCloud()} type="button"><Download className="h-4 w-4" />{language === "he" ? "טעינה מהענן" : "Restore from cloud"}</button></div><label className="cloud-autosync"><input checked={autoSync} disabled={!remoteExists} onChange={toggleAutoSync} type="checkbox" /><span><strong>{language === "he" ? "סנכרון אוטומטי" : "Automatic sync"}</strong><small>{language === "he" ? "שינויים יגובו לאחר השמירה המקומית" : "Changes are backed up after local save"}</small></span></label><button className="cloud-signout" onClick={() => void signOut()} type="button"><LogOut className="h-4 w-4" />{language === "he" ? "יציאה מהחשבון" : "Sign out"}</button></div>}
+      {!configured ? <div className="cloud-local-note"><CloudOff className="h-5 w-5" /><p><strong>{language === "he" ? "מצב מקומי פעיל" : "Local mode is active"}</strong><span>{language === "he" ? "הכול ממשיך לעבוד ולהישמר בדפדפן. בעל האתר יכול להפעיל Supabase Free בהמשך." : "Everything keeps working in this browser. The owner can enable Supabase Free later."}</span></p></div> : !session ? <form onSubmit={sendMagicLink}><label>{language === "he" ? "מייל לקבלת קישור כניסה" : "Email for a secure sign-in link"}<span><Mail className="h-4 w-4" /><input autoComplete="email" onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" type="email" value={email} /></span></label><button disabled={syncState === "saving"} type="submit">{language === "he" ? "שליחת קישור כניסה" : "Email me a sign-in link"}</button><p>{language === "he" ? "אין סיסמה לזכור. החשבון דרוש רק לסנכרון בין מכשירים." : "No password to remember. An account is only needed for cross-device sync."}</p></form> : <div className="cloud-session"><p className="cloud-session-email"><CheckCircle2 className="h-4 w-4" />{session.user.email}</p>{remoteExists === false && <div className="cloud-choice"><strong>{language === "he" ? "זהו החשבון הראשון שלכם" : "This is your first cloud backup"}</strong><span>{language === "he" ? "שמרו את המידע שכבר נמצא במכשיר הזה." : "Start by backing up the data already on this device."}</span></div>}<div className="cloud-account-actions"><button onClick={() => void saveToCloud()} type="button"><UploadCloud className="h-4 w-4" />{language === "he" ? "סנכרון עכשיו" : "Sync now"}</button><button onClick={() => void restoreFromCloud()} type="button"><Download className="h-4 w-4" />{language === "he" ? "בדיקת עדכונים מהענן" : "Check cloud updates"}</button></div><label className="cloud-autosync"><input checked={autoSync} onChange={toggleAutoSync} type="checkbox" /><span><strong>{language === "he" ? "סנכרון אוטומטי" : "Automatic sync"}</strong><small>{language === "he" ? "שמירה וטעינה בין מכשירים המחוברים לאותו חשבון" : "Save and load changes across devices signed in to the same account"}</small></span></label><button className="cloud-signout" onClick={downloadLocalCopy} type="button"><Download className="h-4 w-4" />{language === "he" ? "הורדת עותק מקומי לשחזור" : "Download a local recovery copy"}</button><button className="cloud-signout" onClick={() => void signOut()} type="button"><LogOut className="h-4 w-4" />{language === "he" ? "יציאה מהחשבון" : "Sign out"}</button></div>}
       {message && <p className={`cloud-message ${syncState === "error" ? "cloud-message-error" : ""}`}>{message}</p>}
       </section>
     </div>, document.body) : null}
