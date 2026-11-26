@@ -10,7 +10,7 @@ import { MessageTrustCard } from "@/components/message-trust-card";
 import { messageProvenance, messageInputsChanged, type MessageProvenance } from "@/lib/message-provenance";
 import { interviewSuggestions, appendInterviewSuggestion, initialInterviewPreparation } from "@/lib/interview-preparation";
 import { EvidenceLinksEditor } from "@/components/evidence-links-editor";
-import { relinkEvidence, evidenceForRequirements, evidenceContext, restorableRequirementEvidence, firstApplicationEvidence } from "@/lib/evidence-links";
+import { relinkEvidence, evidenceForRequirements, restorableRequirementEvidence, firstApplicationEvidence } from "@/lib/evidence-links";
 import { messageFollowUpTarget, followUpDate, captureReviewAction, captureStageChange } from "@/lib/message-follow-up";
 import { UsageIntentPicker } from "@/components/usage-intent-picker";
 import { AiEvidenceForm } from "@/components/ai-evidence-form";
@@ -21,6 +21,7 @@ import { completionLoopOptions } from "@/lib/completion-loop";
 import { localProductMetrics, goalMetrics, readinessStates, isCompatibleRecord, messageSubject, generateOutreachMessage, normalizeUsageIntent, goalAction, migrateSource, sourceOutcomes, hasPersonalAnchor, linkContactIds, privateEventProperties, safeSourceUrl, type ProductEventName, type MessageProfile, type UsageIntent, type SourceType } from "@/lib/decision-support";
 
 import Image from "next/image";
+import { reviewResumeText, cleanResumeDraft } from "@/lib/resume-review";
 import { readPublicSearchHandoff, selectedRoleAlternatives, suggestedRoleAlternatives, googleJobSearch, officialSearchUrl, changeSearchRole, searchPreferencesNeedReview, emptySearchProfile, sanitizeSearchProfile, normalizedSearchProfile, migrateSearchProfile, nextSearchDateWindow, skillSuggestionsForRole, localizedSearchFilter, companyJobSearchRoute, jobSearchSources, searchProfileChanged, broadenSearchProfile, patchSearchProfile, captureJobLink, jobLinkIdentity, type SearchProfile, type SearchOutcome, type JobSearchSource } from "@/lib/job-search";
 import { agendaEntries, scheduledTimestamp } from "@/lib/schedule";
 import { greetingForHour, meaningfulMomentum } from "@/lib/ux-context";
@@ -995,13 +996,6 @@ function offerDecisionLabel(outcome: OfferDecisionOutcome, language: "en" | "he"
   } as Record<OfferDecisionOutcome, string>)[outcome];
 }
 
-function applicationEvidenceContext(application: Application, language: "en" | "he") {
-  const mapped = application.requirementEvidence.length
-    ? application.requirementEvidence
-    : syncRequirementEvidence(application.requirements, []);
-  return evidenceContext(mapped, application.evidenceItems || [], application.id, language);
-}
-
 function landingVisibleForUrl(search: string) {
   const params = new URLSearchParams(search);
   if (params.get("welcome") === "1") return true;
@@ -1110,28 +1104,6 @@ function parseSalaryExpectation(value: string) {
 function compactMoney(value: number, currency: string) {
   const amount = value >= 1000 ? `${Math.round(value / 100) / 10}k` : `${Math.round(value)}`;
   return `${currency} ${amount}`;
-}
-
-function reviewResumeText(text: string) {
-  const clean = text.trim();
-  if (!clean) return [
-    "Paste the CV text below to receive content-specific feedback.",
-    "Text-based PDF, DOCX, and text files can be read on this device. Scanned PDFs and images need pasted text; OCR is not available.",
-    "Keep the CV to one or two focused pages and tailor the headline to the target role.",
-  ];
-  const lower = clean.toLowerCase();
-  const bullets = (clean.match(/[•●▪\-*]\s+/g) || []).length;
-  const numbers = (clean.match(/\b\d+(?:[.,]\d+)?%?\b/g) || []).length;
-  const results = [];
-  if (clean.length < 900) results.push("The CV may be too brief. Add evidence, scope, and outcomes to the most relevant roles.");
-  if (clean.length > 9000) results.push("The CV is dense. Remove repetition and protect the most relevant achievements for the first page.");
-  if (bullets < 5) results.push("Use concise achievement bullets so recruiters can scan impact quickly.");
-  if (numbers < 3) results.push("Add measurable outcomes—revenue, time saved, team size, growth, volume, or percentages.");
-  if (!/(summary|profile|professional overview)/i.test(clean)) results.push("Add a focused professional summary that names the target role and strongest differentiators.");
-  if (!/(skills|expertise|competencies)/i.test(clean)) results.push("Add a compact skills section aligned with the language used in target job descriptions.");
-  if (/(responsible for|duties included|helped with)/i.test(lower)) results.push("Replace passive phrases such as “responsible for” with strong action verbs and outcomes.");
-  if (results.length < 3) results.push("The structure is promising. Tailor the top third for each target role and move the strongest proof points higher.");
-  return results.slice(0, 5);
 }
 
 async function extractResumeText(file: File) {
@@ -2701,13 +2673,10 @@ function WorkspaceHome() {
     setWorkspaceApplicationId(null);
     setCvEvidenceApplicationId(application.id);
     if (application.linkedResumeId) { const linkedResume = resumes.find(item => item.id === application.linkedResumeId); if (linkedResume) selectResume(linkedResume); }
-    const evidenceContext = applicationEvidenceContext(application, language);
-    setRewriteDraft(language === "he"
-      ? `התאמת קורות חיים · ${application.role} ב־${application.company}\n\nמטרת העריכה\nהתאימו את הניסוח לדרישות המשרה תוך שימוש רק בראיות אמיתיות. אין להמציא ניסיון, מספרים או הישגים.\n\nדרישות וראיות זמינות\n${evidenceContext}\n\nתקציר מקצועי מותאם\n[כתבו 3–4 שורות המדגישות את הראיות הרלוונטיות ביותר]\n\nניסיון והישגים שכדאי להבליט\n• [הפכו כל ראיה לבולט תמציתי עם פעולה ותוצאה]\n\nבדיקה סופית\n• כל טענה נתמכת בניסיון אמיתי.\n• מילות מפתח משולבות בטבעיות.\n• פערים אינם מוצגים כניסיון קיים.`
-      : `CV TAILORING · ${application.role} at ${application.company}\n\nEDITING GOAL\nAlign the CV with the role requirements using only real evidence. Do not invent experience, numbers, or outcomes.\n\nAVAILABLE REQUIREMENTS & EVIDENCE\n${evidenceContext}\n\nTAILORED PROFESSIONAL PROFILE\n[Write 3–4 lines emphasizing the strongest relevant evidence]\n\nEXPERIENCE & IMPACT TO HIGHLIGHT\n• [Turn each proof point into a concise action-and-result bullet]\n\nFINAL CHECK\n• Every claim is grounded in real experience.\n• Keywords are used naturally.\n• Gaps are not presented as existing experience.`);
+    setRewriteDraft("");
     setExpandedTools((current) => ({ ...current, cv: true, interview: false, offer: false, studio: false, social: false }));
     navigateToSection("cv-lab");
-    setNotice(language === "he" ? "דרישות וראיות מהמועמדות הועברו למעבדת קורות החיים." : "Role requirements and evidence were added to the CV Lab.");
+    setNotice(language === "he" ? "המשרה נבחרה במיפוי הראיות. הדביקו או בחרו קורות חיים לבדיקה." : "Role selected in the evidence mapping. Paste or select a CV to review.");
   }
 
   function openOfferDecision(application: Application) {
@@ -3035,16 +3004,11 @@ function WorkspaceHome() {
   function createRewriteDraft() {
     const text = resumeText.trim();
     if (!text) {
-      setNotice("Paste your CV text first so the rewrite can be grounded in your real experience.");
+      setNotice(language === "he" ? "הדביקו תחילה את טקסט קורות החיים." : "Paste your CV text first.");
       return;
     }
-    const cleaned = text
-      .replace(/responsible for/gi, "Led")
-      .replace(/helped (?:to )?/gi, "Contributed to ")
-      .replace(/duties included/gi, "Delivered")
-      .replace(/\n{3,}/g, "\n\n");
-    setRewriteDraft(`PROFESSIONAL PROFILE\nTailor this 3–4 line introduction to your target role, seniority, and strongest measurable outcomes.\n\nEXPERIENCE & IMPACT\n${cleaned}\n\nFINAL CHECK\n• Lead bullets with action verbs.\n• Add measurable outcomes without inventing facts.\n• Mirror relevant keywords from the job description.\n• Keep the most relevant evidence on page one.`);
-    setNotice("Rewrite workspace created from your text.");
+    setRewriteDraft(cleanResumeDraft(text));
+    setNotice(language === "he" ? "נוצרה טיוטה נקייה מהטקסט המקורי." : "Clean draft created from your original text.");
   }
 
   function submitRecovery(event: FormEvent<HTMLFormElement>) {
@@ -4344,9 +4308,9 @@ function WorkspaceHome() {
                 <p className="mt-1 text-xs leading-5 text-slate-400">{language === "he" ? "ניתן לקרוא PDF עם טקסט, DOCX וקובצי טקסט. PDF סרוק, תמונות וקובצי Word ישנים מצריכים הדבקת טקסט. הקובץ המקורי נשאר במכשיר." : "Text-based PDF, DOCX, and text files are supported. Scanned PDFs, images, and older Word files need pasted text. The original file stays on your device."}</p>
               </div>
               <details className="mt-4" open={!resumeText.trim()}><summary className="cursor-pointer text-sm font-medium text-slate-400 hover:text-slate-200">{language === "he" ? "הדבקת טקסט או עריכת הטקסט שחולץ" : "Paste text or edit extracted text"}</summary><Field label={language === "he" ? "טקסט קורות החיים לבדיקה" : "CV text for review"}><textarea className="form-control mt-1 min-h-44 resize-y" onChange={(event) => setResumeText(event.target.value)} placeholder={language === "he" ? "הדביקו את טקסט קורות החיים כאן" : "Paste CV text here if the file is scanned or could not be read."} value={resumeText} /></Field></details>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">{reviewResumeText(resumeText).map((item, index) => <div className="insight-box" key={item}><p className="text-xs font-semibold text-cyan-300">{index === 0 ? "Top observation" : `Review point ${index + 1}`}</p><p className="mt-2 text-sm leading-6 text-slate-300">{item}</p></div>)}</div>
-              <div className="mt-5 flex flex-wrap items-center gap-3"><button className="primary-button bg-teal-700 hover:bg-teal-700" onClick={createRewriteDraft} type="button"><WandSparkles className="h-4 w-4" /> Create rewrite workspace</button><span className="text-xs leading-5 text-slate-500">Generative AI is not claimed in this local pilot; a secure server connection is required before AI rewriting can be enabled.</span></div>
-              {rewriteDraft && <div className="mt-5"><Field label="Improved working draft"><textarea className="form-control min-h-64 resize-y" onChange={(event) => setRewriteDraft(event.target.value)} value={rewriteDraft} /></Field><button className="secondary-button mt-3" onClick={() => { void navigator.clipboard.writeText(rewriteDraft); setNotice("Rewrite draft copied."); }} type="button">📋 Copy draft</button></div>}
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">{reviewResumeText(resumeText, language).map((item, index) => <div className="insight-box" key={item}><p className="text-xs font-semibold text-cyan-300">{language === "he" ? `נקודת בדיקה ${index + 1}` : `Review point ${index + 1}`}</p><p className="mt-2 text-sm leading-6 text-slate-300">{item}</p></div>)}</div>
+              <div className="mt-5 flex flex-wrap items-center gap-3"><button className="primary-button bg-teal-700 hover:bg-teal-700" onClick={createRewriteDraft} type="button"><WandSparkles className="h-4 w-4" /> {language === "he" ? "יצירת טיוטה נקייה" : "Create clean draft"}</button><span className="text-xs leading-5 text-slate-500">{language === "he" ? "עריכת ריווח בלבד, ללא שינוי עובדות או שכתוב באמצעות AI." : "Spacing cleanup only; no factual changes or AI rewriting."}</span></div>
+              {rewriteDraft && <div className="mt-5"><Field label={language === "he" ? "טיוטה נקייה להעתקה" : "Clean draft to copy"}><textarea className="form-control min-h-64 resize-y" onChange={(event) => setRewriteDraft(event.target.value)} value={rewriteDraft} /></Field><button className="secondary-button mt-3" onClick={() => { void navigator.clipboard.writeText(rewriteDraft); setNotice(language === "he" ? "הטיוטה הועתקה." : "Draft copied."); }} type="button">📋 {language === "he" ? "העתקת טיוטה" : "Copy draft"}</button></div>}
             </div>
           </div>
           )}

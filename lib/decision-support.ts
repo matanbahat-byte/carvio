@@ -2,7 +2,13 @@ export type UsageIntent = "active_search" | "better_role" | "market_exploration"
 export type ProductEventName = "application_created" | "application_updated" | "application_action_completed" | "application_snoozed" | "contact_created" | "contact_updated" | "intent_selected" | "search_opened_by_source" | "message_draft_created" | "message_draft_edited" | "message_draft_copied" | "follow_up_planned" | "session_started" | "session_heartbeat" | "return_visit" | "return_card_viewed" | "return_card_continued" | "return_card_dismissed" | "next_action_prompt_opened" | "next_action_scheduled" | "next_action_prompt_dismissed" | "screen_viewed" | "acquisition_attributed" | "product_shared" | "apply_readiness_viewed" | "first_opportunity_added" | "first_contact_added" | "opportunity_saved" | "marked_applied" | "evidence_added" | "recommendation_completed" | "recommendation_dismissed" | "recommendation_explanation_opened" | "recommendation_helpful" | "interview_recorded" | "cloud_account_opened" | "cloud_sign_in_link_requested" | "cloud_sign_in_completed";
 export function localProductMetrics(events: { name: string; occurredAt: string; properties: Record<string, unknown> }[], now = Date.now()) {
   const meaningful = new Set(["opportunity_saved", "contact_created", "marked_applied", "evidence_added", "message_draft_created", "recommendation_completed", "interview_recorded"]);
-  const starts = events.filter(event => event.name === "session_started");
+  // Synced arrays need not be chronological. Malformed legacy events and future
+  // timestamps cannot establish an observed session or activation.
+  events = events.filter(event => Number.isFinite(Date.parse(event.occurredAt)) && Date.parse(event.occurredAt) <= now);
+  const sessionId = (event: typeof events[number]) => typeof event.properties.sessionId === "string" && event.properties.sessionId.trim() ? event.properties.sessionId : null;
+  const starts = events.filter(event => event.name === "session_started" && sessionId(event))
+    .sort((a, b) => Date.parse(a.occurredAt) - Date.parse(b.occurredAt))
+    .filter((event, index, rows) => rows.findIndex(row => sessionId(row) === sessionId(event)) === index);
   const delays = starts.flatMap(start => { const first = events.filter(event => meaningful.has(event.name) && event.properties.sessionId === start.properties.sessionId && Date.parse(event.occurredAt) >= Date.parse(start.occurredAt)).sort((a,b) => Date.parse(a.occurredAt)-Date.parse(b.occurredAt))[0]; return first ? [(Date.parse(first.occurredAt)-Date.parse(start.occurredAt))/1000] : []; });
   const first = events.filter(event => meaningful.has(event.name)).map(event => Date.parse(event.occurredAt)).sort((a,b)=>a-b);
   const completed = events.filter(event => event.name === "recommendation_completed").length;
