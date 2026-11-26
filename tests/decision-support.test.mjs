@@ -77,3 +77,15 @@ test('link/unlink use IDs, deduplicate and do not mutate source data',()=>{
 test('analytics never store company names, emails, CVs or draft content',()=>{
   assert.deepEqual(privateEventProperties({company:'Private',email:'x@y.com',draft:'private',status:'Applied',days:2}),{status:'Applied',days:2});
 });
+
+test('local activation ignores unidentifiable sessions, invalid/future events and duplicate starts',()=>{
+ const at='2026-11-26T10:00:00Z', now=Date.parse('2026-11-26T12:00:00Z');
+ const event=(name,occurredAt,sessionId)=>({name,occurredAt,properties:sessionId?{sessionId}:{}});
+ const rows=[event('session_started',at),event('opportunity_saved','2026-11-26T10:01:00Z'),event('session_started',at,'a'),event('session_started',at,'a'),event('opportunity_saved','2026-11-26T10:02:00Z','a'),event('session_started','invalid','bad'),event('session_started','2026-11-27T10:00:00Z','future')];
+ const metrics=localProductMetrics(rows,now);assert.equal(metrics.sessions,1);assert.equal(metrics.activatedSessions,1);assert.equal(metrics.firstMeaningfulSeconds,120);
+});
+
+test('local time to first value follows chronological sessions rather than sync array order',()=>{
+ const rows=[{name:'session_started',occurredAt:'2026-11-26T11:00:00Z',properties:{sessionId:'b'}},{name:'opportunity_saved',occurredAt:'2026-11-26T11:05:00Z',properties:{sessionId:'b'}},{name:'session_started',occurredAt:'2026-11-26T10:00:00Z',properties:{sessionId:'a'}},{name:'opportunity_saved',occurredAt:'2026-11-26T10:01:00Z',properties:{sessionId:'a'}}];
+ assert.equal(localProductMetrics(rows,Date.parse('2026-11-26T12:00:00Z')).firstMeaningfulSeconds,60);
+});

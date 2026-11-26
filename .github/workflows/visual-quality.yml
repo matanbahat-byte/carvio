@@ -27,7 +27,7 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://cloud-fixture.invalid
           NEXT_PUBLIC_SUPABASE_ANON_KEY: isolated-fixture-anon-key
-      - run: npm install --no-save --package-lock=false playwright@1.58.2 @electric-sql/pglite@0.5.17
+      - run: npm install --no-save --package-lock=false playwright@1.58.2 @axe-core/playwright@4.11.0 @electric-sql/pglite@0.5.17
       - run: npx playwright install --with-deps chromium
       - name: Verify isolated database ownership and stale writes
         run: CARVIO_QA_NODE_MODULES="$PWD/node_modules" node tests/cloud-sync-database.mjs
@@ -37,6 +37,9 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           node --input-type=module -e 'for(let i=0;i<100;i++){try{if((await fetch("http://127.0.0.1:3120/find")).ok)process.exit(0)}catch{}await new Promise(r=>setTimeout(r,200));}process.exit(1)'
+          node tests/resume-review-browser.mjs
+          node tests/accessibility-browser.mjs
+          node tests/interview-layout-browser.mjs
           node tests/interview-preparation-browser.mjs
           node tests/modal-close-browser.mjs
           node tests/ats-capture-browser.mjs
@@ -58,6 +61,8 @@ jobs:
         with:
           name: carvio-visual-quality
           path: |
+            artifacts/acceptance-65/
+            artifacts/interview-layout/
             artifacts/visual/after/
             artifacts/cloud-sync/
             artifacts/handoff/
