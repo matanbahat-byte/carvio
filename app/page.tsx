@@ -1442,12 +1442,15 @@ function WorkspaceHome() {
     setApplicationDraft(current => {
       if (current.jobUrl !== url) return current;
       const edited = captureEditedFields.current;
+      const requirements = extractJobRequirements(current.jobDescription.trim() || details.jobDescription || "");
       return {
         ...current,
         role: edited.has("role") ? current.role : details.role || current.role,
         company: edited.has("company") ? current.company : details.company || current.company,
         location: edited.has("location") ? current.location : details.location || current.location,
         jobDescription: current.jobDescription.trim() ? current.jobDescription : details.jobDescription || current.jobDescription,
+        requirements: current.requirements || requirements.join("\n"),
+        requirementEvidence: current.requirementEvidence.length ? current.requirementEvidence : requirements.map(requirement => ({ requirement, evidence: "", category: requirementCategory(requirement) })),
       };
     });
   }, []);

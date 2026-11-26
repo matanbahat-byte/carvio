@@ -1,5 +1,6 @@
+import { extractJobRequirements } from "./job-requirements.ts";
 import { cleanJobDescription } from "./job-description.ts";
-export type VerifiedJobDetails = { role: string; company: string; location: string; jobDescription?: string };
+export type VerifiedJobDetails = { role: string; company: string; location: string; jobDescription?: string; descriptionStatus?: "available" | "partial" | "missing" };
 export type Availability = { status: "published" | "not-published" | "unknown"; reason: "listed" | "absent" | "unsupported" | "unreachable"; checkedAt: string; details?: VerifiedJobDetails };
 type Target = { provider: "greenhouse" | "lever"; id: string; detail: string; board: string };
 
@@ -24,8 +25,8 @@ export function availabilityTarget(input: string): Target | null {
   return null;
 }
 
-async function boundedJson(response: Response): Promise<unknown> {
-  if (!response.headers.get("content-type")?.includes("application/json") || !response.body) throw new Error("Invalid response");
+async function boundedText(response: Response): Promise<string> {
+  if (!response.body) throw new Error("Invalid response");
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
   let size = 0;
@@ -41,7 +42,30 @@ async function boundedJson(response: Response): Promise<unknown> {
   const all = new Uint8Array(size);
   let offset = 0;
   for (const chunk of chunks) { all.set(chunk, offset); offset += chunk.length; }
-  return JSON.parse(new TextDecoder().decode(all));
+  return new TextDecoder().decode(all);
+}
+
+async function boundedJson(response: Response): Promise<unknown> {
+  if (!response.headers.get("content-type")?.includes("application/json")) throw new Error("Invalid response");
+  return JSON.parse(await boundedText(response));
+}
+
+async function leverCompany(input: string, request: typeof fetch): Promise<string> {
+  try {
+    // Input already passed the exact official Lever hostname/path allowlist.
+    const response = await request(input, { redirect: "error", cache: "no-store", signal: AbortSignal.timeout(3000), headers: { Accept: "text/html" } });
+    if (!response.ok || !response.headers.get("content-type")?.includes("text/html")) return "";
+    const html = await boundedText(response);
+    for (const match of html.matchAll(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([^]*?)<\/script>/gi)) {
+      const payload = JSON.parse(match[1]);
+      const objects = Array.isArray(payload) ? payload : Array.isArray(payload?.["@graph"]) ? payload["@graph"] : [payload];
+      for (const item of objects) if (item?.["@type"] === "JobPosting") {
+        const name = verifiedField(item.hiringOrganization?.name);
+        if (name) return cleanJobDescription(name);
+      }
+    }
+  } catch { /* Missing source metadata is not a reason to invent a company. */ }
+  return "";
 }
 
 function verifiedField(value: unknown): string {
@@ -74,17 +98,25 @@ export async function checkJobAvailability(input: string, request: typeof fetch 
         categories?: { location?: unknown };
         content?: unknown;
         descriptionPlain?: unknown;
+        description?: unknown;
+        lists?: { text?: unknown; content?: unknown }[];
+        additional?: unknown;
+        additionalPlain?: unknown;
       } | null;
       const lever = target.provider === "lever";
       const role = verifiedField(lever ? job?.text : job?.title);
       if (!job || String(job.id) !== target.id || !role) return result("unknown", "unreachable");
+      const sections = lever ? [jobDescriptionText(job.descriptionPlain || job.description), ...(Array.isArray(job.lists) ? job.lists.map(section => [jobDescriptionText(section.text), jobDescriptionText(section.content)].filter(Boolean).join("\n")) : []), ["Additional information", jobDescriptionText(job.additionalPlain || job.additional)].filter((part, index, parts) => index === 1 || Boolean(parts[1])).join("\n")] : [jobDescriptionText(job.content)];
+      const description = sections.filter(Boolean).join("\n\n");
+      const company = verifiedField(job.company_name) || (lever ? await leverCompany(input, request) : "");
       return {
         ...result("published", "listed"),
         details: {
           role,
-          company: lever ? "" : verifiedField(job.company_name),
+          company,
           location: verifiedField(lever ? job.categories?.location : job.location?.name),
-          ...(jobDescriptionText(lever ? job.descriptionPlain : job.content) ? { jobDescription: jobDescriptionText(lever ? job.descriptionPlain : job.content) } : {}),
+          ...(description ? { jobDescription: description } : {}),
+          descriptionStatus: !description ? "missing" : extractJobRequirements(description).length ? "available" : "partial",
         },
       };
     }

@@ -41,3 +41,7 @@ test('marketing-only prose and code do not produce guessed requirements',()=>{
 test('Hebrew HTML requirements and preferred skills remain distinguishable',()=>{
  assert.deepEqual(extractJobRequirements('<h2>דרישות</h2><ul><li>ניסיון בניהול מלאי</li><li>אנגלית חובה</li></ul><h2>יתרון</h2><p>SQL</p>'),['ניסיון בניהול מלאי','אנגלית חובה','יתרון: SQL']);
 });
+test('source qualification headings stop before compensation and additional marketing',()=>{
+ const text='About us\nBuild a leading platform.\nMinimum qualifications\nStrong SQL skills\nPreferred qualifications\nCPA certification\nThe annual compensation range for this role is listed below.\nFor sales roles, the range includes commission.\nAnnual Salary:\n$100000\nAdditional information\nExperience our amazing benefits.';
+ assert.deepEqual(extractJobRequirements(text),['Strong SQL skills','Preferred qualifications: CPA certification']);
+});

@@ -1,14 +1,14 @@
 import { cleanJobDescription } from "./job-description.ts";
 type RequirementCategory = "Experience" | "Skills" | "Tools" | "Education" | "Other";
 
-const requirementLabel = "required|requirements?|qualifications?|what you(?:'|’)ll bring|what we(?:'|’)re looking for|skills?|experience|דרישות(?: חובה)?|חובה|כישורים|מה נדרש|ניסיון";
+const requirementLabel = "required|requirements?|(?:minimum |basic )?qualifications?|what we require|what we value|what you(?:'|’)ll bring|what we(?:'|’)re looking for|skills?|experience|דרישות(?: חובה)?|חובה|כישורים|מה נדרש|ניסיון";
 const optionalLabel = "nice[- ]to[- ]haves?|preferred(?: qualifications?| skills?)?|optional|bonus|יתרון(?: משמעותי)?|רצוי|דרישות יתרון";
 const requirementHeading = new RegExp(`^(?<label>${requirementLabel}|${optionalLabel})(?:\\s*:\\s*(?<body>.*))?$`, "i");
 const optionalHeading = new RegExp(`^(?:${optionalLabel})$`, "i");
 const standaloneSkill = /^(?:[A-Z][A-Z0-9+#.]{0,9}|sql|aws|python|excel|figma|jira|salesforce|javascript|typescript|react|אקסל|פייתון)[.!]?$/u;
 const requirementSignal = /\b(?:years?|experience|required|must|proficien\w*|ability|knowledge|degree|background)\b|ניסיון|חובה|יכולת|ידע|תואר/i;
 const roleSignal = /\b(?:manage|lead|own|develop|build|deliver|advanced|excel|sql|python)\b|ניהול|הובלה|אחריות|שליטה/i;
-const nonRequirementHeadings = /^(?:responsibilities|about (?:the role|you|us)|benefits|what we offer|the opportunity|תחומי אחריות|על התפקיד|אודות|מה אנחנו מציעים)\s*:?\s*$/i;
+const nonRequirementHeadings = /^(?:responsibilities|about (?:the role|you|us)|benefits|what we offer|the opportunity|additional information|logistics|annual salary|compensation|life at .+|תחומי אחריות|על התפקיד|אודות|מה אנחנו מציעים)\s*:?\s*$/i;
 
 export function splitRequirementText(value: string) {
   return value
@@ -51,6 +51,7 @@ export function extractJobRequirements(description: string) {
   let section: "required" | "optional" | "other" | null = null;
   let preferredLabel = "";
   for (const fragment of splitRequirementText(cleanJobDescription(description))) {
+    if (/^(?:the annual compensation|for sales roles, the range|salary range|טווח השכר)/i.test(fragment)) { section = "other"; continue; }
     const heading = requirementHeading.exec(fragment)?.groups;
     if (heading) {
       section = optionalHeading.test(heading.label) ? "optional" : "required";
@@ -69,5 +70,5 @@ export function extractJobRequirements(description: string) {
     }
   }
   const signaled = other.filter((item) => requirementSignal.test(item) || roleSignal.test(item));
-  return uniqueRequirements([...candidates, ...signaled]);
+  return uniqueRequirements(candidates.length ? candidates : signaled);
 }
