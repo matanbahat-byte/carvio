@@ -415,7 +415,7 @@ const emptyMessageProfile: MessageProfile = { recipientType: "Recruiter", tone: 
 
 const statusStyles: Record<ApplicationStatus, string> = {
   Considering: "border-cyan-400/25 bg-cyan-400/10 text-cyan-800",
-  Applied: "border-sky-400/25 bg-sky-400/10 text-sky-200",
+  Applied: "border-sky-400/25 bg-sky-400/10 text-sky-800",
   Interview: "border-teal-700/25 bg-teal-700/10 text-teal-700",
   Offer: "border-emerald-400/25 bg-emerald-400/10 text-emerald-200",
   Accepted: "border-teal-500/30 bg-teal-500/12 text-teal-700",
