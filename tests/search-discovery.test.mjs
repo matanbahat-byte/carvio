@@ -16,7 +16,7 @@ test('selected title alternatives reach every source with location and mandatory
 });
 test('title suggestions are opt-in, respect seniority, support Hebrew, and never guess unknown roles',()=>{
  assert.ok(suggestedRoleAlternatives('Global Planning Director').includes('Head of Planning'));
- assert.ok(suggestedRoleAlternatives('מנהל שרשרת אספקה').includes('Head of Supply Chain'));
+ assert.ok(suggestedRoleAlternatives('מנהל שרשרת אספקה').includes('Supply Chain Manager'));
  assert.deepEqual(suggestedRoleAlternatives('Unknown Profession'),[]);
  assert.ok(suggestedRoleAlternatives('Senior HRBP').every(title=>title.startsWith('Senior')));
  const primary={...profile,alternativeRoles:''};assert.doesNotMatch(googleJobSearch(primary).query,/Head of Planning/);

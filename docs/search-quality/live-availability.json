@@ -1,0 +1,22 @@
+[
+  {
+    "url": "https://job-boards.greenhouse.io/deliveroo/jobs/8202627",
+    "status": "published",
+    "reason": "listed",
+    "checkedAt": "2026-11-27T04:48:57.083Z",
+    "role": "Software Engineer, New Grad",
+    "location": "London, United Kingdom - Deliveroo"
+  },
+  {
+    "url": "https://job-boards.greenhouse.io/deliveroo/jobs/999999999999999",
+    "status": "not-published",
+    "reason": "absent",
+    "checkedAt": "2026-11-27T04:49:02.187Z"
+  },
+  {
+    "url": "https://www.linkedin.com/jobs/search/?keywords=Software+Engineer",
+    "status": "unknown",
+    "reason": "unsupported",
+    "checkedAt": ""
+  }
+]

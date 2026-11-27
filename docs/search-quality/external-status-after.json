@@ -1,0 +1,142 @@
+[
+  {
+    "case": 1,
+    "provider": "linkedin",
+    "status": 429,
+    "finalHost": "www.linkedin.com",
+    "availability": "not verified"
+  },
+  {
+    "case": 2,
+    "provider": "indeed",
+    "status": 200,
+    "finalHost": "il.indeed.com",
+    "availability": "not verified"
+  },
+  {
+    "case": 3,
+    "provider": "google",
+    "status": 200,
+    "finalHost": "www.google.com",
+    "availability": "not verified"
+  },
+  {
+    "case": 4,
+    "provider": "careers",
+    "status": 200,
+    "finalHost": "www.google.com",
+    "availability": "not verified"
+  },
+  {
+    "case": 5,
+    "provider": "linkedin",
+    "status": 500,
+    "finalHost": "www.linkedin.com",
+    "availability": "not verified"
+  },
+  {
+    "case": 6,
+    "provider": "indeed",
+    "status": 200,
+    "finalHost": "ie.indeed.com",
+    "availability": "not verified"
+  },
+  {
+    "case": 7,
+    "provider": "google",
+    "status": 200,
+    "finalHost": "www.google.com",
+    "availability": "not verified"
+  },
+  {
+    "case": 8,
+    "provider": "careers",
+    "status": 200,
+    "finalHost": "www.google.com",
+    "availability": "not verified"
+  },
+  {
+    "case": 9,
+    "provider": "linkedin",
+    "status": 500,
+    "finalHost": "www.linkedin.com",
+    "availability": "not verified"
+  },
+  {
+    "case": 10,
+    "provider": "indeed",
+    "status": 200,
+    "finalHost": "fr.indeed.com",
+    "availability": "not verified"
+  },
+  {
+    "case": 11,
+    "provider": "google",
+    "status": 200,
+    "finalHost": "www.google.com",
+    "availability": "not verified"
+  },
+  {
+    "case": 12,
+    "provider": "careers",
+    "status": 200,
+    "finalHost": "www.google.com",
+    "availability": "not verified"
+  },
+  {
+    "case": 13,
+    "provider": "linkedin",
+    "status": 500,
+    "finalHost": "www.linkedin.com",
+    "availability": "not verified"
+  },
+  {
+    "case": 14,
+    "provider": "indeed",
+    "status": 200,
+    "finalHost": "be.indeed.com",
+    "availability": "not verified"
+  },
+  {
+    "case": 15,
+    "provider": "google",
+    "status": 200,
+    "finalHost": "www.google.com",
+    "availability": "not verified"
+  },
+  {
+    "case": 16,
+    "provider": "careers",
+    "status": 200,
+    "finalHost": "www.google.com",
+    "availability": "not verified"
+  },
+  {
+    "case": 17,
+    "provider": "linkedin",
+    "status": 500,
+    "finalHost": "www.linkedin.com",
+    "availability": "not verified"
+  },
+  {
+    "case": 18,
+    "provider": "indeed",
+    "status": 200,
+    "finalHost": "au.indeed.com",
+    "availability": "not verified"
+  },
+  {
+    "case": 19,
+    "provider": "google",
+    "status": 200,
+    "finalHost": "www.google.com",
+    "availability": "not verified"
+  },
+  {
+    "case": 20,
+    "provider": "careers",
+    "status": 200,
+    "finalHost": "www.google.com",
+    "availability": "not verified"
+  }
+]
