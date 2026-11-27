@@ -3793,7 +3793,13 @@ function WorkspaceHome() {
       <div className="carvio-language-bar carvio-workspace-language" dir="ltr">{languageSwitcher}</div>
       <a href={`/find?lang=${language}`} className="carvio-public-search-shortcut mx-auto mb-3 inline-flex min-h-11 items-center gap-2 rounded-full border border-teal-700 bg-teal-700 px-5 py-2 text-sm font-extrabold text-white shadow-lg transition hover:bg-teal-800"><Search className="h-4 w-4" />{language === "he" ? "חיפוש המשרות החדש ✦" : "New job search ✦"}</a>
       {!demoMode && <RadarAttribution workspace/>}
-      {!demoMode && <JobRadar language={language} profile={submittedSearchProfile || searchProfile} successfulSearch={showSearchResults && !!submittedSearchProfile} />}
+      {!demoMode && <JobRadar language={language} profile={submittedSearchProfile || searchProfile} successfulSearch={showSearchResults && !!submittedSearchProfile} onSelectJob={job => {
+        const existing=applications.find(item=>jobLinkIdentity(item.jobUrl)===jobLinkIdentity(job.source_url));
+        if(existing){switchView("applications");setWorkspaceApplicationId(existing.id);return;}
+        if(!job.is_active||Date.parse(job.expires_at)<=Date.now()){setNotice(language==="he"?"אין מועמדות שמורה למשרה הזו, והיא כבר אינה זמינה לשמירה חדשה.":"No saved application exists for this job, and it is no longer available to save.");return;}
+        setApplicationDraft({...emptyApplication,role:job.title,company:job.company,location:job.location,jobUrl:job.source_url,source:job.provider==='lever'?'Lever':'Greenhouse'});
+        setSmartCaptureError("");setSmartCaptureSavedId(null);setSmartCaptureStep("review");setShowSmartCapture(true);
+      }} />}
       <div className="calm-content mx-auto flex max-w-7xl flex-col gap-8">
         {demoMode && <aside className="demo-mode-banner" role="status"><strong>{language === "he" ? "מצב דמו · נתונים פיקטיביים בלבד" : "Demo mode · fictional data only"}</strong><p>{language === "he" ? "נתוני הדמו נשארים בסיור. סביבת העבודה האישית נשמרת במכשיר הזה, ואפשר להתחבר בה כדי לסנכרן." : "Demo changes stay in this session. Your personal workspace is saved on this device. Sign in there to sync across devices."}</p><button className="secondary-button" type="button" onClick={() => { window.localStorage.setItem(LANGUAGE_KEY, JSON.stringify(language)); window.location.assign("/?workspace=1"); }}>{language === "he" ? "פתיחת סביבת עבודה במכשיר הזה" : "Open workspace on this device"}</button></aside>}
         <nav aria-label={language === "he" ? "ניווט ראשי ב־Carvio" : "Carvio main navigation"} className="calm-desktop-nav">

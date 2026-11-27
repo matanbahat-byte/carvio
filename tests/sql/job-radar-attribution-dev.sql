@@ -23,11 +23,14 @@ begin
  select token into t from public.create_radar_attribution_links(d);
  if t is null then raise exception 'opaque link missing';end if;
  execute 'reset role';perform set_config('request.jwt.claim.sub',a::text,true);execute 'set local role authenticated';
+ if jsonb_array_length(public.get_job_radar_workspace()->'jobs')<>0 then raise exception 'unsent history exposed';end if;
  if public.record_radar_action(t,'clicked') then raise exception 'unsent message attributed';end if;
  execute 'reset role';execute 'set local role service_role';
  if not public.gate_radar_dispatch(d,v) then raise exception 'gate failed';end if;
  perform public.finish_radar_dispatch(d,'sent','gmail_accepted','simulated-only-no-network');
  execute 'reset role';perform set_config('request.jwt.claim.sub',a::text,true);execute 'set local role authenticated';
+ if jsonb_array_length(public.get_job_radar_workspace()->'jobs')<>1 then raise exception 'sent owner history missing';end if;
+ if public.get_job_radar_workspace()::text like '%token%' then raise exception 'history exposed token';end if;
  if not public.record_radar_action(t,'clicked') or not public.record_radar_action(t,'clicked') or not public.record_radar_action(t,'returned') then raise exception 'owner action failed';end if;
  if public.record_radar_action(t,'saved') then raise exception 'save invented without workspace';end if;
  insert into public.user_workspaces(user_id,workspace_data) values(a,jsonb_build_object('applications',jsonb_build_array(jsonb_build_object('id','app-fixture','jobUrl','https://boards.greenhouse.io/attribution-fixture/jobs/1','status','Applied')),'actionEvents',jsonb_build_array(jsonb_build_object('targetId','app-fixture','name','opportunity_saved','occurredAt',clock_timestamp()),jsonb_build_object('targetId','app-fixture','name','marked_applied','occurredAt',clock_timestamp()))));
@@ -38,6 +41,7 @@ begin
  if not public.record_radar_action(t,'saved') or not public.record_radar_action(t,'applied') then raise exception 'synced workspace evidence rejected';end if;
  perform public.record_radar_action(t,'applied');
  perform set_config('request.jwt.claim.sub',b::text,true);
+ if jsonb_array_length(public.get_job_radar_workspace()->'jobs')<>0 then raise exception 'other owner history exposed';end if;
  if public.record_radar_action(t,'clicked') then raise exception 'forwarded token attributed to other user';end if;
  denied:=false;begin perform count(*) from public.job_radar_attribution_links;exception when insufficient_privilege then denied:=true;end;
  if not denied then raise exception 'private token mapping exposed';end if;
@@ -48,6 +52,8 @@ begin
  perform set_config('request.jwt.claim.sub',a::text,true);execute 'set local role authenticated';
  if public.record_radar_action(t,'clicked') then raise exception 'revoked owner still attributed';end if;
  execute 'reset role';execute 'set local role anon';
+ denied:=false;begin perform public.get_job_radar_workspace();exception when insufficient_privilege then denied:=true;end;
+ if not denied then raise exception 'anonymous history access';end if;
  denied:=false;begin perform public.record_radar_action(t,'clicked');exception when insufficient_privilege then denied:=true;end;
  if not denied then raise exception 'anonymous/scanner could attribute';end if;
  execute 'reset role';
