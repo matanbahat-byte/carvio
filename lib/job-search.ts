@@ -471,3 +471,8 @@ export function uniqueSavedJobs<T extends { jobUrl: string }>(items: T[]): T[] {
     seen.add(identity); return true;
   });
 }
+
+/** Employer results are verified inside CARVIO; Google remains a separate source. */
+export function verifiedCompanySearchUrl(profile: SearchProfile, language: Language = 'en') {
+ return '/company-jobs?'+new URLSearchParams({q:canonicalRoleInput(profile.role),country:providerCountry(profile.country),city:profile.location,radius:profile.radius,lang:language});
+}

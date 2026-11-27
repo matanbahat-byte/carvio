@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ShareSearchButton } from "@/components/share-search-button";
 import { PublicSearchForm } from "@/components/public-search-form";
 import { BriefcaseBusiness, MapPin, Search, Sparkles, ExternalLink, CheckCircle2, ArrowLeft } from "lucide-react";
-import { publicSearchSharePath, emptySearchProfile, jobSearchSources, providerCountry, suggestedRoleAlternatives, officialSearchUrl } from "@/lib/job-search";
+import { publicSearchSharePath, emptySearchProfile, jobSearchSources, providerCountry, suggestedRoleAlternatives, verifiedCompanySearchUrl as officialSearchUrl } from "@/lib/job-search";
 export const dynamic = "force-dynamic";
 
 type FindSearchParams = { [key: string]: string | string[] | undefined };
