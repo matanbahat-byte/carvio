@@ -6,6 +6,17 @@ begin
  insert into auth.users(id,email,email_confirmed_at,is_anonymous) values(a,a::text||'@example.test',now(),false),(b,b::text||'@example.test',now(),false);
  insert into public.job_radar_preferences(user_id,enabled,preferences,frequency_per_week,language,consent_version,consented_at) values(a,true,'{"role":"Recruitment Manager","country":"Israel","city":"Tel Aviv","seniority":"","workModel":"","employmentType":""}',3,'he','job-radar-v1',now()) returning updated_at into v;
  insert into public.job_radar_listings(id,source_id,title,company,location,source_url,provider,expires_at) values(lid,'greenhouse:attribution-fixture:1','Fixture role','Fixture company','Tel Aviv, Israel','https://boards.greenhouse.io/attribution-fixture/jobs/1','greenhouse',now()+interval '7 days');
+
+ -- Five fictional, explicitly consented accounts; this transaction always rolls back.
+ for n in 1..4 loop
+  declare extra uuid:=gen_random_uuid();begin
+   insert into auth.users(id,email,email_confirmed_at,is_anonymous) values(extra,extra::text||'@example.test',now(),false);
+   insert into public.job_radar_preferences(user_id,enabled,preferences,frequency_per_week,language,consent_version,consented_at) values(extra,true,'{"role":"HR","country":"Israel"}',2,'en','job-radar-v1',now());
+   insert into public.job_radar_pilot_members(user_id) values(extra);
+  end;
+ end loop;
+ insert into public.job_radar_pilot_members(user_id) values(a);
+ update public.job_radar_pilot_control set approved_cohort_size=5,enabled=true where singleton;
  execute 'set local role service_role';
  d:=public.claim_radar_dispatch(a,current_date,'live',v);
  if not public.reserve_radar_jobs(d,'[{"id":"greenhouse:attribution-fixture:1","url":"https://boards.greenhouse.io/attribution-fixture/jobs/1","canonical":"https://boards.greenhouse.io/attribution-fixture/jobs/1"}]') then raise exception 'reserve failed';end if;

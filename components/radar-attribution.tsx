@@ -1,4 +1,5 @@
 'use client';
+import {emitProductEvent} from '@/lib/product-analytics';
 import {useEffect} from 'react';
 import {createClient} from '@/lib/supabase/client';
 const KEY='carvio.radar.attribution.v1';
@@ -19,7 +20,8 @@ export function RadarAttribution({token,workspace=false}:{token?:string;workspac
     // The same-origin server verifies the account, consent and token ownership.
     // Do not block attribution on a second browser-to-Auth round trip.
     for(const entry of read())for(const event of workspace?['clicked','returned','saved','applied']:['clicked']){
-     if(stopped)return;await fetch('/api/radar-events',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({token:entry.token,event}),signal:AbortSignal.timeout(15000)});
+     if(stopped)return;const response=await fetch('/api/radar-events',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({token:entry.token,event}),signal:AbortSignal.timeout(15000)});
+     if(event==='clicked'&&response.ok&&(await response.json()).recorded===true){emitProductEvent('radar_visit_verified',{method:'job_radar'});}
     }
    }catch{/* Analytics failures never block save, navigation or sign-in. */}finally{running=false;if(pending&&!stopped){pending=false;void record();}}
   };

@@ -7,6 +7,17 @@ declare
 begin
  insert into auth.users(id,email,email_confirmed_at,is_anonymous) values(u,u::text||'@example.test',now(),false);
  insert into public.job_radar_preferences(user_id,enabled,preferences,frequency_per_week,language,consent_version,consented_at) values(u,true,'{"role":"Recruitment Manager","country":"Israel","city":"Tel Aviv","seniority":"","workModel":"","employmentType":""}',3,'he','job-radar-v1',now()) returning updated_at into version;
+
+ -- Five fictional, explicitly consented accounts; this transaction always rolls back.
+ for n in 1..4 loop
+  declare extra uuid:=gen_random_uuid();begin
+   insert into auth.users(id,email,email_confirmed_at,is_anonymous) values(extra,extra::text||'@example.test',now(),false);
+   insert into public.job_radar_preferences(user_id,enabled,preferences,frequency_per_week,language,consent_version,consented_at) values(extra,true,'{"role":"HR","country":"Israel"}',2,'en','job-radar-v1',now());
+   insert into public.job_radar_pilot_members(user_id) values(extra);
+  end;
+ end loop;
+ insert into public.job_radar_pilot_members(user_id) values(u);
+ update public.job_radar_pilot_control set approved_cohort_size=5,enabled=true where singleton;
  execute 'set local role service_role';
  d:=public.claim_radar_dispatch(u,'2026-11-29','dry-run',version);
  if d is null then raise exception 'claim failed';end if;
@@ -22,6 +33,10 @@ begin
  d3:=public.claim_radar_dispatch(u,'2026-11-29','live',version);
  if not public.reserve_radar_jobs(d3,jobs) then raise exception 'simulation leaked into live history';end if;
  execute 'reset role';
+ update public.job_radar_pilot_control set enabled=false where singleton;
+ if not exists(select 1 from public.job_radar_dispatches where id=d3 and state='cancelled' and reason='pilot_stopped') then raise exception 'global stop failed';end if;
+ if exists(select 1 from public.job_radar_reservations where dispatch_id=d3) then raise exception 'stop retained pending reservation';end if;
+ update public.job_radar_pilot_control set enabled=true where singleton;
  -- Revocation must synchronously cancel prepared attempts and release unsent reservations.
  update public.job_radar_preferences set enabled=false,revoked_at=now(),updated_at=clock_timestamp() where user_id=u;
  if not exists(select 1 from public.job_radar_dispatches where id=d3 and state='cancelled') then raise exception 'pending send not cancelled';end if;
