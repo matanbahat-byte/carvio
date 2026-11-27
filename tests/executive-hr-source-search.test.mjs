@@ -28,5 +28,6 @@ test('executive HR Google routes target title matches in the Web view and preser
   assert.equal(url.searchParams.get('udm'),'web');assert.equal(url.searchParams.get('gl'),'il');
   assert.equal(url.searchParams.has('tbs'),!options.anyTime);
   if(options.careerPages)assert.match(result.query,/-site:linkedin.com/);
+  else {assert.match(result.query,/site:linkedin.com\/jobs\/view\//);assert.match(result.query,/site:job-boards.greenhouse.io/);assert.doesNotMatch(result.query,/site:linkedin.com\/jobs(?:\s|\))/);}
  }
 });
