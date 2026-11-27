@@ -72,14 +72,14 @@ export function createRadarOAuth(config:OAuthConfig,store:OAuthStore,request:typ
       return new Response('<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>CARVIO Gmail setup</title><h1>Connect CARVIO Gmail</h1><p>Use carvio.team@gmail.com only. Connecting does not enable sending.</p><form method="post"><label>Operator setup key <input name="setup_token" type="password" required autocomplete="off" maxlength="256"></label><button>Continue to Google</button></form></html>',{headers:{...headers,'Referrer-Policy':'same-origin','Content-Type':'text/html; charset=utf-8'}});
     },
     async start(req:Request) {
-      if(new URL(req.url).origin!==config.origin||req.headers.get('origin')!==config.origin)return reply('Forbidden',403);
+      if(new URL(req.url).origin!==config.origin||req.headers.get('origin')!==config.origin)return reply('Forbidden: origin not allowed',403);
       if(req.headers.get('content-type')?.split(';')[0]!=='application/x-www-form-urlencoded')return reply('Unsupported form',415);
       // Bound streaming input even when Content-Length is missing or dishonest.
       const reader=req.body?.getReader();if(!reader)return reply('Invalid form',400);
       let body='';let size=0;
       try {while(true){const {value,done}=await reader.read();if(done)break;size+=value.length;if(size>2048){await reader.cancel();return reply('Form too large',413);}body+=Buffer.from(value).toString('utf8');}}catch{return reply('Invalid form',400);}
-      const supplied=new URLSearchParams(body).get('setup_token')||'';
-      if(!timingSafeEqual(Buffer.from(digest(supplied),'hex'),Buffer.from(digest(config.setupToken),'hex')))return reply('Forbidden',403);
+      const supplied=(new URLSearchParams(body).get('setup_token')||'').trim();
+      if(!timingSafeEqual(Buffer.from(digest(supplied),'hex'),Buffer.from(digest(config.setupToken),'hex')))return reply('Forbidden: setup key not accepted',403);
       const state=randomBytes(32).toString('base64url');const binding=randomBytes(32).toString('base64url');const verifier=randomBytes(32).toString('base64url');
       try {
         await store.putState({state_hash:digest(state),binding_hash:digest(binding),encrypted_verifier:seal(verifier,config,`state:${digest(state)}`),expires_at:new Date(clock()+TTL*1000).toISOString()});
