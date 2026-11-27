@@ -13,6 +13,7 @@ try{
   await page.route('**/auth/v1/otp**',async route=>{simulatedOtpCalls++;assert.equal(route.request().postDataJSON().email,'fixture@example.test');await route.fulfill({status:200,contentType:'application/json',body:'{}'});});
   await page.route('**/auth/v1/authorize**',async route=>{simulatedGoogleNavigations++;assert.equal(new URL(route.request().url()).searchParams.get('provider'),'google');await route.fulfill({status:200,contentType:'text/html',body:'<h1>Fictional Google authorization</h1>'});});
   await page.goto(base,{waitUntil:'domcontentloaded'});
+  await page.getByRole('button',{name:/Sign in to an existing account|כניסה לחשבון קיים/}).click();
   const toggle=page.getByRole('button',{name:/secure email link|או קישור כניסה במייל/});await toggle.click();
   const input=page.getByRole('textbox',{name:/Email address|כתובת מייל/});await input.waitFor();assert.equal(await input.evaluate(el=>el===document.activeElement),true);
   let box=await input.boundingBox();assert.ok(box.y>=0&&box.y+box.height<=height,JSON.stringify({message:'Email field revealed in viewport',language,width,height,box}));
