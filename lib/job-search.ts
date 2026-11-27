@@ -1,3 +1,4 @@
+import {canonicalRoleInput,executiveHrSearchTerms,isExecutiveHrSearch} from './role-intent.ts';
 type Language = "he" | "en";
 
 export type SearchProfile = {
@@ -42,7 +43,7 @@ const hrSkillSuggestions = ["Business partnering", "Talent management", "Employe
 
 /** An explicit public search starts without hidden filters from an older workspace search. */
 export function publicSearchHandoffProfile(role: string, country: string, city: string, searchedAt?: string): SearchProfile {
-  return { ...emptySearchProfile, role: role.trim().slice(0, 80), country: country.trim().slice(0, 80),
+  return { ...emptySearchProfile, role: canonicalRoleInput(role.trim()).slice(0, 80), country: country.trim().slice(0, 80),
     ...(searchedAt && Number.isFinite(Date.parse(searchedAt)) ? { lastSearchedAt: new Date(searchedAt).toISOString() } : {}),
     location: city.trim().slice(0, 80), employmentType: "", datePosted: "Any time", radius: "" };
 }
@@ -83,7 +84,7 @@ export function providerCountry(country: string) {
 export function sanitizeSearchProfile(profile: SearchProfile): SearchProfile {
   return {
     ...profile,
-    role: normalizeSearchText(profile.role),
+    role: canonicalRoleInput(normalizeSearchText(profile.role)),
     alternativeRoles: selectedRoleAlternatives(profile).join(", "),
     filterRole: normalizeSearchText(profile.filterRole),
     location: normalizeSearchText(profile.location),
@@ -132,6 +133,7 @@ export function linkedInDistanceFromKilometers(radius: string) {
 }
 
 export function linkedInRoleTerms(role: string) {
+  const executiveHr=executiveHrSearchTerms(role);if(executiveHr)return executiveHr;
   const cleanRole = normalizeSearchText(role).replace(/["“”]/g, "");
   const normalizedRole = cleanRole.toLocaleLowerCase();
   const translations: Record<string, string> = {
@@ -188,7 +190,7 @@ export function linkedInKeywordQuery(profile: SearchProfile) {
   const quote = (value: string) => `"${value.replace(/["“”]/g, "").trim()}"`;
   const roleTerms = searchRoleTerms(profile);
   const roleQuery = roleTerms.length > 1
-    ? `(${roleTerms.join(" OR ")})`
+    ? `(${roleTerms.map(term=>isExecutiveHrSearch(profile.role)?quote(term):term).join(" OR ")})`
     : (roleTerms[0] || profile.role);
   const userExclusions = profile.exclude
     .split(",")
@@ -415,7 +417,7 @@ export function jobSearchSources(profile: SearchProfile, language: Language = "e
   const supplement = skills.map(quote);
   const negative = exclusions.map((term) => `-${quote(term)}`);
   const indeedRoles = searchRoleTerms(clean);
-  const indeedRoleQuery = indeedRoles.length > 1 ? `(${indeedRoles.map(role => role.replace(/["“”]/g, "").trim()).join(" OR ")})` : clean.role.replace(/["“”]/g, "").trim();
+  const indeedRoleQuery = indeedRoles.length > 1 ? `(${indeedRoles.map(role => isExecutiveHrSearch(clean.role)?quote(role):role.replace(/["“”]/g, "").trim()).join(" OR ")})` : clean.role.replace(/["“”]/g, "").trim();
   const indeedQuery = [indeedRoleQuery, ...supplement.map((term) => `AND ${term}`), ...negative, clean.workModel ? `AND ${quote(clean.workModel)}` : ""].filter(Boolean).join(" ");
   const google = googleJobSearch(profile, language);
   const indeedAge = clean.datePosted === "Past 24 hours" ? "1" : clean.datePosted === "Past week" ? "7" : clean.datePosted === "Past month" ? "30" : "";
