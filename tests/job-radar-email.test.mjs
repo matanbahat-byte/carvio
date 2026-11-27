@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import {renderRadarEmail,radarListingRecord,validRadarListing,prepareRadarEmail} from '../lib/job-radar-email.ts';
 const make=(n,patch={})=>({id:`greenhouse:fixture:${n}`,title:'Recruitment Manager',company:'Example company',location:'Tel Aviv, Israel',url:`https://boards.greenhouse.io/fixture/jobs/${n}`,provider:'greenhouse',postedAt:'2026-11-26T00:00:00Z',...patch});
 const links=html=>[...html.matchAll(/href="([^"]+)"/g)].map(m=>new URL(m[1].replaceAll('&amp;','&')));
-test('both languages render five real job cards, internal links, text alternative, settings and stop links',()=>{
+test('both languages render three real job cards, internal links, text alternative, settings and stop links',()=>{
  for(const language of ['he','en']) {
   const email=renderRadarEmail({jobs:Array.from({length:8},(_,i)=>make(i+1)),language,displayName:'Dana'});
-  assert.equal(email.listingIds.length,5);assert.equal((email.html.match(/<h2 /g)||[]).length,5);
+  assert.equal(email.listingIds.length,3);assert.equal((email.html.match(/<h2 /g)||[]).length,3);
   assert.match(email.html,new RegExp(`lang="${language}" dir="${language==='he'?'rtl':'ltr'}"`));
   assert.ok(email.text.includes('Recruitment Manager\nExample company\nTel Aviv, Israel'));
   for(const url of links(email.html)) {
@@ -50,10 +50,19 @@ test('tracking adds only an opaque token and language; invalid tokens cannot bec
  assert.throws(()=>renderRadarEmail({language:'en',jobs:[job],trackingTokens:{[id]:'private@example.test'}}),/Invalid attribution/);
 });
 
-test('brand illustration uses one static first-party image with no recipient identifiers or tracking query',()=>{
+test('brand illustration uses one embedded CID image with no remote request or tracking query',()=>{
  const mail=renderRadarEmail({language:'he',jobs:[make(1)]});
  const images=[...mail.html.matchAll(/<img[^>]*src="([^"]+)"[^>]*>/g)];
- assert.equal(images.length,1);assert.equal(images[0][1],'https://carvio-pi.vercel.app/carvio-landing-warm-accents-v8.png');
+ assert.equal(images.length,1);assert.equal(images[0][1],'cid:carvio-illustration@carvio');
  assert.match(images[0][0],/alt=""/);assert.match(images[0][0],/width="280"/);assert.match(images[0][0],/height:auto/);
  assert.ok(mail.text.includes('Recruitment Manager'));
+});
+
+test('both Gmail send formats attach the small brand illustration with matching Content-ID',async()=>{
+ const {gmailRawMessage,radarGmailPayload}=await import('../lib/job-radar-gmail.ts');
+ const message=renderRadarEmail({language:'he',jobs:[make(1),make(2),make(3)]});
+ const raw=Buffer.from(gmailRawMessage('pilot@example.test',message,'illustration-test'),'base64url').toString();
+ assert.match(raw,/Content-Type: multipart\/related/);assert.match(raw,/Content-ID: <carvio-illustration@carvio>/);assert.match(raw,/Content-Disposition: inline/);
+ const mime=radarGmailPayload(message);assert.equal(mime.mime_type,'multipart/related');assert.equal(mime.parts[1].content_id,'<carvio-illustration@carvio>');
+ const bytes=Buffer.from(mime.parts[1].body.base64_url_content,'base64url');assert.ok(bytes.length<50000);assert.equal(bytes.subarray(0,2).toString('hex'),'ffd8');
 });
