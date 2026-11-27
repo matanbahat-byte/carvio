@@ -39,6 +39,13 @@ test('start requires operator authorization and same origin before writing state
  const f=fixture();assert.equal((await f.start('wrong')).status,403);assert.equal((await f.start(config.setupToken,'https://evil.test')).status,403);assert.equal(f.rows.size,0);assert.equal(f.calls.length,0);
  const oversized=new Request(config.origin+OAUTH_PATH,{method:'POST',headers:{Origin:config.origin,'Content-Type':'application/x-www-form-urlencoded'},body:'x'.repeat(3000)});assert.equal((await f.flow.start(oversized)).status,413);
 });
+test('start distinguishes origin from key failures, tolerates surrounding whitespace and never echoes the key',async()=>{
+ const f=fixture();
+ const badKey=await f.start('wrong-'+config.setupToken);assert.equal(badKey.status,403);const keyText=await badKey.text();assert.match(keyText,/setup key/);assert.ok(!keyText.includes(config.setupToken));
+ const badOrigin=await f.start(config.setupToken,'https://evil.test');assert.equal(badOrigin.status,403);assert.match(await badOrigin.text(),/origin/);
+ assert.equal((await f.start(' '+config.setupToken+'\r\n')).status,303);
+ assert.equal((await f.start(config.setupToken.slice(0,-1))).status,403);
+});
 test('authorization uses minimal scopes, offline access, PKCE, bound secure cookie and fixed callback',async()=>{
  const f=fixture();const b=await begun(f);assert.equal(b.location.origin,'https://accounts.google.com');assert.equal(b.location.searchParams.get('redirect_uri'),config.origin+OAUTH_CALLBACK);assert.equal(b.location.searchParams.get('login_hint'),'carvio.team@gmail.com');assert.equal(b.location.searchParams.get('access_type'),'offline');assert.equal(b.location.searchParams.get('scope'),scopes);assert.equal(b.location.searchParams.get('code_challenge_method'),'S256');assert.equal(b.location.searchParams.get('include_granted_scopes'),'false');
  const row=[...f.rows.values()][0];assert.ok(!row.encrypted_verifier.includes('fixture'));assert.ok(!JSON.stringify(row).includes(b.state));assert.equal(f.calls.length,0);
