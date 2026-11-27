@@ -25,3 +25,9 @@ Browser QA remains outstanding: managed preview injected Vite-only `--host`/`--s
 The function receives already-loaded per-user preferences/history; it does not query production users, persist deliveries or mark selections as sent. A future sender must load complete confirmed-delivery history securely and record actual successful deliveries; unavailable history blocks selection. There is no batch runner, UI change, scheduler, sender or production migration in this step.
 
 Validation: `node --test tests/job-radar-selection.test.mjs`: 6 passed. `npm test`: 239 passed; four existing component test files could not load because React is not installed in this fresh workspace. `git diff --check` passed. No live-source, database, browser or full TypeScript validation was performed for this pure selection step.
+
+## Source collector (2026-11-27)
+
+`createRadarSourceCollector` adds a reusable internal worker collector: allowlisted ATS endpoints only, five-board per-run budget, five-second request/body timeout, two-megabyte streaming response cap, redirect rejection, JSON validation, five-minute process-local cache/backoff and concurrent request coalescing. Reuse one collector instance per worker. This is not a distributed rate limit; multi-instance activation requires a shared budget. No live calls occurred. All 29 targeted parser, selection and collector tests passed.
+
+Permission review: https://github.com/lever/postings-api documents public published postings and building job sites, but also describes company-specific use. https://docs.greenhouse.io/job-board documents public GET access and company career sites. API accessibility alone does not establish third-party email redistribution permission. No employer approval was inferred from those documents; the production allowlist remains empty. Secure database loading and persistent confirmed-delivery history remain outstanding; no production schema or user data was touched.
