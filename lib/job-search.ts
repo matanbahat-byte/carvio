@@ -305,7 +305,8 @@ export function googleJobSearch(profile: SearchProfile, language: Language = "en
   // General roles may match page text; executive HR needs a title match to avoid
   // jobs that merely report to a VP HR.
   // Location words are also unquoted because job boards format cities/countries differently.
-  const careerTerms = '(careers OR "join our team" OR site:jobs.lever.co OR site:boards.greenhouse.io OR site:job-boards.greenhouse.io OR site:jobs.ashbyhq.com OR site:myworkdayjobs.com OR site:apply.workable.com)';
+  // Strict employer-hosted career platforms: no unrestricted careers/hiring OR branch.
+  const careerTerms = '(site:jobs.lever.co OR site:jobs.eu.lever.co OR site:boards.greenhouse.io OR site:job-boards.greenhouse.io OR site:job-boards.eu.greenhouse.io OR site:jobs.ashbyhq.com OR site:myworkdayjobs.com OR site:apply.workable.com OR site:careers.smartrecruiters.com OR site:jobs.smartrecruiters.com OR site:comeet.com/jobs OR site:teamtailor.com OR site:recruitee.com OR site:bamboohr.com/careers OR site:jobs.jobvite.com)';
   const roleTerms = searchRoleTerms(clean);
   const executiveHr = isExecutiveHrSearch(clean.role);
   const roleQuery = executiveHr
@@ -315,7 +316,7 @@ export function googleJobSearch(profile: SearchProfile, language: Language = "en
   // This is a focused source set, not an exhaustive index of all employers.
   const postingTerms = "(site:linkedin.com/jobs/view/ OR site:job-boards.greenhouse.io OR site:boards.greenhouse.io OR site:jobs.lever.co OR site:jobs.ashbyhq.com OR site:apply.workable.com OR site:jobs.secrettelaviv.com/job/)";
   const sourceTerms = options.careerPages ? careerTerms : executiveHr ? postingTerms : jobTerms;
-  const query = [roleQuery, sourceTerms, text(clean.city), text(clean.country), ...requiredSkills, text(clean.industry), text(clean.workModel), ...exclusions, options.careerPages ? "-site:linkedin.com -site:indeed.com" : ""].filter(Boolean).join(" ");
+  const query = [roleQuery, sourceTerms, text(clean.city), text(clean.country), ...requiredSkills, text(clean.industry), text(clean.workModel), ...exclusions, options.careerPages ? "-site:linkedin.com -site:indeed.com -site:google.com -site:glassdoor.com -site:jobio.co.il -site:jobify360.co.il" : ""].filter(Boolean).join(" ");
   const params = new URLSearchParams({ q: query, hl: language === "he" ? "he" : "en" });
   // Observed Google Web filter (udm=web): text links instead of AI Overviews.
   params.set("udm", "web");

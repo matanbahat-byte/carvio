@@ -39,3 +39,16 @@ test('all search routes are identified by ID, with Google and career links in bo
   assert.match(html,/target="_blank"/);assert.match(html,/noopener noreferrer/);
  }
 });
+
+test('company-site route cannot escape employer platforms through generic career words',()=>{
+ for(const language of ['en','he'])for(const role of ['VP HR','Software Engineer','מנהל משאבי אנוש']){
+  const q=new URL(officialSearchUrl({...profile,role},language)).searchParams.get('q');
+  const group=q.match(/\(site:jobs\.lever\.co[^)]+\)/)?.[0];
+  assert.ok(group);
+  for(const branch of group.slice(1,-1).split(' OR '))assert.match(branch,/^site:[a-z0-9./-]+$/);
+  assert.doesNotMatch(group,/join our team|site:linkedin|site:indeed|site:google/);
+  for(const host of ['linkedin.com','indeed.com','google.com','glassdoor.com'])assert.ok(q.includes(`-site:${host}`));
+  const ordinary=googleJobSearch({...profile,role},language).query;
+  assert.ok(!ordinary.includes('-site:google.com'));
+ }
+});
