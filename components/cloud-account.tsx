@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { createPortal, flushSync } from "react-dom";
 import { ArrowUpRight, CheckCircle2, Cloud, CloudOff, Download, LoaderCircle, LogOut, Mail, ShieldCheck, UploadCloud, X } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
@@ -46,6 +46,7 @@ export function WelcomeAccountAccess({ language, onContinueLocal }: { language: 
   const [session, setSession] = useState<Session | null>(null);
   const [email, setEmail] = useState("");
   const [showEmail, setShowEmail] = useState(false);
+  const emailInputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState(() => {
     if (typeof window === "undefined" || !new URLSearchParams(window.location.search).has("auth")) return "";
@@ -121,8 +122,13 @@ export function WelcomeAccountAccess({ language, onContinueLocal }: { language: 
   return <div className="welcome-account-access">
     {configured && <>
       <button className="welcome-google-button" disabled={busy} onClick={() => void signInWithGoogle()} type="button"><GoogleMark />{language === "he" ? "המשך באמצעות Google" : "Continue with Google"}</button>
-      <button className="welcome-email-toggle" onClick={() => setShowEmail((current) => !current)} type="button"><Mail />{language === "he" ? "או קישור כניסה במייל" : "Or use a secure email link"}</button>
-      {showEmail && <form aria-busy={busy} className="welcome-email-form" onSubmit={sendMagicLink}><input aria-label={language === "he" ? "כתובת מייל" : "Email address"} autoComplete="email" disabled={busy} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" required type="email" value={email}/><button disabled={busy || retryAfter > 0} type="submit">{busy ? (language === "he" ? "מתחברים…" : "Connecting…") : retryAfter > 0 ? (language === "he" ? `שליחה חוזרת בעוד ${retryAfter} שניות` : `Resend in ${retryAfter}s`) : (language === "he" ? "שליחת קישור" : "Send link")}</button></form>}
+      <button className="welcome-email-toggle" aria-expanded={showEmail} aria-controls="welcome-email-form" onClick={() => {
+        // Mount and focus during the tap, including mobile browsers that require a user gesture.
+        flushSync(() => setShowEmail(true));
+        emailInputRef.current?.focus();
+        emailInputRef.current?.scrollIntoView({ block: "center", behavior: "instant" });
+      }} type="button"><Mail />{language === "he" ? "או קישור כניסה במייל" : "Or use a secure email link"}</button>
+      {showEmail && <form id="welcome-email-form" aria-busy={busy} className="welcome-email-form" onSubmit={sendMagicLink}><p style={{gridColumn:"1 / -1"}}>{language === "he" ? "הזינו כתובת מייל ונשלח אליה קישור כניסה. אין צורך בסיסמה." : "Enter your email and we’ll send you a sign-in link. No password needed."}</p><input ref={emailInputRef} inputMode="email" autoCapitalize="none" autoCorrect="off" aria-label={language === "he" ? "כתובת מייל" : "Email address"} autoComplete="email" disabled={busy} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" required type="email" value={email}/><button disabled={busy || retryAfter > 0} type="submit">{busy ? (language === "he" ? "מתחברים…" : "Connecting…") : retryAfter > 0 ? (language === "he" ? `שליחה חוזרת בעוד ${retryAfter} שניות` : `Resend in ${retryAfter}s`) : (language === "he" ? "שליחת קישור" : "Send link")}</button></form>}
       {message && <div className="welcome-auth-message" role="status">{sentTo && <strong>{language === "he" ? "בדקו את האימייל: " : "Check your email: "}{sentTo}</strong>}<p>{message}</p></div>}
       <div className="welcome-access-divider"><span>{language === "he" ? "או" : "or"}</span></div>
     </>}
