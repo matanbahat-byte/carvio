@@ -29,7 +29,7 @@ export function SearchSourceCards({ sources, profile, language, careerUrl, anyTi
   }), h("article", { className: "search-source-card search-source-featured", "data-search-source": "careers" },
     h("span", { className: "search-source-icon", "aria-hidden": true }, "🏢"),
     h("h3", { className: "search-source-title" }, he ? "ישירות באתרי החברות" : "Company career pages"),
-    h("p", { className: "search-source-description" }, he ? "חיפוש דרך Google באתרי קריירה ובמערכות גיוס כמו Greenhouse, Lever ו־Ashby. ללא הגבלת זמן כדי לא לפספס מודעות שלא אונדקסו לאחרונה." : "Search via Google across career pages and hiring platforms including Greenhouse, Lever and Ashby. Any time, to include listings not indexed recently."),
+    h("p", { className: "search-source-description" }, he ? "עמודי קריירה של מעסיקים במערכות גיוס כמו Greenhouse, Lever ו־Ashby. חיפוש ממוקד שאינו כולל את כל אתרי החברות." : "Employer career pages hosted on hiring platforms such as Greenhouse, Lever and Ashby. A focused search that does not cover every company website."),
     h("div", { className: "search-source-actions" }, external(he ? "חיפוש באתרי חברות" : "Search company sites", careerUrl, true, "search-career-pages", () => onOpen("Google"))),
     h("p", { className: "text-sm text-slate-500" }, he ? "התוצאות נפתחות ב־Google. בדקו באתר החברה את תאריך הפרסום, המיקום וזמינות המשרה. מסנני הדרגה, סוג ההעסקה והרדיוס אינם מופעלים במסלול זה." : "Results open in Google. Verify posting date, location and availability on the company site. Seniority, employment type and radius filters are not applied on this route.")
   ));
