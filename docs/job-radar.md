@@ -59,3 +59,7 @@ Validation for this step:
 - The security advisor returned only the previously documented consent-RPC warning, with no new findings.
 
 Browser previews are not a Gmail/Outlook rendering certification. Before sending, deploy the internal routes through a separately authorized release, test actual email clients and confirm live source permissions. The default template links target the existing CARVIO production origin; local QA explicitly overrides this with loopback. Nothing was emailed or deployed by this step. The source approval blocker remains unchanged.
+
+## Step 4: scheduled worker (development, disabled)
+
+See [job-radar-dispatch.md](job-radar-dispatch.md) for the new persistent queue, Gmail-only transport, Israel-time schedule, dry-run evidence and explicit activation blockers. This supersedes earlier foundation statements about absent worker code; no live sender, cron activation or production deployment has been enabled.

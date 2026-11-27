@@ -1,0 +1,29 @@
+name: CARVIO Job Radar scheduled dry-run
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 9 * * 0,2,4'
+      timezone: Asia/Jerusalem
+permissions:
+  contents: read
+concurrency:
+  group: carvio-job-radar-dry-run
+  cancel-in-progress: false
+jobs:
+  dry-run:
+    # Intentionally unset: committing to dev does not activate a schedule.
+    if: vars.CARVIO_RADAR_DRY_RUN_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Prepare and log only, never send
+        run: node scripts/job-radar-worker.mjs --dry-run
+        env:
+          RADAR_SUPABASE_URL: ${{ secrets.RADAR_DEV_SUPABASE_URL }}
+          RADAR_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.RADAR_DEV_SUPABASE_SERVICE_ROLE_KEY }}
