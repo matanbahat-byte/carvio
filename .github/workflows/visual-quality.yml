@@ -40,6 +40,7 @@ jobs:
           node tests/search-quality-audit-browser.mjs
           node tests/search-quality-home-browser.mjs
           node tests/application-context-tool-browser.mjs
+          node tests/internal-cv-opening-browser.mjs
           node tests/cv-draft-recovery-browser.mjs
           node tests/resume-review-browser.mjs
           node tests/accessibility-browser.mjs

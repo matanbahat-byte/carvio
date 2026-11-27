@@ -19,41 +19,29 @@ try{for(const width of [390,1366].filter(x=>!process.env.CARVIO_QA_WIDTH||String
  const read=()=>page.evaluate(({key,demo})=>JSON.parse((demo?sessionStorage:localStorage).getItem(key)),{key,demo});
  const openCv=async()=>{if(width>=768)await page.locator('.calm-desktop-nav .calm-nav-button').nth(4).click();else{await page.locator('.calm-mobile-nav button').nth(4).click();await page.locator('.mobile-more-menu button').nth(1).click();}await page.locator('.tools-picker button').nth(1).click();await generate().waitFor();};
  const fillSource=async text=>{if(!await source().isVisible())await review.getByText(language==='he'?'הדבקת טקסט או עריכת הטקסט שחולץ':'Paste text or edit extracted text',{exact:true}).click();await source().fill(text);};
- const openTailor=async()=>{await page.keyboard.press('Control+k');await page.locator('.command-palette input').fill('QA CV Role');await page.locator('.command-results button').first().click();await page.getByRole('dialog').locator('details.workspace-more-context > summary').click();return page.getByRole('dialog').getByRole('button',{name:language==='he'?'התאמת קורות חיים לדרישות':'Tailor CV to requirements',exact:true});};
  const answer=async(button,accept)=>{const pending=page.waitForEvent('dialog',{timeout:15000}),click=button.click();const dialog=await pending;assert.equal(dialog.type(),'confirm');assert.match(dialog.message(),language==='he'?/עותק קודם/:/previous copy/);await (accept?dialog.accept():dialog.dismiss());await click;};
  await openCv();await fillSource('Original source');await generate().click();await draft().fill('Manual A\nעריכה מקורית');
- for(const route of ['generate','tailor']){
-  await page.reload();await openCv();assert.equal(await draft().inputValue(),'Manual A\nעריכה מקורית');
-  const sourceB='Skills: SQL\n• Supported 12 people\n\n\nResponsible for sales';
-  await fillSource(sourceB);const before=await read(),sourceBefore=await source().inputValue();
-  let action=route==='tailor'?await openTailor():generate();
-  await answer(action,false);assert.deepEqual(await read(),before);assert.equal(await draft().inputValue(),before.current);assert.equal(await source().inputValue(),sourceBefore);
-  if(route==='tailor'){assert.ok(await page.getByRole('dialog').isVisible());await page.keyboard.press('Escape');}
-  await page.reload();await openCv();assert.deepEqual(await read(),before);await fillSource(sourceB);
-  action=route==='tailor'?await openTailor():generate();await answer(action,true);
-  const expected=route==='generate'?sourceB.replace(/\n{3,}/g,'\n\n'):'';
-  assert.deepEqual(await read(),{version:1,current:expected,previous:before.current});
-  await page.reload();await openCv();await review.locator('[data-cv-draft-recovery] > summary').click();
-  assert.equal(await review.getByRole('textbox',{name:language==='he'?'תצוגת העותק הקודם':'Previous draft preview'}).inputValue(),before.current);
-  if(route==='tailor'){
-   await restore().click();assert.equal(await draft().inputValue(),before.current);assert.equal((await read()).previous,'');
-   await page.reload();await openCv();assert.equal(await draft().inputValue(),before.current);
-   await answer(await openTailor(),true);await page.reload();await openCv();await review.locator('[data-cv-draft-recovery] > summary').click();
-   assert.deepEqual(await read(),{version:1,current:'',previous:before.current});
-  }
-  // Repeated creation must not destroy the prior manual copy, including after a clear by Tailor.
-  await fillSource(route==='generate'?sourceB:'New source after tailoring');
-  if(expected)await answer(generate(),true);else await generate().click();
-  const regenerated=await read();assert.equal(regenerated.previous,before.current);
-  await page.reload();await openCv();await review.locator('[data-cv-draft-recovery] > summary').click();
-  await answer(restore(),false);assert.deepEqual(await read(),regenerated);
-  await answer(restore(),true);assert.equal(await draft().inputValue(),before.current);
-  await page.reload();await openCv();assert.equal(await draft().inputValue(),before.current);assert.equal((await read()).previous,regenerated.current);
-  console.log(`PASS CV recovery ${route} ${language} ${width}px ${demo?'demo':'guest'}: persisted manual draft, cancel/no side effects, confirm/backup, repeat, refresh, cancel restore, restore/reload`);
- }
+ await page.reload();await openCv();assert.equal(await draft().inputValue(),'Manual A\nעריכה מקורית');
+ const sourceB='Skills: SQL\n• Supported 12 people\n\n\nResponsible for sales';
+ await fillSource(sourceB);const before=await read(),sourceBefore=await source().inputValue();
+ await answer(generate(),false);assert.deepEqual(await read(),before);assert.equal(await draft().inputValue(),before.current);assert.equal(await source().inputValue(),sourceBefore);
+ await page.reload();await openCv();assert.deepEqual(await read(),before);await fillSource(sourceB);
+ await answer(generate(),true);
+ const expected=sourceB.replace(/\n{3,}/g,'\n\n');
+ assert.deepEqual(await read(),{version:1,current:expected,previous:before.current});
+ await page.reload();await openCv();await review.locator('[data-cv-draft-recovery] > summary').click();
+ assert.equal(await review.getByRole('textbox',{name:language==='he'?'תצוגת העותק הקודם':'Previous draft preview'}).inputValue(),before.current);
+ // Repeated explicit creation must not destroy the prior manual copy.
+ await fillSource(sourceB);await answer(generate(),true);
+ const regenerated=await read();assert.equal(regenerated.previous,before.current);
+ await page.reload();await openCv();await review.locator('[data-cv-draft-recovery] > summary').click();
+ await answer(restore(),false);assert.deepEqual(await read(),regenerated);
+ await answer(restore(),true);assert.equal(await draft().inputValue(),before.current);
+ await page.reload();await openCv();assert.equal(await draft().inputValue(),before.current);assert.equal((await read()).previous,regenerated.current);
+ console.log(`PASS CV recovery generate ${language} ${width}px ${demo?'demo':'guest'}: persisted manual draft, cancel/no side effects, confirm/backup, repeat, refresh, cancel restore, restore/reload`);
  // A failed atomic save must block replacing the visible current draft and its backup.
- await fillSource('Must not overwrite');const before=await read();
+ await fillSource('Must not overwrite');const beforeFailure=await read();
  await page.evaluate(key=>{const set=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(k===key)throw new DOMException('quota','QuotaExceededError');return set.call(this,k,v);};},key);
- await answer(generate(),true);assert.deepEqual(await read(),before);assert.equal(await draft().inputValue(),before.current);assert.ok(await review.getByRole('alert').isVisible());
+ await answer(generate(),true);assert.deepEqual(await read(),beforeFailure);assert.equal(await draft().inputValue(),beforeFailure.current);assert.ok(await review.getByRole('alert').isVisible());
  await context.close();
 }}finally{await browser.close();}
