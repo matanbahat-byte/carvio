@@ -1,7 +1,7 @@
 import { createElement as h, type ReactNode } from "react";
-import { localizedSearchFilter, type JobSearchSource, type SearchProfile } from "../lib/job-search.ts";
+import { localizedSearchFilter, verifiedCompanySearchUrl, type JobSearchSource, type SearchProfile } from "../lib/job-search.ts";
 
-export function SearchSourceCards({ sources, profile, language, careerUrl, anyTimeUrl, onCopy, onOpen, filterNotice }: { sources: JobSearchSource[]; profile: SearchProfile; language: "he" | "en"; careerUrl: string; anyTimeUrl?: string; onCopy: (query: string) => void; onOpen: (source: "LinkedIn" | "Google" | "Indeed") => void; filterNotice: (source: JobSearchSource) => ReactNode }) {
+export function SearchSourceCards({ sources, profile, language, anyTimeUrl, onCopy, onOpen, filterNotice }: { sources: JobSearchSource[]; profile: SearchProfile; language: "he" | "en"; careerUrl: string; anyTimeUrl?: string; onCopy: (query: string) => void; onOpen: (source: "LinkedIn" | "Google" | "Indeed") => void; filterNotice: (source: JobSearchSource) => ReactNode }) {
   const he = language === "he";
   const ordered = ["linkedin", "indeed", "google"].map(id => sources.find(source => source.id === id)).filter((source): source is JobSearchSource => Boolean(source));
   const external = (label: string, href: string, primary = false, id?: string, onClick?: () => void) => h("a", { href, target: "_blank", rel: "noopener noreferrer", className: primary ? "search-source-open" : "text-button", "data-testid": id, onClick }, label);
@@ -28,9 +28,9 @@ export function SearchSourceCards({ sources, profile, language, careerUrl, anyTi
     );
   }), h("article", { className: "search-source-card search-source-featured", "data-search-source": "careers" },
     h("span", { className: "search-source-icon", "aria-hidden": true }, "🏢"),
-    h("h3", { className: "search-source-title" }, he ? "ישירות באתרי החברות" : "Company career pages"),
-    h("p", { className: "search-source-description" }, he ? "עמודי קריירה של מעסיקים במערכות גיוס כמו Greenhouse, Lever ו־Ashby. חיפוש ממוקד שאינו כולל את כל אתרי החברות." : "Employer career pages hosted on hiring platforms such as Greenhouse, Lever and Ashby. A focused search that does not cover every company website."),
-    h("div", { className: "search-source-actions" }, external(he ? "חיפוש באתרי חברות" : "Search company sites", careerUrl, true, "search-career-pages", () => onOpen("Google"))),
-    h("p", { className: "text-sm text-slate-500" }, he ? "התוצאות נפתחות ב־Google. בדקו באתר החברה את תאריך הפרסום, המיקום וזמינות המשרה. מסנני הדרגה, סוג ההעסקה והרדיוס אינם מופעלים במסלול זה." : "Results open in Google. Verify posting date, location and availability on the company site. Seniority, employment type and radius filters are not applied on this route.")
+    h("h3", { className: "search-source-title" }, he ? "משרות מאתרי החברות" : "Jobs from employers"),
+    h("p", { className: "search-source-description" }, he ? "משרות שנבדקות מול מקור המעסיק ולפי המדינה והעיר שחיפשתם. הכיסוי הראשוני מוגבל לחברות המפורטות במסך התוצאות." : "Jobs checked against employer sources and your selected country and city. Initial coverage is limited to the companies listed on the results page."),
+    h("div", { className: "search-source-actions" }, external(he ? "הצגת משרות מהחברות" : "View employer jobs", verifiedCompanySearchUrl(profile,language), true, "search-career-pages")),
+    h("p", { className: "text-sm text-slate-500" }, he ? "המשרות נבדקות שוב לפני פתיחתן באתר המעסיק. סינון לפי סוג העסקה ומודל עבודה אינו זמין במסלול זה." : "Jobs are checked again before opening the employer page. Employment type and workplace model filters are not available on this route.")
   ));
 }
