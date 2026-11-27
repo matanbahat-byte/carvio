@@ -90,6 +90,7 @@ import {
   WandSparkles,
   Wrench,
 } from "lucide-react";
+import {AUTH_RETURN_KEY,parseAuthReturn} from "@/lib/auth-return";
 import { CloudAccount, WelcomeAccountAccess, type CloudAccountStatus, type CloudWorkspacePayload } from "@/components/cloud-account";
 
 const APPLICATIONS_KEY = "carvio.applications.v1";
@@ -1424,6 +1425,7 @@ function WorkspaceHome() {
   const [showGoalTarget, setShowGoalTarget] = useState(false);
   const [cvEvidenceApplicationId, setCvEvidenceApplicationId] = useState("");
   const [smartCaptureStep, setSmartCaptureStep] = useState<"link" | "review" | "success">("link");
+  const [firstSaveInviteId,setFirstSaveInviteId]=useState<string|null>(null);
   const [smartCaptureSavedId, setSmartCaptureSavedId] = useState<string | null>(null);
   const [smartCaptureUrl, setSmartCaptureUrl] = useState("");
   const [smartCaptureText, setSmartCaptureText] = useState("");
@@ -1463,6 +1465,13 @@ function WorkspaceHome() {
   const messageDraftRef = useRef<HTMLTextAreaElement | null>(null);
   const applicationMessageDrafts = useRef(new Map<string, { profile: MessageProfile; context: MessageContext; body: string; subject: string; provenance: MessageProvenance | null; edited: boolean }>());
   const todayOverflowRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(()=>{
+    if(!hydrated||!cloudAccountStatus.email||demoMode)return;
+    try{const pending=parseAuthReturn(localStorage.getItem(AUTH_RETURN_KEY));if(!pending)return;
+      if(applications.some(app=>app.id===pending.applicationId)){setLanguage(pending.language);setActiveView("applications");setWorkspaceApplicationId(pending.applicationId);setShowSmartCapture(false);setFirstSaveInviteId(null);localStorage.removeItem(AUTH_RETURN_KEY);}
+    }catch{/* Storage failure must not block an existing session. */}
+  },[hydrated,cloudAccountStatus.email,applications,demoMode]);
 
   const openCloudAccount = useCallback((entryPoint: "mobile_more" | "settings") => {
     setShowMobileMore(false);
@@ -2513,6 +2522,7 @@ function WorkspaceHome() {
   }
 
   function finishCapturedSave(application: Application) {
+    if(!demoMode&&!cloudAccountStatus.email&&applications.length===0&&savedJobListingUrl(application.jobUrl))setFirstSaveInviteId(application.id);
     setApplicationDraft(application);
     // The saved listing lives in applicationDraft; clear the quick-entry field
     // so the next job can be pasted without accidentally reusing the old URL.
@@ -2869,6 +2879,7 @@ function WorkspaceHome() {
       recordActionEvent("application_created", savedApplication.id, { company: savedApplication.company, status: savedApplication.status });
       setNotice(language === "he" ? "המועמדות נוספה — צעד אחד ברור קדימה." : "Application added — one clear step forward.");
     }
+    if(!editingApplicationId&&!demoMode&&!cloudAccountStatus.email&&applications.length===0&&savedJobListingUrl(savedApplication.jobUrl))setFirstSaveInviteId(savedApplication.id);
     setShowApplicationModal(false);
     if (!editingApplicationId && savedApplication.capturedAt) finishCapturedSave(savedApplication);
     if ((editingApplicationId || !savedApplication.capturedAt) && savedApplication.status === "Rejected" && !recoveryEntries.some((entry) => entry.applicationId === savedApplication.id)) {
@@ -3753,6 +3764,14 @@ function WorkspaceHome() {
     </button>
   );
 
+  const firstSaveInvite=firstSaveInviteId&&!cloudAccountStatus.email?<section className="my-4 rounded-2xl border border-teal-200 bg-[#f0fdfa] p-4 text-[#134e4a]" aria-label={language==="he"?"שמירה וחזרה מכל מכשיר":"Save and return from any device"}>
+    <h3 className="font-bold">{language==="he"?"המשרה נשמרה במכשיר הזה. רוצה לחזור אליה מכל מכשיר?":"Your job is saved on this device. Want to return from any device?"}</h3>
+    <p>{language==="he"?"אפשר להתחבר עם Google או קישור במייל כדי לסנכרן. החיפוש והמשרה יישארו שמורים כאן.":"Sign in with Google or an email link to sync. Your search and job remain saved here."}</p>
+    <WelcomeAccountAccess language={language} onContinueLocal={()=>setFirstSaveInviteId(null)} onBeforeSignIn={()=>{
+      try{workspaceStorage().setItem(APPLICATIONS_KEY,JSON.stringify(applications));workspaceStorage().setItem(SEARCH_PROFILE_KEY,JSON.stringify(searchProfile));if(workspaceStorage().getItem(APPLICATIONS_KEY)!==JSON.stringify(applications))return false;localStorage.setItem(AUTH_RETURN_KEY,JSON.stringify({applicationId:firstSaveInviteId,language,expiresAt:Date.now()+86400000}));return true;}catch{return false;}
+    }}/>
+  </section>:null;
+
   if (showLanding) {
     return (
       <main className={`carvio-welcome welcome-theme-${theme}`} dir={language === "he" ? "rtl" : "ltr"}>
@@ -3766,7 +3785,7 @@ function WorkspaceHome() {
             <h1>{language === "he" ? "כל חיפוש העבודה שלכם. צעד ברור אחד בכל פעם." : "Your whole job search. One clear next move at a time."}</h1>
             <p>{language === "he" ? "רכזו מועמדויות, קשרים, פגישות ופעולות המשך במקום אחד — וקבלו בכל יום הכוונה שמקדמת אתכם." : "Bring applications, conversations, interviews and follow-ups into one focused workspace—and know what matters today."}</p>
             <a href={`/find?lang=${language}`} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-teal-700 px-6 py-3 font-extrabold text-white shadow-lg transition hover:bg-teal-800"><Search className="h-5 w-5" />{language === "he" ? "חיפוש משרות חדש ✦" : "Explore the new job search ✦"}</a>
-            <WelcomeAccountAccess language={language} onContinueLocal={enterWorkspace} />
+            <WelcomeAccountAccess language={language} onContinueLocal={enterWorkspace} compact />
             <button className="secondary-button mt-3" type="button" onClick={() => { window.sessionStorage.setItem(LANGUAGE_KEY, JSON.stringify(language)); window.location.assign("/?workspace=1&demo=1"); }}>{language === "he" ? "סיור עם נתוני דוגמה נפרדים" : "Explore with separate demo data"}</button>
           </div>
           <figure className="landing-hero-visual">
@@ -3789,6 +3808,7 @@ function WorkspaceHome() {
   return (
     <main className={`carvio-shell min-h-screen px-4 py-6 text-slate-100 sm:px-6 sm:py-8 lg:px-8 ${theme === "light" ? "carvio-light" : theme === "ocean" ? "carvio-ocean" : theme === "plum" ? "carvio-plum" : ""}`} dir={language === "he" ? "rtl" : "ltr"}>
       <div className="carvio-language-bar carvio-workspace-language" dir="ltr">{languageSwitcher}</div>
+      {!showSmartCapture&&firstSaveInvite}
       <a href={`/find?lang=${language}`} className="carvio-public-search-shortcut mx-auto mb-3 inline-flex min-h-11 items-center gap-2 rounded-full border border-teal-700 bg-teal-700 px-5 py-2 text-sm font-extrabold text-white shadow-lg transition hover:bg-teal-800"><Search className="h-4 w-4" />{language === "he" ? "חיפוש המשרות החדש ✦" : "New job search ✦"}</a>
       <div className="calm-content mx-auto flex max-w-7xl flex-col gap-8">
         {demoMode && <aside className="demo-mode-banner" role="status"><strong>{language === "he" ? "מצב דמו · נתונים פיקטיביים בלבד" : "Demo mode · fictional data only"}</strong><p>{language === "he" ? "נתוני הדמו נשארים בסיור. סביבת העבודה האישית נשמרת במכשיר הזה, ואפשר להתחבר בה כדי לסנכרן." : "Demo changes stay in this session. Your personal workspace is saved on this device. Sign in there to sync across devices."}</p><button className="secondary-button" type="button" onClick={() => { window.localStorage.setItem(LANGUAGE_KEY, JSON.stringify(language)); window.location.assign("/?workspace=1"); }}>{language === "he" ? "פתיחת סביבת עבודה במכשיר הזה" : "Open workspace on this device"}</button></aside>}
@@ -4768,7 +4788,7 @@ function WorkspaceHome() {
               {smartCaptureError && <p id="capture-error" role="alert" className="form-error">{smartCaptureError}</p>}
               <div className="smart-capture-review-actions"><button className="secondary-button" onClick={() => { setSmartCaptureStep("link"); setSmartCaptureError(""); }} type="button">{language === "he" ? "חזרה" : "Back"}</button><button className="secondary-button" onClick={openCapturedApplicationDetails} type="button">{language === "he" ? "פרטים נוספים" : "More details"}</button><button className="primary-button" onClick={saveSmartCapture} type="button"><CheckCircle2 className="h-4 w-4" />{language === "he" ? "שמירת המשרה" : "Save job"}</button></div>
               <JobAvailabilityCheck url={applicationDraft.jobUrl} language={language} onVerifiedDetails={applyVerifiedCaptureDetails} />
-            </> : <div className="smart-capture-success"><div className="smart-capture-success-icon"><CheckCircle2 className="h-9 w-9" /></div><div><strong>{applicationDraft.role}</strong><span>{applicationDraft.company}</span></div><p>{applicationDraft.nextStep.trim() ? (language === "he" ? `הצעד הבא שלכם מוכן: ${applicationDraft.nextStep}` : `Your next move is ready: ${applicationDraft.nextStep}`) : (language === "he" ? "המשרה נשמרה. אפשר להגדיר פעולה הבאה כשתהיו מוכנים." : "Your job is saved. Set a next action when you are ready.")}{applicationDraft.nextStepDue && <small>{formatDate(language, applicationDraft.nextStepDue, true)} · {language === "he" ? "כשתחזרו, הפעולה תחכה לכם בסקירה." : "When you return, this move will be waiting in Overview."}</small>}</p><button className="primary-button" onClick={openSavedCapture} type="button">{language === "he" ? "המשך מהמקום שבו עצרתי" : "Continue where I left off"}<ArrowRight className="h-4 w-4" /></button><div className="smart-capture-share"><span>{language === "he" ? "מכירים מישהו שזה יעזור לו?" : "Know someone this could help?"}</span><button onClick={() => void shareCarvio("whatsapp")} type="button">WhatsApp</button><button onClick={() => void shareCarvio("copy")} type="button">{language === "he" ? "העתקת קישור" : "Copy link"}</button></div><button className="smart-capture-not-now" onClick={resetSmartCapture} type="button">{language === "he" ? "חזרה לסקירה" : "Back to overview"}</button></div>}
+            </> : <div className="smart-capture-success">{firstSaveInvite}<div className="smart-capture-success-icon"><CheckCircle2 className="h-9 w-9" /></div><div><strong>{applicationDraft.role}</strong><span>{applicationDraft.company}</span></div><p>{applicationDraft.nextStep.trim() ? (language === "he" ? `הצעד הבא שלכם מוכן: ${applicationDraft.nextStep}` : `Your next move is ready: ${applicationDraft.nextStep}`) : (language === "he" ? "המשרה נשמרה. אפשר להגדיר פעולה הבאה כשתהיו מוכנים." : "Your job is saved. Set a next action when you are ready.")}{applicationDraft.nextStepDue && <small>{formatDate(language, applicationDraft.nextStepDue, true)} · {language === "he" ? "כשתחזרו, הפעולה תחכה לכם בסקירה." : "When you return, this move will be waiting in Overview."}</small>}</p><button className="primary-button" onClick={openSavedCapture} type="button">{language === "he" ? "המשך מהמקום שבו עצרתי" : "Continue where I left off"}<ArrowRight className="h-4 w-4" /></button><div className="smart-capture-share"><span>{language === "he" ? "מכירים מישהו שזה יעזור לו?" : "Know someone this could help?"}</span><button onClick={() => void shareCarvio("whatsapp")} type="button">WhatsApp</button><button onClick={() => void shareCarvio("copy")} type="button">{language === "he" ? "העתקת קישור" : "Copy link"}</button></div><button className="smart-capture-not-now" onClick={resetSmartCapture} type="button">{language === "he" ? "חזרה לסקירה" : "Back to overview"}</button></div>}
           </div>
         </Modal>
       )}

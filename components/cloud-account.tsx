@@ -40,11 +40,12 @@ function GoogleMark() {
   return <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M21.6 12.23c0-.71-.06-1.23-.2-1.77H12v3.4h5.52a4.7 4.7 0 0 1-2.05 3.08l-.02.11 2.98 2.31.2.02c1.83-1.7 2.97-4.19 2.97-7.15Z" fill="#4285F4"/><path d="M12 22c2.69 0 4.94-.88 6.59-2.62l-3.16-2.44c-.85.58-1.98.98-3.43.98a5.95 5.95 0 0 1-5.63-4.11l-.1.01-3.1 2.4-.04.1A9.95 9.95 0 0 0 12 22Z" fill="#34A853"/><path d="M6.37 13.81A6.18 6.18 0 0 1 6.04 12c0-.63.12-1.24.32-1.81v-.12L3.22 7.63l-.1.05A10.04 10.04 0 0 0 2 12c0 1.56.36 3.03 1.13 4.32l3.24-2.51Z" fill="#FBBC05"/><path d="M12 6.08c1.88 0 3.15.81 3.88 1.48l2.78-2.71C16.95 3.26 14.69 2 12 2a9.95 9.95 0 0 0-8.87 5.68l3.23 2.51A5.97 5.97 0 0 1 12 6.08Z" fill="#EA4335"/></svg>;
 }
 
-export function WelcomeAccountAccess({ language, onContinueLocal }: { language: "en" | "he"; onContinueLocal: () => void }) {
+export function WelcomeAccountAccess({ language, onContinueLocal, compact=false, onBeforeSignIn }: { language: "en" | "he"; onContinueLocal: () => void; compact?:boolean; onBeforeSignIn?:()=>boolean }) {
   const configured = isSupabaseConfigured();
   const supabaseRef = useRef(createClient());
   const [session, setSession] = useState<Session | null>(null);
   const [email, setEmail] = useState("");
+  const [showSignIn,setShowSignIn]=useState(!compact);
   const [showEmail, setShowEmail] = useState(false);
   const emailInputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -62,6 +63,7 @@ export function WelcomeAccountAccess({ language, onContinueLocal }: { language: 
   }, [retryAfter]);
 
   useEffect(() => {
+    if(new URLSearchParams(window.location.search).has("auth"))setShowSignIn(true);
     const supabase = supabaseRef.current;
     if (!supabase) return;
     supabase.auth.getSession().then(({ data }) => setSession(data.session)).catch(() => setSession(null));
@@ -72,6 +74,7 @@ export function WelcomeAccountAccess({ language, onContinueLocal }: { language: 
   async function signInWithGoogle() {
     const supabase = supabaseRef.current;
     if (!supabase || busy) return;
+    if(onBeforeSignIn&&!onBeforeSignIn()){setMessage(language==="he"?"לא ניתן לשמור את נקודת החזרה במכשיר. נסו לאפשר אחסון בדפדפן.":"Unable to preserve your place on this device. Please enable browser storage.");return;}
     setBusy(true);
     setMessage("");
     try {
@@ -93,6 +96,7 @@ export function WelcomeAccountAccess({ language, onContinueLocal }: { language: 
     event.preventDefault();
     const supabase = supabaseRef.current;
     if (!supabase || !email.trim() || busy || retryAfter > 0) return;
+    if(onBeforeSignIn&&!onBeforeSignIn()){setMessage(language==="he"?"לא ניתן לשמור את נקודת החזרה במכשיר. נסו לאפשר אחסון בדפדפן.":"Unable to preserve your place on this device. Please enable browser storage.");return;}
     setBusy(true);
     setMessage("");
     setSentTo("");
@@ -118,6 +122,8 @@ export function WelcomeAccountAccess({ language, onContinueLocal }: { language: 
       <button className="welcome-google-button" onClick={onContinueLocal} type="button">{language === "he" ? "כניסה לסביבת העבודה" : "Open my Carvio workspace"}<ArrowUpRight /></button>
     </div>;
   }
+
+  if(!showSignIn&&!session)return <div className="welcome-account-access"><button className="welcome-email-toggle" type="button" onClick={()=>setShowSignIn(true)}>{language==='he'?'כניסה לחשבון קיים':'Sign in to an existing account'}</button><button className="welcome-local-button" onClick={onContinueLocal} type="button">{language==='he'?'לסביבת העבודה ללא הרשמה':'Open workspace without signing up'}</button></div>;
 
   return <div className="welcome-account-access">
     {configured && <>
