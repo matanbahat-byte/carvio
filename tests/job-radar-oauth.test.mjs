@@ -76,3 +76,11 @@ test('runtime adapter rejects expired, wrong-client and tampered stored credenti
  assert.deepEqual(storedRadarGmailCredentials(row,config,now),{clientId:config.clientId,clientSecret:config.clientSecret,refreshToken:'fixture-refresh'});
  for(const patch of [{sender:'personal@example.test'},{client_id:'other'},{refresh_expires_at:new Date(now-1).toISOString()},{encrypted_refresh_token:'v1.invalid.bad.data'},{scopes:[]}])assert.throws(()=>storedRadarGmailCredentials({...row,...patch},config,now));
 });
+
+test('setup form page sends Origin on same-origin POST but never leaks referrer cross-origin, and null Origin stays rejected',async()=>{
+ const f=fixture();
+ const page=f.flow.page(new Request(config.origin+OAUTH_PATH));
+ assert.equal(page.status,200);
+ assert.equal(page.headers.get('referrer-policy'),'same-origin');
+ assert.equal((await f.start(config.setupToken,'null')).status,403);
+});
