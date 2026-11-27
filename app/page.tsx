@@ -1,4 +1,5 @@
 "use client";
+import {RadarAttribution} from "@/components/radar-attribution";
 import { JobRadar } from "@/components/job-radar";
 import { WorkspaceAccessGate } from "@/components/workspace-access";
 import { JobAvailabilityCheck } from "@/components/job-availability-check";
@@ -3791,6 +3792,7 @@ function WorkspaceHome() {
     <main className={`carvio-shell min-h-screen px-4 py-6 text-slate-100 sm:px-6 sm:py-8 lg:px-8 ${theme === "light" ? "carvio-light" : theme === "ocean" ? "carvio-ocean" : theme === "plum" ? "carvio-plum" : ""}`} dir={language === "he" ? "rtl" : "ltr"}>
       <div className="carvio-language-bar carvio-workspace-language" dir="ltr">{languageSwitcher}</div>
       <a href={`/find?lang=${language}`} className="carvio-public-search-shortcut mx-auto mb-3 inline-flex min-h-11 items-center gap-2 rounded-full border border-teal-700 bg-teal-700 px-5 py-2 text-sm font-extrabold text-white shadow-lg transition hover:bg-teal-800"><Search className="h-4 w-4" />{language === "he" ? "חיפוש המשרות החדש ✦" : "New job search ✦"}</a>
+      {!demoMode && <RadarAttribution workspace/>}
       {!demoMode && <JobRadar language={language} profile={submittedSearchProfile || searchProfile} successfulSearch={showSearchResults && !!submittedSearchProfile} />}
       <div className="calm-content mx-auto flex max-w-7xl flex-col gap-8">
         {demoMode && <aside className="demo-mode-banner" role="status"><strong>{language === "he" ? "מצב דמו · נתונים פיקטיביים בלבד" : "Demo mode · fictional data only"}</strong><p>{language === "he" ? "נתוני הדמו נשארים בסיור. סביבת העבודה האישית נשמרת במכשיר הזה, ואפשר להתחבר בה כדי לסנכרן." : "Demo changes stay in this session. Your personal workspace is saved on this device. Sign in there to sync across devices."}</p><button className="secondary-button" type="button" onClick={() => { window.localStorage.setItem(LANGUAGE_KEY, JSON.stringify(language)); window.location.assign("/?workspace=1"); }}>{language === "he" ? "פתיחת סביבת עבודה במכשיר הזה" : "Open workspace on this device"}</button></aside>}

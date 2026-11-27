@@ -5,12 +5,13 @@ import { normalizePublicBoardJobs, type PublicJob } from './free-job-sources.ts'
 
 type Language = 'he' | 'en';
 export type RadarListing = { id: string; source_id: string; title: string; company: string; location: string; source_url: string; provider: PublicJob['provider']; posted_at: string | null; expires_at: string; is_active: boolean };
-export type RadarEmailInput = { jobs: readonly PublicJob[]; language: Language; displayName?: string; origin?: string };
+export type RadarEmailInput = { jobs: readonly PublicJob[]; language: Language; displayName?: string; origin?: string; dispatchId?: string; trackingTokens?: Record<string,string> };
 export const RADAR_PUBLIC_ORIGIN = 'https://carvio-pi.vercel.app';
 export const validRadarListingId = (id: string) => /^[a-f0-9]{64}$/.test(id);
-export function radarJobPath(id: string, language: Language) {
+export function radarJobPath(id: string, language: Language, token?: string) {
   if (!validRadarListingId(id)) throw new Error('Invalid listing ID');
-  return `/radar/jobs/${id}?lang=${language === 'he' ? 'he' : 'en'}`;
+  if(token&&!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(token))throw new Error('Invalid attribution token');
+  return `/radar/jobs/${id}?lang=${language === 'he' ? 'he' : 'en'}${token?'&r='+token:''}`;
 }
 export const radarPreferencesPath = (language: Language, stop = false) => `/radar/preferences?lang=${language === 'he' ? 'he' : 'en'}${stop ? '&action=stop' : ''}`;
 function origin(value = RADAR_PUBLIC_ORIGIN) {
@@ -69,10 +70,10 @@ export function renderRadarEmail(input: RadarEmailInput): {subject: string; html
   const manage = base + radarPreferencesPath(language);
   const stop = base + radarPreferencesPath(language,true);
   const listings = jobs.map(job => ({job,id:radarListingRecord(job).id}));
-  const cards = listings.map(({job,id}) => `<tr><td style="padding:0 24px 16px" class="pad"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="table-layout:fixed;border:1px solid #b9e5dc;border-radius:14px;background:#ffffff"><tr><td style="padding:20px;overflow-wrap:anywhere;word-break:break-word"><h2 style="font-size:19px;line-height:1.5;margin:0 0 8px;color:#134e4a"><a href="${escape(base+radarJobPath(id,language))}" style="color:#134e4a;text-decoration:none">${escape(job.title)}</a></h2><p style="font-size:15px;line-height:1.7;margin:0 0 16px;color:#375c57"><bdi>${escape(job.company)}</bdi><br/><bdi>${escape(job.location)}</bdi></p><a href="${escape(base+radarJobPath(id,language))}" style="display:inline-block;background:#0f766e;color:#ffffff;text-decoration:none;border-radius:8px;padding:12px 18px;font-size:15px;font-weight:bold;line-height:1.5">${t('לפרטי המשרה ב־CARVIO','View job in CARVIO')}</a></td></tr></table></td></tr>`).join('');
+  const cards = listings.map(({job,id}) => `<tr><td style="padding:0 24px 16px" class="pad"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="table-layout:fixed;border:1px solid #b9e5dc;border-radius:14px;background:#ffffff"><tr><td style="padding:20px;overflow-wrap:anywhere;word-break:break-word"><h2 style="font-size:19px;line-height:1.5;margin:0 0 8px;color:#134e4a"><a href="${escape(base+radarJobPath(id,language,input.trackingTokens?.[id]))}" style="color:#134e4a;text-decoration:none">${escape(job.title)}</a></h2><p style="font-size:15px;line-height:1.7;margin:0 0 16px;color:#375c57"><bdi>${escape(job.company)}</bdi><br/><bdi>${escape(job.location)}</bdi></p><a href="${escape(base+radarJobPath(id,language,input.trackingTokens?.[id]))}" style="display:inline-block;background:#0f766e;color:#ffffff;text-decoration:none;border-radius:8px;padding:12px 18px;font-size:15px;font-weight:bold;line-height:1.5">${t('לפרטי המשרה ב־CARVIO','View job in CARVIO')}</a></td></tr></table></td></tr>`).join('');
   const footer = t('קיבלת את המייל כי בחרת לקבל משרות לפי ההעדפות שלך. אפשר לשנות אותן או להפסיק את ההתראות בכל עת.','You received this email because you chose job alerts for your search. You can change your preferences or stop alerts at any time.');
   const html = `<!doctype html><html lang="${language}" dir="${he?'rtl':'ltr'}"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${escape(subject)}</title><style>@media only screen and (max-width:480px){.pad{padding-left:16px!important;padding-right:16px!important}.headline{font-size:25px!important}}</style></head><body style="margin:0;padding:0;background:#f0faf7;color:#134e4a;font-family:Arial,Helvetica,sans-serif;-webkit-text-size-adjust:100%"><div style="display:none;max-height:0;overflow:hidden;mso-hide:all">${escape(t('משרות שמתאימות לחיפוש שלך, במקום אחד.','Jobs for your search, together in one place.'))}</div><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f0faf7"><tr><td align="center" style="padding:24px 8px"><!--[if mso]><table role="presentation" width="600"><tr><td><![endif]--><table role="presentation" width="100%" cellspacing="0" cellpadding="0" dir="${he?'rtl':'ltr'}" style="max-width:600px;table-layout:fixed;background:#f0fdfa;border:1px solid #b9e5dc;border-radius:18px;text-align:${he?'right':'left'}"><tr><td class="pad" style="padding:28px 24px 24px;background:#ccfbf1;border-radius:18px 18px 0 0"><p dir="ltr" style="margin:0 0 8px;font-size:23px;letter-spacing:2px;color:#0f766e;font-weight:bold">CARVIO</p><p style="margin:0;font-size:13px;color:#375c57">Job Radar</p></td></tr><tr><td class="pad" style="padding:28px 24px 24px;overflow-wrap:anywhere"><p style="margin:0 0 12px;font-size:16px;line-height:1.7">${escape(greeting)}</p><h1 class="headline" style="margin:0 0 14px;font-size:29px;line-height:1.4;color:#134e4a">${escape(title)}</h1><p style="margin:0;font-size:16px;line-height:1.8;color:#375c57">${escape(intro)}</p></td></tr>${cards}<tr><td class="pad" style="padding:12px 24px 28px;font-size:13px;line-height:1.9;color:#375c57"><p style="margin:0 0 12px">${escape(footer)}</p><a href="${escape(manage)}" style="display:inline-block;padding:8px 0;color:#0f766e;text-decoration:underline">${t('שינוי העדפות','Change preferences')}</a><span aria-hidden="true"> · </span><a href="${escape(stop)}" style="display:inline-block;padding:8px 0;color:#0f766e;text-decoration:underline">${t('הפסקת התראות','Stop job alerts')}</a></td></tr></table><!--[if mso]></td></tr></table><![endif]--></td></tr></table></body></html>`;
-  const text = [greeting,title,intro,...listings.map(({job,id})=>`${job.title}\n${job.company}\n${job.location}\n${base+radarJobPath(id,language)}`),footer,`${t('שינוי העדפות','Change preferences')}: ${manage}`,`${t('הפסקת התראות','Stop job alerts')}: ${stop}`].join('\n\n');
+  const text = [greeting,title,intro,...listings.map(({job,id})=>`${job.title}\n${job.company}\n${job.location}\n${base+radarJobPath(id,language,input.trackingTokens?.[id])}`),footer,`${t('שינוי העדפות','Change preferences')}: ${manage}`,`${t('הפסקת התראות','Stop job alerts')}: ${stop}`].join('\n\n');
   return {subject,html,text,listingIds:listings.map(x=>x.id)};
 }
 // Call only after prepareRadarJobs with current consent. Requires a trusted worker client.
@@ -84,5 +85,11 @@ export async function prepareRadarEmail(client: SupabaseClient, input: RadarEmai
   const records = jobs.map(job=>radarListingRecord(job));
   const {error} = await client.from('job_radar_listings').upsert(records,{onConflict:'id'}).abortSignal(AbortSignal.timeout(5000));
   if (error) throw new Error('Job Radar listing persistence failed');
+  if(input.dispatchId){
+    const links=await client.rpc('create_radar_attribution_links',{p_dispatch:input.dispatchId}).abortSignal(AbortSignal.timeout(5000));
+    if(links.error||!Array.isArray(links.data)||links.data.length!==records.length)throw new Error('Job Radar attribution persistence failed');
+    const trackingTokens:Record<string,string>={};for(const link of links.data){if(!records.some(r=>r.id===link.listing_id))throw new Error('Invalid attribution listing');trackingTokens[link.listing_id]=link.token;}
+    return renderRadarEmail({...input,jobs,trackingTokens});
+  }
   return rendered;
 }

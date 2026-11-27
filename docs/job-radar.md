@@ -63,3 +63,7 @@ Browser previews are not a Gmail/Outlook rendering certification. Before sending
 ## Step 4: scheduled worker (development, disabled)
 
 See [job-radar-dispatch.md](job-radar-dispatch.md) for the new persistent queue, Gmail-only transport, Israel-time schedule, dry-run evidence and explicit activation blockers. This supersedes earlier foundation statements about absent worker code; no live sender, cron activation or production deployment has been enabled.
+
+## Steps 5–6: analytics/reporting integration
+
+See [job-radar-analytics-pilot.md](job-radar-analytics-pilot.md) for Israel-day cohorts, seven-day conversion attribution, protected event collection, daily aggregate report workflow, pilot dry-run evidence and remaining live-activation blockers. This integrates the two commits from `dev/job-radar-analytics`; report and delivery workflows remain disabled.

@@ -41,7 +41,7 @@ export async function runRadarDispatch(userId:string,deps:Dependencies,mode:Disp
     picked={...selected,jobs:selected.jobs.filter(j=>allowed.has(j.id))};
     if(!picked.jobs.length){await deps.store.finish(dispatchId,'skipped','no_active_relevant_jobs');return {status:'skipped',code:'no_active_relevant_jobs'};}
     if(!await deps.store.reserve(dispatchId,picked.jobs))return {status:'skipped',code:'duplicate_or_revoked'};
-    const input={jobs:picked.jobs,language:s.language};
+    const input={jobs:picked.jobs,language:s.language,dispatchId};
     // Dry run never writes public catalog rows or invokes Gmail (including OAuth).
     const message=mode==='dry-run'?renderRadarEmail(input):await deps.publish(input);
     if(!message)throw new Error('empty_message');

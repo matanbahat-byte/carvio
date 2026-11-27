@@ -43,3 +43,9 @@ test('catalog persists all selected job pages before composing; failed writes ne
  assert.deepEqual(rows.map(r=>r.id),email.listingIds);
  await assert.rejects(prepareRadarEmail(client({message:'denied'}),{language:'he',jobs:[make(1)]}),/persistence failed/);
 });
+test('tracking adds only an opaque token and language; invalid tokens cannot become URLs',()=>{
+ const job=make(1);const id=radarListingRecord(job).id;const token='11111111-1111-4111-8111-111111111111';
+ const email=renderRadarEmail({language:'he',jobs:[job],displayName:'private@example.test',trackingTokens:{[id]:token}});
+ const tracked=links(email.html).filter(u=>u.pathname.includes('/jobs/'));assert.ok(tracked.every(u=>u.searchParams.get('r')===token));assert.ok(tracked.every(u=>[...u.searchParams.keys()].every(k=>['lang','r'].includes(k))));
+ assert.throws(()=>renderRadarEmail({language:'en',jobs:[job],trackingTokens:{[id]:'private@example.test'}}),/Invalid attribution/);
+});

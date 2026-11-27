@@ -176,6 +176,7 @@ export function CloudAccount({
   }, []);
 
   useEffect(() => {
+    if(syncState==="saved")window.dispatchEvent(new Event("carvio:radar-workspace-saved"));
     onStatusChange?.({
       configured,
       email: session?.user.email || "",
