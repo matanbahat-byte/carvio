@@ -10,7 +10,7 @@ test('Google searches web page content without forcing title or quoted city/coun
  assert.equal(url.hostname,'www.google.com');assert.equal(url.searchParams.get('q'),route.query);
  assert.ok(route.query.includes('Senior HR Business Partner'));assert.ok(route.query.includes('Tel Aviv'));
  assert.doesNotMatch(route.query,/intitle:|"Tel Aviv"|"Israel"/);assert.equal(url.searchParams.get('gl'),'il');
- assert.equal(url.searchParams.get('tbs'),'qdr:w');assert.ok(!url.searchParams.has('udm'));
+ assert.equal(url.searchParams.get('tbs'),'qdr:w');assert.equal(url.searchParams.get('udm'),'web');
  assert.deepEqual(jobSearchSources(profile).find(x=>x.id==='google').url,route.url);
 });
 test('Google escape hatch removes only time filtering and preserves explicit search intent',()=>{

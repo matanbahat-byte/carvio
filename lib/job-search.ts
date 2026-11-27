@@ -302,13 +302,23 @@ export function googleJobSearch(profile: SearchProfile, language: Language = "en
   const requiredSkills = clean.skillsMode === "required" ? clean.skills.split(",").filter(Boolean).map(quote) : [];
   const exclusions = clean.exclude.split(",").map(value => text(value).replace(/^-+/, "")).filter(Boolean).map(value => `-${quote(value)}`);
   const jobTerms = language === "he" ? "(jobs OR careers OR דרושים OR משרות)" : "(jobs OR careers OR hiring)";
-  // A role in normal page text is valid: do not require an exact phrase in its HTML title.
+  // General roles may match page text; executive HR needs a title match to avoid
+  // jobs that merely report to a VP HR.
   // Location words are also unquoted because job boards format cities/countries differently.
   const careerTerms = '(careers OR "join our team" OR site:jobs.lever.co OR site:boards.greenhouse.io OR site:job-boards.greenhouse.io OR site:jobs.ashbyhq.com OR site:myworkdayjobs.com OR site:apply.workable.com)';
   const roleTerms = searchRoleTerms(clean);
-  const roleQuery = roleTerms.length > 1 ? `(${roleTerms.map(quote).join(" OR ")})` : text(clean.role);
-  const query = [roleQuery, options.careerPages ? careerTerms : jobTerms, text(clean.city), text(clean.country), ...requiredSkills, text(clean.industry), text(clean.workModel), ...exclusions, options.careerPages ? "-site:linkedin.com -site:indeed.com" : ""].filter(Boolean).join(" ");
+  const executiveHr = isExecutiveHrSearch(clean.role);
+  const roleQuery = executiveHr
+    ? `(${roleTerms.map(value => `intitle:${quote(value)}`).join(" OR ")})`
+    : roleTerms.length > 1 ? `(${roleTerms.map(quote).join(" OR ")})` : text(clean.role);
+  // Prefer individual posting routes rather than LinkedIn/Indeed search-result pages.
+  // This is a focused source set, not an exhaustive index of all employers.
+  const postingTerms = "(site:linkedin.com/jobs/view/ OR site:job-boards.greenhouse.io OR site:boards.greenhouse.io OR site:jobs.lever.co OR site:jobs.ashbyhq.com OR site:apply.workable.com OR site:jobs.secrettelaviv.com/job/)";
+  const sourceTerms = options.careerPages ? careerTerms : executiveHr ? postingTerms : jobTerms;
+  const query = [roleQuery, sourceTerms, text(clean.city), text(clean.country), ...requiredSkills, text(clean.industry), text(clean.workModel), ...exclusions, options.careerPages ? "-site:linkedin.com -site:indeed.com" : ""].filter(Boolean).join(" ");
   const params = new URLSearchParams({ q: query, hl: language === "he" ? "he" : "en" });
+  // Observed Google Web filter (udm=web): text links instead of AI Overviews.
+  params.set("udm", "web");
   const codes: Record<string, string> = { Netherlands: "nl", Israel: "il", "United Kingdom": "gb", Germany: "de", France: "fr", Spain: "es", Portugal: "pt", Belgium: "be", Canada: "ca", "United States": "us", Ireland: "ie", Australia: "au", Italy: "it" };
   if (codes[providerCountry(clean.country)]) params.set("gl", codes[providerCountry(clean.country)]);
   const age = ({ "Past 24 hours": "qdr:d", "Past week": "qdr:w", "Past month": "qdr:m" } as Record<string, string>)[clean.datePosted];
