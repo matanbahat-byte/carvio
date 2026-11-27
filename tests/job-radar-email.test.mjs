@@ -15,12 +15,12 @@ test('both languages render five real job cards, internal links, text alternativ
    assert.ok(/^\/radar\/(jobs\/[a-f0-9]{64}|preferences)$/.test(url.pathname));
   }
   assert.ok(links(email.html).some(u=>u.searchParams.get('action')==='stop'));
-  assert.doesNotMatch(email.html,/newsletter|mailing list|ניוזלטר|דיוור|<script|<img/i);
+  assert.doesNotMatch(email.html,/newsletter|mailing list|ניוזלטר|דיוור|<script/i);
  }
 });
 test('escapes untrusted display names, titles and company; never includes personal details in links',()=>{
  const email=renderRadarEmail({language:'en',displayName:'Dana <img src=x onerror=alert(1)> private@example.test',jobs:[make(1,{title:'R&D <script>alert(1)</script>',company:'"Example" & Co'})]});
- assert.doesNotMatch(email.html,/<script|<img/);assert.match(email.html,/R&amp;D &lt;script&gt;/);assert.match(email.html,/&quot;Example&quot; &amp; Co/);
+ assert.doesNotMatch(email.html.replace(/<img[^>]*>/g,''),/<script|<img/);assert.match(email.html,/R&amp;D &lt;script&gt;/);assert.match(email.html,/&quot;Example&quot; &amp; Co/);
  assert.ok(links(email.html).every(u=>!u.href.includes('private')&&!u.href.includes('@')));
 });
 test('skips empty, duplicate, search and malformed job links; does not produce an empty email',()=>{
@@ -48,4 +48,12 @@ test('tracking adds only an opaque token and language; invalid tokens cannot bec
  const email=renderRadarEmail({language:'he',jobs:[job],displayName:'private@example.test',trackingTokens:{[id]:token}});
  const tracked=links(email.html).filter(u=>u.pathname.includes('/jobs/'));assert.ok(tracked.every(u=>u.searchParams.get('r')===token));assert.ok(tracked.every(u=>[...u.searchParams.keys()].every(k=>['lang','r'].includes(k))));
  assert.throws(()=>renderRadarEmail({language:'en',jobs:[job],trackingTokens:{[id]:'private@example.test'}}),/Invalid attribution/);
+});
+
+test('brand illustration uses one static first-party image with no recipient identifiers or tracking query',()=>{
+ const mail=renderRadarEmail({language:'he',jobs:[make(1)]});
+ const images=[...mail.html.matchAll(/<img[^>]*src="([^"]+)"[^>]*>/g)];
+ assert.equal(images.length,1);assert.equal(images[0][1],'https://carvio-pi.vercel.app/carvio-landing-warm-accents-v8.png');
+ assert.match(images[0][0],/alt=""/);assert.match(images[0][0],/width="280"/);assert.match(images[0][0],/height:auto/);
+ assert.ok(mail.text.includes('Recruitment Manager'));
 });
