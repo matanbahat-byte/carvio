@@ -8,8 +8,8 @@ begin
  insert into auth.users(id,email,email_confirmed_at,is_anonymous) values(u,u::text||'@example.test',now(),false);
  insert into public.job_radar_preferences(user_id,enabled,preferences,frequency_per_week,language,consent_version,consented_at) values(u,true,'{"role":"Recruitment Manager","country":"Israel","city":"Tel Aviv","seniority":"","workModel":"","employmentType":""}',3,'he','job-radar-v1',now()) returning updated_at into version;
 
- -- Five fictional, explicitly consented accounts; this transaction always rolls back.
- for n in 1..4 loop
+ -- Two fictional, explicitly consented accounts; this transaction always rolls back.
+ for n in 1..1 loop
   declare extra uuid:=gen_random_uuid();begin
    insert into auth.users(id,email,email_confirmed_at,is_anonymous) values(extra,extra::text||'@example.test',now(),false);
    insert into public.job_radar_preferences(user_id,enabled,preferences,frequency_per_week,language,consent_version,consented_at) values(extra,true,'{"role":"HR","country":"Israel"}',2,'en','job-radar-v1',now());
@@ -17,7 +17,7 @@ begin
   end;
  end loop;
  insert into public.job_radar_pilot_members(user_id) values(u);
- update public.job_radar_pilot_control set approved_cohort_size=5,enabled=true where singleton;
+ update public.job_radar_pilot_control set approved_cohort_size=2,enabled=true where singleton;
  execute 'set local role service_role';
  d:=public.claim_radar_dispatch(u,'2026-11-29','dry-run',version);
  if d is null then raise exception 'claim failed';end if;

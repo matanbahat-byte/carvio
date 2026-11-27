@@ -26,9 +26,9 @@ Raw links and action events are backend-only with RLS/grants; public/authenticat
 
 ## Pilot preparation and boundaries
 
-`radarPilotReadiness` validates a target of 5–10 unique accounts, explicit current consent and verified email, and returns aggregate readiness/blockers without identities. Five fictional consenting accounts completed the existing dispatch dry-run, with zero Gmail calls and no fabricated real delivery counts. Actual participants have not been selected or enrolled: the isolated development database is not the production subscriber list.
+`radarPilotReadiness` validates a target of exactly two unique accounts, explicit current consent and verified email, and returns aggregate readiness/blockers without identities. Two fictional consenting accounts completed the existing dispatch dry-run, with zero Gmail calls and no fabricated real delivery counts. Actual participants have not been selected or enrolled: the isolated development database is not the production subscriber list.
 
-A real pilot is blocked until an authorized job source, backend Gmail OAuth credentials, released internal routes, runtime backend configuration and at least five real explicit consents are available. Existing platform registrations are not treated as Job Radar consent. Sending and production release still require separate authorization. No new paid service or billing change was introduced.
+A real pilot is blocked until an authorized job source, backend Gmail OAuth credentials, released internal routes, runtime backend configuration and two real explicit consents are available. Existing platform registrations are not treated as Job Radar consent. Sending and production release still require separate authorization. No new paid service or billing change was introduced.
 
 ## Validation evidence
 

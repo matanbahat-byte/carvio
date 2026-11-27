@@ -6,11 +6,11 @@ Reviewed 27 November 2026, Asia/Jerusalem. Development branch: `dev/job-radar`.
 
 ## Scope and controls
 
-Use 5–10 unique verified accounts with current explicit `job-radar-v1` consent. Existing site registration does not constitute consent. Currently the isolated development backend has zero subscriptions and zero enrolled participants. Production has no Radar consent tables; do not copy existing user emails into a cohort.
+Use exactly two unique verified accounts with current explicit `job-radar-v1` consent. Existing site registration does not constitute consent. Currently the isolated development backend has zero subscriptions and zero enrolled participants. Production has no Radar consent tables; do not copy existing user emails into a cohort.
 
 Default schedule: Sunday/Tuesday/Thursday 09:00 Israel for three alerts weekly; Sunday/Thursday for two, per saved preference. Jobs are capped at five per message. Empty, stale, closed, unapproved-source, duplicate or unverifiable-history results fail closed. Only runtime OAuth verified as `carvio.team@gmail.com` can send. No tracking pixels; conversions are verified against account ownership and saved cloud evidence.
 
-`job_radar_pilot_control` is server-only and starts OFF. Final live gate checks the cohort, verified account, current consent, preference version, reservations, sent history and daily limit (maximum ten). Unknown provider results consume the limit and retain reservations, preventing blind retries. Cohort changes require the switch OFF; activation validates five to ten consented verified members. No real members have been enrolled.
+`job_radar_pilot_control` is server-only and starts OFF. Final live gate checks the cohort, verified account, current consent, preference version, reservations, sent history and daily limit (maximum two). Unknown provider results consume the limit and retain reservations, preventing blind retries. Cohort changes require the switch OFF; activation validates exactly two consented verified members. No real members have been enrolled.
 
 Emergency stop, by a privileged operator on the intended backend:
 
@@ -50,18 +50,18 @@ These are proposed pilot criteria, not measured achievements or statistically si
 ## Free infrastructure and remaining blockers
 
 - Public GitHub standard runners are free under the documented current policy. Schedules are best effort, can be delayed and run from the default branch. The development workflows are not active schedules. A run outside the 09:00–09:14 send window is skipped rather than sent late.
-- Consumer Gmail documents a 500/day sending ceiling with possible temporary blocking and lower practical limits for abuse/bounces. Ten messages/day is a conservative local cap, not a delivery guarantee. OAuth consent/testing token expiry and quotas must be verified for the actual CARVIO Google project before activation.
+- Consumer Gmail documents a 500/day sending ceiling with possible temporary blocking and lower practical limits for abuse/bounces. Two messages/day is a conservative local cap, not a delivery guarantee. OAuth consent/testing token expiry and quotas must be verified for the actual CARVIO Google project before activation.
 - Isolated Supabase is on the existing free setup; account/project quotas and availability must be rechecked before real activation. No paid vendor or upgrade was configured.
 - Source allowlist remains empty: approve lawful existing public ATS boards appropriate to the cohort before any real delivery. Search-result URLs are never jobs.
 - Runtime Gmail OAuth, backend service credentials and secrets are absent here. Chat Gmail access is not runtime OAuth. Do not expose or transfer personal-account tokens.
 - Routes, migrations, safe runtime activation path and report schedule are not released to production. No live CLI was added or enabled.
-- Need 5–10 actual opt-ins, selected membership, actual cohort baseline, source checks against their preferences, authenticated final dry-run with the intended runtime credentials, followed by explicit sending approval. Consent and schedule checks alone are insufficient to approve sending.
+- Need two actual opt-ins, selected membership, actual cohort baseline, source checks against their preferences, authenticated final dry-run with the intended runtime credentials, followed by explicit sending approval. Consent and schedule checks alone are insufficient to approve sending.
 
 References checked: [Gmail limits](https://support.google.com/mail/answer/22839?hl=en), [GitHub Actions billing](https://docs.github.com/en/actions/concepts/billing-and-usage), [GitHub scheduled workflows](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows).
 
 ## Validation
 
-291 automated tests pass; TypeScript check and production webpack build pass. Final fixture dispatch dry-run: eligible (five jobs), no new jobs, revoked, closed jobs, missing history; zero send calls. Report fixture is synthetic and labeled, never persisted as real sending.
+292 automated tests pass; TypeScript check and production webpack build pass. Final fixture dispatch dry-run: eligible (five jobs), no new jobs, revoked, closed jobs, missing history; zero send calls. Report fixture is synthetic and labeled, never persisted as real sending.
 
 Actual isolated SQL rollback tests cover protected dispatch history, final consent gate, revocation, unknown-send reservations, attribution ownership, replay deduplication, saved-cloud conversion evidence and global pending cancellation. Additional pilot test checks default OFF, membership exclusion, uncertainty consuming the daily cap, protected control access and stopping pending sends. No SQL fixture invokes Gmail. All fictional users/consents/messages are transaction-local and rolled back.
 
