@@ -6,7 +6,7 @@ for(const [role,city,country] of [['Software Engineer','Tel Aviv','Israel'],['מ
   const profile={...emptySearchProfile,role,location:city,country,employmentType:'',datePosted:'Any time',radius:''};
   for(const id of ['linkedin','indeed']){
    const source=jobSearchSources(profile).find(s=>s.id===id),url=new URL(source.url);
-   assert.equal(url.searchParams.get(id==='linkedin'?'keywords':'q'),role);
+   assert.equal(url.searchParams.get(id==='linkedin'?'keywords':'q'),role==='מנהל משאבי אנוש'?'(מנהל משאבי אנוש OR HR Manager)':role);
    assert.equal(url.searchParams.get(id==='linkedin'?'location':'l'),`${city}, ${country}`);
    if(id==='indeed')assert.equal(url.searchParams.has('jt'),false);
   }

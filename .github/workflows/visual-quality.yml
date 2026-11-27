@@ -37,6 +37,8 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           node --input-type=module -e 'for(let i=0;i<100;i++){try{if((await fetch("http://127.0.0.1:3120/find")).ok)process.exit(0)}catch{}await new Promise(r=>setTimeout(r,200));}process.exit(1)'
+          node tests/search-quality-audit-browser.mjs
+          node tests/search-quality-home-browser.mjs
           node tests/application-context-tool-browser.mjs
           node tests/cv-draft-recovery-browser.mjs
           node tests/resume-review-browser.mjs
@@ -64,6 +66,7 @@ jobs:
           name: carvio-visual-quality
           path: |
             artifacts/context-tool/
+            docs/search-quality/
             artifacts/acceptance-65/
             artifacts/interview-layout/
             artifacts/visual/after/

@@ -1,0 +1,2646 @@
+{
+  "phase": "after",
+  "base": "http://127.0.0.1:3120",
+  "cases": [
+    {
+      "case": 1,
+      "role": "מנהל שרשרת אספקה",
+      "country": "ישראל",
+      "city": "תל אביב",
+      "language": "he",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94+OR+Supply+Chain+Manager+OR+%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%29&location=Tel+Aviv%2C+Israel&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://il.indeed.com/jobs?q=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94+OR+Supply+Chain+Manager+OR+%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%29&l=Tel+Aviv%2C+Israel&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22+OR+%22Supply+Chain+Manager%22+OR+%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22%29+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+Tel+Aviv+Israel&hl=he&gl=il"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22+OR+%22Supply+Chain+Manager%22+OR+%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Tel+Aviv+Israel+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=il"
+        }
+      ]
+    },
+    {
+      "case": 1,
+      "role": "מנהל שרשרת אספקה",
+      "country": "ישראל",
+      "city": "תל אביב",
+      "language": "he",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94+OR+Supply+Chain+Manager+OR+%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%29&location=Tel+Aviv%2C+Israel&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://il.indeed.com/jobs?q=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94+OR+Supply+Chain+Manager+OR+%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%29&l=Tel+Aviv%2C+Israel&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22+OR+%22Supply+Chain+Manager%22+OR+%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22%29+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+Tel+Aviv+Israel&hl=he&gl=il"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22+OR+%22Supply+Chain+Manager%22+OR+%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Tel+Aviv+Israel+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=il"
+        }
+      ]
+    },
+    {
+      "case": 1,
+      "role": "מנהל שרשרת אספקה",
+      "country": "ישראל",
+      "city": "תל אביב",
+      "language": "en",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94+OR+Supply+Chain+Manager+OR+%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%29&location=Tel+Aviv%2C+Israel&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://il.indeed.com/jobs?q=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94+OR+Supply+Chain+Manager+OR+%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%29&l=Tel+Aviv%2C+Israel&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22+OR+%22Supply+Chain+Manager%22+OR+%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22%29+%28jobs+OR+careers+OR+hiring%29+Tel+Aviv+Israel&hl=en&gl=il"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22+OR+%22Supply+Chain+Manager%22+OR+%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Tel+Aviv+Israel+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=il"
+        }
+      ]
+    },
+    {
+      "case": 1,
+      "role": "מנהל שרשרת אספקה",
+      "country": "ישראל",
+      "city": "תל אביב",
+      "language": "en",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94+OR+Supply+Chain+Manager+OR+%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%29&location=Tel+Aviv%2C+Israel&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://il.indeed.com/jobs?q=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94+OR+Supply+Chain+Manager+OR+%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%29&l=Tel+Aviv%2C+Israel&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22+OR+%22Supply+Chain+Manager%22+OR+%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22%29+%28jobs+OR+careers+OR+hiring%29+Tel+Aviv+Israel&hl=en&gl=il"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22+OR+%22Supply+Chain+Manager%22+OR+%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Tel+Aviv+Israel+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=il"
+        }
+      ]
+    },
+    {
+      "case": 2,
+      "role": "מנהלת גיוס",
+      "country": "ישראל",
+      "city": "הרצליה",
+      "language": "he",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%92%D7%99%D7%95%D7%A1+OR+Recruitment+Manager+OR+Talent+Acquisition+Manager+OR+Recruiting+Manager%29&location=Herzliya%2C+Israel&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://il.indeed.com/jobs?q=%28%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%92%D7%99%D7%95%D7%A1+OR+Recruitment+Manager+OR+Talent+Acquisition+Manager+OR+Recruiting+Manager%29&l=Herzliya%2C+Israel&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%92%D7%99%D7%95%D7%A1%22+OR+%22Recruitment+Manager%22+OR+%22Talent+Acquisition+Manager%22+OR+%22Recruiting+Manager%22%29+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+Herzliya+Israel&hl=he&gl=il"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%92%D7%99%D7%95%D7%A1%22+OR+%22Recruitment+Manager%22+OR+%22Talent+Acquisition+Manager%22+OR+%22Recruiting+Manager%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Herzliya+Israel+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=il"
+        }
+      ]
+    },
+    {
+      "case": 2,
+      "role": "מנהלת גיוס",
+      "country": "ישראל",
+      "city": "הרצליה",
+      "language": "he",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%92%D7%99%D7%95%D7%A1+OR+Recruitment+Manager+OR+Talent+Acquisition+Manager+OR+Recruiting+Manager%29&location=Herzliya%2C+Israel&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://il.indeed.com/jobs?q=%28%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%92%D7%99%D7%95%D7%A1+OR+Recruitment+Manager+OR+Talent+Acquisition+Manager+OR+Recruiting+Manager%29&l=Herzliya%2C+Israel&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%92%D7%99%D7%95%D7%A1%22+OR+%22Recruitment+Manager%22+OR+%22Talent+Acquisition+Manager%22+OR+%22Recruiting+Manager%22%29+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+Herzliya+Israel&hl=he&gl=il"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%92%D7%99%D7%95%D7%A1%22+OR+%22Recruitment+Manager%22+OR+%22Talent+Acquisition+Manager%22+OR+%22Recruiting+Manager%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Herzliya+Israel+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=il"
+        }
+      ]
+    },
+    {
+      "case": 2,
+      "role": "מנהלת גיוס",
+      "country": "ישראל",
+      "city": "הרצליה",
+      "language": "en",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%92%D7%99%D7%95%D7%A1+OR+Recruitment+Manager+OR+Talent+Acquisition+Manager+OR+Recruiting+Manager%29&location=Herzliya%2C+Israel&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://il.indeed.com/jobs?q=%28%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%92%D7%99%D7%95%D7%A1+OR+Recruitment+Manager+OR+Talent+Acquisition+Manager+OR+Recruiting+Manager%29&l=Herzliya%2C+Israel&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%92%D7%99%D7%95%D7%A1%22+OR+%22Recruitment+Manager%22+OR+%22Talent+Acquisition+Manager%22+OR+%22Recruiting+Manager%22%29+%28jobs+OR+careers+OR+hiring%29+Herzliya+Israel&hl=en&gl=il"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%92%D7%99%D7%95%D7%A1%22+OR+%22Recruitment+Manager%22+OR+%22Talent+Acquisition+Manager%22+OR+%22Recruiting+Manager%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Herzliya+Israel+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=il"
+        }
+      ]
+    },
+    {
+      "case": 2,
+      "role": "מנהלת גיוס",
+      "country": "ישראל",
+      "city": "הרצליה",
+      "language": "en",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%92%D7%99%D7%95%D7%A1+OR+Recruitment+Manager+OR+Talent+Acquisition+Manager+OR+Recruiting+Manager%29&location=Herzliya%2C+Israel&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://il.indeed.com/jobs?q=%28%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%92%D7%99%D7%95%D7%A1+OR+Recruitment+Manager+OR+Talent+Acquisition+Manager+OR+Recruiting+Manager%29&l=Herzliya%2C+Israel&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%92%D7%99%D7%95%D7%A1%22+OR+%22Recruitment+Manager%22+OR+%22Talent+Acquisition+Manager%22+OR+%22Recruiting+Manager%22%29+%28jobs+OR+careers+OR+hiring%29+Herzliya+Israel&hl=en&gl=il"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%92%D7%99%D7%95%D7%A1%22+OR+%22Recruitment+Manager%22+OR+%22Talent+Acquisition+Manager%22+OR+%22Recruiting+Manager%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Herzliya+Israel+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=il"
+        }
+      ]
+    },
+    {
+      "case": 3,
+      "role": "מפתח תוכנה",
+      "country": "גרמניה",
+      "city": "ברלין",
+      "language": "he",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94+OR+Software+Developer+OR+Software+Engineer+OR+%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%29&location=%D7%91%D7%A8%D7%9C%D7%99%D7%9F%2C+Germany&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://de.indeed.com/jobs?q=%28%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94+OR+Software+Developer+OR+Software+Engineer+OR+%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%29&l=%D7%91%D7%A8%D7%9C%D7%99%D7%9F%2C+Germany&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22+OR+%22Software+Developer%22+OR+%22Software+Engineer%22+OR+%22%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22%29+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+%D7%91%D7%A8%D7%9C%D7%99%D7%9F+Germany&hl=he&gl=de"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22+OR+%22Software+Developer%22+OR+%22Software+Engineer%22+OR+%22%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%91%D7%A8%D7%9C%D7%99%D7%9F+Germany+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=de"
+        }
+      ]
+    },
+    {
+      "case": 3,
+      "role": "מפתח תוכנה",
+      "country": "גרמניה",
+      "city": "ברלין",
+      "language": "he",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94+OR+Software+Developer+OR+Software+Engineer+OR+%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%29&location=%D7%91%D7%A8%D7%9C%D7%99%D7%9F%2C+Germany&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://de.indeed.com/jobs?q=%28%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94+OR+Software+Developer+OR+Software+Engineer+OR+%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%29&l=%D7%91%D7%A8%D7%9C%D7%99%D7%9F%2C+Germany&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22+OR+%22Software+Developer%22+OR+%22Software+Engineer%22+OR+%22%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22%29+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+%D7%91%D7%A8%D7%9C%D7%99%D7%9F+Germany&hl=he&gl=de"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22+OR+%22Software+Developer%22+OR+%22Software+Engineer%22+OR+%22%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%91%D7%A8%D7%9C%D7%99%D7%9F+Germany+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=de"
+        }
+      ]
+    },
+    {
+      "case": 3,
+      "role": "מפתח תוכנה",
+      "country": "גרמניה",
+      "city": "ברלין",
+      "language": "en",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94+OR+Software+Developer+OR+Software+Engineer+OR+%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%29&location=%D7%91%D7%A8%D7%9C%D7%99%D7%9F%2C+Germany&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://de.indeed.com/jobs?q=%28%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94+OR+Software+Developer+OR+Software+Engineer+OR+%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%29&l=%D7%91%D7%A8%D7%9C%D7%99%D7%9F%2C+Germany&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22+OR+%22Software+Developer%22+OR+%22Software+Engineer%22+OR+%22%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22%29+%28jobs+OR+careers+OR+hiring%29+%D7%91%D7%A8%D7%9C%D7%99%D7%9F+Germany&hl=en&gl=de"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22+OR+%22Software+Developer%22+OR+%22Software+Engineer%22+OR+%22%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%91%D7%A8%D7%9C%D7%99%D7%9F+Germany+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=de"
+        }
+      ]
+    },
+    {
+      "case": 3,
+      "role": "מפתח תוכנה",
+      "country": "גרמניה",
+      "city": "ברלין",
+      "language": "en",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94+OR+Software+Developer+OR+Software+Engineer+OR+%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%29&location=%D7%91%D7%A8%D7%9C%D7%99%D7%9F%2C+Germany&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://de.indeed.com/jobs?q=%28%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94+OR+Software+Developer+OR+Software+Engineer+OR+%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%29&l=%D7%91%D7%A8%D7%9C%D7%99%D7%9F%2C+Germany&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22+OR+%22Software+Developer%22+OR+%22Software+Engineer%22+OR+%22%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22%29+%28jobs+OR+careers+OR+hiring%29+%D7%91%D7%A8%D7%9C%D7%99%D7%9F+Germany&hl=en&gl=de"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22+OR+%22Software+Developer%22+OR+%22Software+Engineer%22+OR+%22%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%91%D7%A8%D7%9C%D7%99%D7%9F+Germany+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=de"
+        }
+      ]
+    },
+    {
+      "case": 4,
+      "role": "אנליסט נתונים",
+      "country": "הולנד",
+      "city": "אמסטרדם",
+      "language": "he",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D+OR+Data+Analyst+OR+%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%29&location=%D7%90%D7%9E%D7%A1%D7%98%D7%A8%D7%93%D7%9D%2C+Netherlands&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://nl.indeed.com/jobs?q=%28%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D+OR+Data+Analyst+OR+%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%29&l=%D7%90%D7%9E%D7%A1%D7%98%D7%A8%D7%93%D7%9D%2C+Netherlands&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22+OR+%22Data+Analyst%22+OR+%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22%29+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+%D7%90%D7%9E%D7%A1%D7%98%D7%A8%D7%93%D7%9D+Netherlands&hl=he&gl=nl"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22+OR+%22Data+Analyst%22+OR+%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%90%D7%9E%D7%A1%D7%98%D7%A8%D7%93%D7%9D+Netherlands+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=nl"
+        }
+      ]
+    },
+    {
+      "case": 4,
+      "role": "אנליסט נתונים",
+      "country": "הולנד",
+      "city": "אמסטרדם",
+      "language": "he",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D+OR+Data+Analyst+OR+%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%29&location=%D7%90%D7%9E%D7%A1%D7%98%D7%A8%D7%93%D7%9D%2C+Netherlands&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://nl.indeed.com/jobs?q=%28%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D+OR+Data+Analyst+OR+%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%29&l=%D7%90%D7%9E%D7%A1%D7%98%D7%A8%D7%93%D7%9D%2C+Netherlands&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22+OR+%22Data+Analyst%22+OR+%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22%29+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+%D7%90%D7%9E%D7%A1%D7%98%D7%A8%D7%93%D7%9D+Netherlands&hl=he&gl=nl"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22+OR+%22Data+Analyst%22+OR+%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%90%D7%9E%D7%A1%D7%98%D7%A8%D7%93%D7%9D+Netherlands+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=nl"
+        }
+      ]
+    },
+    {
+      "case": 4,
+      "role": "אנליסט נתונים",
+      "country": "הולנד",
+      "city": "אמסטרדם",
+      "language": "en",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D+OR+Data+Analyst+OR+%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%29&location=%D7%90%D7%9E%D7%A1%D7%98%D7%A8%D7%93%D7%9D%2C+Netherlands&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://nl.indeed.com/jobs?q=%28%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D+OR+Data+Analyst+OR+%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%29&l=%D7%90%D7%9E%D7%A1%D7%98%D7%A8%D7%93%D7%9D%2C+Netherlands&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22+OR+%22Data+Analyst%22+OR+%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22%29+%28jobs+OR+careers+OR+hiring%29+%D7%90%D7%9E%D7%A1%D7%98%D7%A8%D7%93%D7%9D+Netherlands&hl=en&gl=nl"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22+OR+%22Data+Analyst%22+OR+%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%90%D7%9E%D7%A1%D7%98%D7%A8%D7%93%D7%9D+Netherlands+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=nl"
+        }
+      ]
+    },
+    {
+      "case": 4,
+      "role": "אנליסט נתונים",
+      "country": "הולנד",
+      "city": "אמסטרדם",
+      "language": "en",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D+OR+Data+Analyst+OR+%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%29&location=%D7%90%D7%9E%D7%A1%D7%98%D7%A8%D7%93%D7%9D%2C+Netherlands&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://nl.indeed.com/jobs?q=%28%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D+OR+Data+Analyst+OR+%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%29&l=%D7%90%D7%9E%D7%A1%D7%98%D7%A8%D7%93%D7%9D%2C+Netherlands&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22+OR+%22Data+Analyst%22+OR+%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22%29+%28jobs+OR+careers+OR+hiring%29+%D7%90%D7%9E%D7%A1%D7%98%D7%A8%D7%93%D7%9D+Netherlands&hl=en&gl=nl"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22+OR+%22Data+Analyst%22+OR+%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%90%D7%9E%D7%A1%D7%98%D7%A8%D7%93%D7%9D+Netherlands+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=nl"
+        }
+      ]
+    },
+    {
+      "case": 5,
+      "role": "מנהל מוצר",
+      "country": "אירלנד",
+      "city": "דבלין",
+      "language": "he",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%95%D7%A6%D7%A8+OR+Product+Manager%29&location=%D7%93%D7%91%D7%9C%D7%99%D7%9F%2C+Ireland&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://ie.indeed.com/jobs?q=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%95%D7%A6%D7%A8+OR+Product+Manager%29&l=%D7%93%D7%91%D7%9C%D7%99%D7%9F%2C+Ireland&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%95%D7%A6%D7%A8%22+OR+%22Product+Manager%22%29+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+%D7%93%D7%91%D7%9C%D7%99%D7%9F+Ireland&hl=he&gl=ie"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%95%D7%A6%D7%A8%22+OR+%22Product+Manager%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%93%D7%91%D7%9C%D7%99%D7%9F+Ireland+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=ie"
+        }
+      ]
+    },
+    {
+      "case": 5,
+      "role": "מנהל מוצר",
+      "country": "אירלנד",
+      "city": "דבלין",
+      "language": "he",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%95%D7%A6%D7%A8+OR+Product+Manager%29&location=%D7%93%D7%91%D7%9C%D7%99%D7%9F%2C+Ireland&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://ie.indeed.com/jobs?q=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%95%D7%A6%D7%A8+OR+Product+Manager%29&l=%D7%93%D7%91%D7%9C%D7%99%D7%9F%2C+Ireland&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%95%D7%A6%D7%A8%22+OR+%22Product+Manager%22%29+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+%D7%93%D7%91%D7%9C%D7%99%D7%9F+Ireland&hl=he&gl=ie"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%95%D7%A6%D7%A8%22+OR+%22Product+Manager%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%93%D7%91%D7%9C%D7%99%D7%9F+Ireland+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=ie"
+        }
+      ]
+    },
+    {
+      "case": 5,
+      "role": "מנהל מוצר",
+      "country": "אירלנד",
+      "city": "דבלין",
+      "language": "en",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%95%D7%A6%D7%A8+OR+Product+Manager%29&location=%D7%93%D7%91%D7%9C%D7%99%D7%9F%2C+Ireland&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://ie.indeed.com/jobs?q=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%95%D7%A6%D7%A8+OR+Product+Manager%29&l=%D7%93%D7%91%D7%9C%D7%99%D7%9F%2C+Ireland&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%95%D7%A6%D7%A8%22+OR+%22Product+Manager%22%29+%28jobs+OR+careers+OR+hiring%29+%D7%93%D7%91%D7%9C%D7%99%D7%9F+Ireland&hl=en&gl=ie"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%95%D7%A6%D7%A8%22+OR+%22Product+Manager%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%93%D7%91%D7%9C%D7%99%D7%9F+Ireland+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=ie"
+        }
+      ]
+    },
+    {
+      "case": 5,
+      "role": "מנהל מוצר",
+      "country": "אירלנד",
+      "city": "דבלין",
+      "language": "en",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%95%D7%A6%D7%A8+OR+Product+Manager%29&location=%D7%93%D7%91%D7%9C%D7%99%D7%9F%2C+Ireland&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://ie.indeed.com/jobs?q=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%95%D7%A6%D7%A8+OR+Product+Manager%29&l=%D7%93%D7%91%D7%9C%D7%99%D7%9F%2C+Ireland&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%95%D7%A6%D7%A8%22+OR+%22Product+Manager%22%29+%28jobs+OR+careers+OR+hiring%29+%D7%93%D7%91%D7%9C%D7%99%D7%9F+Ireland&hl=en&gl=ie"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%95%D7%A6%D7%A8%22+OR+%22Product+Manager%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%93%D7%91%D7%9C%D7%99%D7%9F+Ireland+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=ie"
+        }
+      ]
+    },
+    {
+      "case": 6,
+      "role": "Senior HRBP",
+      "country": "Ireland",
+      "city": "Dublin",
+      "language": "he",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28Senior+HRBP+OR+Senior+Human+Resources+Business+Partner+OR+Senior+HR+Business+Partner+OR+Senior+People+Business+Partner%29&location=Dublin%2C+Ireland&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://ie.indeed.com/jobs?q=%28Senior+HRBP+OR+Senior+Human+Resources+Business+Partner+OR+Senior+HR+Business+Partner+OR+Senior+People+Business+Partner%29&l=Dublin%2C+Ireland&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22Senior+HRBP%22+OR+%22Senior+Human+Resources+Business+Partner%22+OR+%22Senior+HR+Business+Partner%22+OR+%22Senior+People+Business+Partner%22%29+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+Dublin+Ireland&hl=he&gl=ie"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22Senior+HRBP%22+OR+%22Senior+Human+Resources+Business+Partner%22+OR+%22Senior+HR+Business+Partner%22+OR+%22Senior+People+Business+Partner%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Dublin+Ireland+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=ie"
+        }
+      ]
+    },
+    {
+      "case": 6,
+      "role": "Senior HRBP",
+      "country": "Ireland",
+      "city": "Dublin",
+      "language": "he",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28Senior+HRBP+OR+Senior+Human+Resources+Business+Partner+OR+Senior+HR+Business+Partner+OR+Senior+People+Business+Partner%29&location=Dublin%2C+Ireland&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://ie.indeed.com/jobs?q=%28Senior+HRBP+OR+Senior+Human+Resources+Business+Partner+OR+Senior+HR+Business+Partner+OR+Senior+People+Business+Partner%29&l=Dublin%2C+Ireland&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22Senior+HRBP%22+OR+%22Senior+Human+Resources+Business+Partner%22+OR+%22Senior+HR+Business+Partner%22+OR+%22Senior+People+Business+Partner%22%29+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+Dublin+Ireland&hl=he&gl=ie"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22Senior+HRBP%22+OR+%22Senior+Human+Resources+Business+Partner%22+OR+%22Senior+HR+Business+Partner%22+OR+%22Senior+People+Business+Partner%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Dublin+Ireland+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=ie"
+        }
+      ]
+    },
+    {
+      "case": 6,
+      "role": "Senior HRBP",
+      "country": "Ireland",
+      "city": "Dublin",
+      "language": "en",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28Senior+HRBP+OR+Senior+Human+Resources+Business+Partner+OR+Senior+HR+Business+Partner+OR+Senior+People+Business+Partner%29&location=Dublin%2C+Ireland&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://ie.indeed.com/jobs?q=%28Senior+HRBP+OR+Senior+Human+Resources+Business+Partner+OR+Senior+HR+Business+Partner+OR+Senior+People+Business+Partner%29&l=Dublin%2C+Ireland&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22Senior+HRBP%22+OR+%22Senior+Human+Resources+Business+Partner%22+OR+%22Senior+HR+Business+Partner%22+OR+%22Senior+People+Business+Partner%22%29+%28jobs+OR+careers+OR+hiring%29+Dublin+Ireland&hl=en&gl=ie"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22Senior+HRBP%22+OR+%22Senior+Human+Resources+Business+Partner%22+OR+%22Senior+HR+Business+Partner%22+OR+%22Senior+People+Business+Partner%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Dublin+Ireland+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=ie"
+        }
+      ]
+    },
+    {
+      "case": 6,
+      "role": "Senior HRBP",
+      "country": "Ireland",
+      "city": "Dublin",
+      "language": "en",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28Senior+HRBP+OR+Senior+Human+Resources+Business+Partner+OR+Senior+HR+Business+Partner+OR+Senior+People+Business+Partner%29&location=Dublin%2C+Ireland&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://ie.indeed.com/jobs?q=%28Senior+HRBP+OR+Senior+Human+Resources+Business+Partner+OR+Senior+HR+Business+Partner+OR+Senior+People+Business+Partner%29&l=Dublin%2C+Ireland&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22Senior+HRBP%22+OR+%22Senior+Human+Resources+Business+Partner%22+OR+%22Senior+HR+Business+Partner%22+OR+%22Senior+People+Business+Partner%22%29+%28jobs+OR+careers+OR+hiring%29+Dublin+Ireland&hl=en&gl=ie"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22Senior+HRBP%22+OR+%22Senior+Human+Resources+Business+Partner%22+OR+%22Senior+HR+Business+Partner%22+OR+%22Senior+People+Business+Partner%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Dublin+Ireland+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=ie"
+        }
+      ]
+    },
+    {
+      "case": 7,
+      "role": "Junior Data Analyst",
+      "country": "United Kingdom",
+      "city": "London",
+      "language": "he",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=Junior+Data+Analyst&location=London%2C+United+Kingdom&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://uk.indeed.com/jobs?q=Junior+Data+Analyst&l=London%2C+United+Kingdom&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=Junior+Data+Analyst+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+London+United+Kingdom&hl=he&gl=gb"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=Junior+Data+Analyst+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+London+United+Kingdom+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=gb"
+        }
+      ]
+    },
+    {
+      "case": 7,
+      "role": "Junior Data Analyst",
+      "country": "United Kingdom",
+      "city": "London",
+      "language": "he",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=Junior+Data+Analyst&location=London%2C+United+Kingdom&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://uk.indeed.com/jobs?q=Junior+Data+Analyst&l=London%2C+United+Kingdom&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=Junior+Data+Analyst+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+London+United+Kingdom&hl=he&gl=gb"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=Junior+Data+Analyst+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+London+United+Kingdom+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=gb"
+        }
+      ]
+    },
+    {
+      "case": 7,
+      "role": "Junior Data Analyst",
+      "country": "United Kingdom",
+      "city": "London",
+      "language": "en",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=Junior+Data+Analyst&location=London%2C+United+Kingdom&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://uk.indeed.com/jobs?q=Junior+Data+Analyst&l=London%2C+United+Kingdom&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=Junior+Data+Analyst+%28jobs+OR+careers+OR+hiring%29+London+United+Kingdom&hl=en&gl=gb"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=Junior+Data+Analyst+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+London+United+Kingdom+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=gb"
+        }
+      ]
+    },
+    {
+      "case": 7,
+      "role": "Junior Data Analyst",
+      "country": "United Kingdom",
+      "city": "London",
+      "language": "en",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=Junior+Data+Analyst&location=London%2C+United+Kingdom&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://uk.indeed.com/jobs?q=Junior+Data+Analyst&l=London%2C+United+Kingdom&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=Junior+Data+Analyst+%28jobs+OR+careers+OR+hiring%29+London+United+Kingdom&hl=en&gl=gb"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=Junior+Data+Analyst+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+London+United+Kingdom+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=gb"
+        }
+      ]
+    },
+    {
+      "case": 8,
+      "role": "Supply Chain Director",
+      "country": "Netherlands",
+      "city": "Amsterdam",
+      "language": "he",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28Supply+Chain+Director+OR+Director+of+Supply+Chain+OR+Head+of+Supply+Chain%29&location=Amsterdam%2C+Netherlands&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://nl.indeed.com/jobs?q=%28Supply+Chain+Director+OR+Director+of+Supply+Chain+OR+Head+of+Supply+Chain%29&l=Amsterdam%2C+Netherlands&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22Supply+Chain+Director%22+OR+%22Director+of+Supply+Chain%22+OR+%22Head+of+Supply+Chain%22%29+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+Amsterdam+Netherlands&hl=he&gl=nl"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22Supply+Chain+Director%22+OR+%22Director+of+Supply+Chain%22+OR+%22Head+of+Supply+Chain%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Amsterdam+Netherlands+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=nl"
+        }
+      ]
+    },
+    {
+      "case": 8,
+      "role": "Supply Chain Director",
+      "country": "Netherlands",
+      "city": "Amsterdam",
+      "language": "he",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28Supply+Chain+Director+OR+Director+of+Supply+Chain+OR+Head+of+Supply+Chain%29&location=Amsterdam%2C+Netherlands&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://nl.indeed.com/jobs?q=%28Supply+Chain+Director+OR+Director+of+Supply+Chain+OR+Head+of+Supply+Chain%29&l=Amsterdam%2C+Netherlands&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22Supply+Chain+Director%22+OR+%22Director+of+Supply+Chain%22+OR+%22Head+of+Supply+Chain%22%29+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+Amsterdam+Netherlands&hl=he&gl=nl"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22Supply+Chain+Director%22+OR+%22Director+of+Supply+Chain%22+OR+%22Head+of+Supply+Chain%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Amsterdam+Netherlands+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=nl"
+        }
+      ]
+    },
+    {
+      "case": 8,
+      "role": "Supply Chain Director",
+      "country": "Netherlands",
+      "city": "Amsterdam",
+      "language": "en",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28Supply+Chain+Director+OR+Director+of+Supply+Chain+OR+Head+of+Supply+Chain%29&location=Amsterdam%2C+Netherlands&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://nl.indeed.com/jobs?q=%28Supply+Chain+Director+OR+Director+of+Supply+Chain+OR+Head+of+Supply+Chain%29&l=Amsterdam%2C+Netherlands&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22Supply+Chain+Director%22+OR+%22Director+of+Supply+Chain%22+OR+%22Head+of+Supply+Chain%22%29+%28jobs+OR+careers+OR+hiring%29+Amsterdam+Netherlands&hl=en&gl=nl"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22Supply+Chain+Director%22+OR+%22Director+of+Supply+Chain%22+OR+%22Head+of+Supply+Chain%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Amsterdam+Netherlands+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=nl"
+        }
+      ]
+    },
+    {
+      "case": 8,
+      "role": "Supply Chain Director",
+      "country": "Netherlands",
+      "city": "Amsterdam",
+      "language": "en",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28Supply+Chain+Director+OR+Director+of+Supply+Chain+OR+Head+of+Supply+Chain%29&location=Amsterdam%2C+Netherlands&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://nl.indeed.com/jobs?q=%28Supply+Chain+Director+OR+Director+of+Supply+Chain+OR+Head+of+Supply+Chain%29&l=Amsterdam%2C+Netherlands&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22Supply+Chain+Director%22+OR+%22Director+of+Supply+Chain%22+OR+%22Head+of+Supply+Chain%22%29+%28jobs+OR+careers+OR+hiring%29+Amsterdam+Netherlands&hl=en&gl=nl"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22Supply+Chain+Director%22+OR+%22Director+of+Supply+Chain%22+OR+%22Head+of+Supply+Chain%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Amsterdam+Netherlands+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=nl"
+        }
+      ]
+    },
+    {
+      "case": 9,
+      "role": "Software Engineer",
+      "country": "Germany",
+      "city": "Berlin",
+      "language": "he",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28Software+Engineer+OR+Software+Developer+OR+%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94+OR+%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%29&location=Berlin%2C+Germany&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://de.indeed.com/jobs?q=%28Software+Engineer+OR+Software+Developer+OR+%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94+OR+%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%29&l=Berlin%2C+Germany&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22Software+Engineer%22+OR+%22Software+Developer%22+OR+%22%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22+OR+%22%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22%29+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+Berlin+Germany&hl=he&gl=de"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22Software+Engineer%22+OR+%22Software+Developer%22+OR+%22%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22+OR+%22%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Berlin+Germany+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=de"
+        }
+      ]
+    },
+    {
+      "case": 9,
+      "role": "Software Engineer",
+      "country": "Germany",
+      "city": "Berlin",
+      "language": "he",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28Software+Engineer+OR+Software+Developer+OR+%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94+OR+%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%29&location=Berlin%2C+Germany&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://de.indeed.com/jobs?q=%28Software+Engineer+OR+Software+Developer+OR+%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94+OR+%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%29&l=Berlin%2C+Germany&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22Software+Engineer%22+OR+%22Software+Developer%22+OR+%22%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22+OR+%22%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22%29+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+Berlin+Germany&hl=he&gl=de"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22Software+Engineer%22+OR+%22Software+Developer%22+OR+%22%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22+OR+%22%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Berlin+Germany+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=de"
+        }
+      ]
+    },
+    {
+      "case": 9,
+      "role": "Software Engineer",
+      "country": "Germany",
+      "city": "Berlin",
+      "language": "en",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28Software+Engineer+OR+Software+Developer+OR+%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94+OR+%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%29&location=Berlin%2C+Germany&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://de.indeed.com/jobs?q=%28Software+Engineer+OR+Software+Developer+OR+%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94+OR+%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%29&l=Berlin%2C+Germany&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22Software+Engineer%22+OR+%22Software+Developer%22+OR+%22%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22+OR+%22%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22%29+%28jobs+OR+careers+OR+hiring%29+Berlin+Germany&hl=en&gl=de"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22Software+Engineer%22+OR+%22Software+Developer%22+OR+%22%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22+OR+%22%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Berlin+Germany+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=de"
+        }
+      ]
+    },
+    {
+      "case": 9,
+      "role": "Software Engineer",
+      "country": "Germany",
+      "city": "Berlin",
+      "language": "en",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28Software+Engineer+OR+Software+Developer+OR+%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94+OR+%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%29&location=Berlin%2C+Germany&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://de.indeed.com/jobs?q=%28Software+Engineer+OR+Software+Developer+OR+%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94+OR+%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%29&l=Berlin%2C+Germany&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22Software+Engineer%22+OR+%22Software+Developer%22+OR+%22%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22+OR+%22%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22%29+%28jobs+OR+careers+OR+hiring%29+Berlin+Germany&hl=en&gl=de"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22Software+Engineer%22+OR+%22Software+Developer%22+OR+%22%D7%9E%D7%A4%D7%AA%D7%97+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22+OR+%22%D7%9E%D7%A4%D7%AA%D7%97%D7%AA+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Berlin+Germany+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=de"
+        }
+      ]
+    },
+    {
+      "case": 10,
+      "role": "Global Planning Director",
+      "country": "France",
+      "city": "Paris",
+      "language": "he",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28Global+Planning+Director+OR+Director+of+Planning+OR+Head+of+Planning+OR+S%26OP+Director%29&location=Paris%2C+France&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://fr.indeed.com/jobs?q=%28Global+Planning+Director+OR+Director+of+Planning+OR+Head+of+Planning+OR+S%26OP+Director%29&l=Paris%2C+France&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22Global+Planning+Director%22+OR+%22Director+of+Planning%22+OR+%22Head+of+Planning%22+OR+%22S%26OP+Director%22%29+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+Paris+France&hl=he&gl=fr"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22Global+Planning+Director%22+OR+%22Director+of+Planning%22+OR+%22Head+of+Planning%22+OR+%22S%26OP+Director%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Paris+France+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=fr"
+        }
+      ]
+    },
+    {
+      "case": 10,
+      "role": "Global Planning Director",
+      "country": "France",
+      "city": "Paris",
+      "language": "he",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28Global+Planning+Director+OR+Director+of+Planning+OR+Head+of+Planning+OR+S%26OP+Director%29&location=Paris%2C+France&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://fr.indeed.com/jobs?q=%28Global+Planning+Director+OR+Director+of+Planning+OR+Head+of+Planning+OR+S%26OP+Director%29&l=Paris%2C+France&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22Global+Planning+Director%22+OR+%22Director+of+Planning%22+OR+%22Head+of+Planning%22+OR+%22S%26OP+Director%22%29+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+Paris+France&hl=he&gl=fr"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22Global+Planning+Director%22+OR+%22Director+of+Planning%22+OR+%22Head+of+Planning%22+OR+%22S%26OP+Director%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Paris+France+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=fr"
+        }
+      ]
+    },
+    {
+      "case": 10,
+      "role": "Global Planning Director",
+      "country": "France",
+      "city": "Paris",
+      "language": "en",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28Global+Planning+Director+OR+Director+of+Planning+OR+Head+of+Planning+OR+S%26OP+Director%29&location=Paris%2C+France&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://fr.indeed.com/jobs?q=%28Global+Planning+Director+OR+Director+of+Planning+OR+Head+of+Planning+OR+S%26OP+Director%29&l=Paris%2C+France&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22Global+Planning+Director%22+OR+%22Director+of+Planning%22+OR+%22Head+of+Planning%22+OR+%22S%26OP+Director%22%29+%28jobs+OR+careers+OR+hiring%29+Paris+France&hl=en&gl=fr"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22Global+Planning+Director%22+OR+%22Director+of+Planning%22+OR+%22Head+of+Planning%22+OR+%22S%26OP+Director%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Paris+France+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=fr"
+        }
+      ]
+    },
+    {
+      "case": 10,
+      "role": "Global Planning Director",
+      "country": "France",
+      "city": "Paris",
+      "language": "en",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28Global+Planning+Director+OR+Director+of+Planning+OR+Head+of+Planning+OR+S%26OP+Director%29&location=Paris%2C+France&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://fr.indeed.com/jobs?q=%28Global+Planning+Director+OR+Director+of+Planning+OR+Head+of+Planning+OR+S%26OP+Director%29&l=Paris%2C+France&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22Global+Planning+Director%22+OR+%22Director+of+Planning%22+OR+%22Head+of+Planning%22+OR+%22S%26OP+Director%22%29+%28jobs+OR+careers+OR+hiring%29+Paris+France&hl=en&gl=fr"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22Global+Planning+Director%22+OR+%22Director+of+Planning%22+OR+%22Head+of+Planning%22+OR+%22S%26OP+Director%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Paris+France+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=fr"
+        }
+      ]
+    },
+    {
+      "case": 11,
+      "role": "מנהל משאבי אנוש",
+      "country": "ספרד",
+      "city": "מדריד",
+      "language": "he",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%A9%D7%90%D7%91%D7%99+%D7%90%D7%A0%D7%95%D7%A9+OR+HR+Manager%29&location=%D7%9E%D7%93%D7%A8%D7%99%D7%93%2C+Spain&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://es.indeed.com/jobs?q=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%A9%D7%90%D7%91%D7%99+%D7%90%D7%A0%D7%95%D7%A9+OR+HR+Manager%29&l=%D7%9E%D7%93%D7%A8%D7%99%D7%93%2C+Spain&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%A9%D7%90%D7%91%D7%99+%D7%90%D7%A0%D7%95%D7%A9%22+OR+%22HR+Manager%22%29+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+%D7%9E%D7%93%D7%A8%D7%99%D7%93+Spain&hl=he&gl=es"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%A9%D7%90%D7%91%D7%99+%D7%90%D7%A0%D7%95%D7%A9%22+OR+%22HR+Manager%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%9E%D7%93%D7%A8%D7%99%D7%93+Spain+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=es"
+        }
+      ]
+    },
+    {
+      "case": 11,
+      "role": "מנהל משאבי אנוש",
+      "country": "ספרד",
+      "city": "מדריד",
+      "language": "he",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%A9%D7%90%D7%91%D7%99+%D7%90%D7%A0%D7%95%D7%A9+OR+HR+Manager%29&location=%D7%9E%D7%93%D7%A8%D7%99%D7%93%2C+Spain&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://es.indeed.com/jobs?q=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%A9%D7%90%D7%91%D7%99+%D7%90%D7%A0%D7%95%D7%A9+OR+HR+Manager%29&l=%D7%9E%D7%93%D7%A8%D7%99%D7%93%2C+Spain&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%A9%D7%90%D7%91%D7%99+%D7%90%D7%A0%D7%95%D7%A9%22+OR+%22HR+Manager%22%29+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+%D7%9E%D7%93%D7%A8%D7%99%D7%93+Spain&hl=he&gl=es"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%A9%D7%90%D7%91%D7%99+%D7%90%D7%A0%D7%95%D7%A9%22+OR+%22HR+Manager%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%9E%D7%93%D7%A8%D7%99%D7%93+Spain+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=es"
+        }
+      ]
+    },
+    {
+      "case": 11,
+      "role": "מנהל משאבי אנוש",
+      "country": "ספרד",
+      "city": "מדריד",
+      "language": "en",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%A9%D7%90%D7%91%D7%99+%D7%90%D7%A0%D7%95%D7%A9+OR+HR+Manager%29&location=%D7%9E%D7%93%D7%A8%D7%99%D7%93%2C+Spain&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://es.indeed.com/jobs?q=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%A9%D7%90%D7%91%D7%99+%D7%90%D7%A0%D7%95%D7%A9+OR+HR+Manager%29&l=%D7%9E%D7%93%D7%A8%D7%99%D7%93%2C+Spain&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%A9%D7%90%D7%91%D7%99+%D7%90%D7%A0%D7%95%D7%A9%22+OR+%22HR+Manager%22%29+%28jobs+OR+careers+OR+hiring%29+%D7%9E%D7%93%D7%A8%D7%99%D7%93+Spain&hl=en&gl=es"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%A9%D7%90%D7%91%D7%99+%D7%90%D7%A0%D7%95%D7%A9%22+OR+%22HR+Manager%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%9E%D7%93%D7%A8%D7%99%D7%93+Spain+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=es"
+        }
+      ]
+    },
+    {
+      "case": 11,
+      "role": "מנהל משאבי אנוש",
+      "country": "ספרד",
+      "city": "מדריד",
+      "language": "en",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%A9%D7%90%D7%91%D7%99+%D7%90%D7%A0%D7%95%D7%A9+OR+HR+Manager%29&location=%D7%9E%D7%93%D7%A8%D7%99%D7%93%2C+Spain&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://es.indeed.com/jobs?q=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%A9%D7%90%D7%91%D7%99+%D7%90%D7%A0%D7%95%D7%A9+OR+HR+Manager%29&l=%D7%9E%D7%93%D7%A8%D7%99%D7%93%2C+Spain&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%A9%D7%90%D7%91%D7%99+%D7%90%D7%A0%D7%95%D7%A9%22+OR+%22HR+Manager%22%29+%28jobs+OR+careers+OR+hiring%29+%D7%9E%D7%93%D7%A8%D7%99%D7%93+Spain&hl=en&gl=es"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%9E%D7%A9%D7%90%D7%91%D7%99+%D7%90%D7%A0%D7%95%D7%A9%22+OR+%22HR+Manager%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%9E%D7%93%D7%A8%D7%99%D7%93+Spain+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=es"
+        }
+      ]
+    },
+    {
+      "case": 12,
+      "role": "מנהלת מוצר",
+      "country": "פורטוגל",
+      "city": "ליסבון",
+      "language": "he",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%9E%D7%95%D7%A6%D7%A8+OR+Product+Manager%29&location=%D7%9C%D7%99%D7%A1%D7%91%D7%95%D7%9F%2C+Portugal&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://pt.indeed.com/jobs?q=%28%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%9E%D7%95%D7%A6%D7%A8+OR+Product+Manager%29&l=%D7%9C%D7%99%D7%A1%D7%91%D7%95%D7%9F%2C+Portugal&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%9E%D7%95%D7%A6%D7%A8%22+OR+%22Product+Manager%22%29+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+%D7%9C%D7%99%D7%A1%D7%91%D7%95%D7%9F+Portugal&hl=he&gl=pt"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%9E%D7%95%D7%A6%D7%A8%22+OR+%22Product+Manager%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%9C%D7%99%D7%A1%D7%91%D7%95%D7%9F+Portugal+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=pt"
+        }
+      ]
+    },
+    {
+      "case": 12,
+      "role": "מנהלת מוצר",
+      "country": "פורטוגל",
+      "city": "ליסבון",
+      "language": "he",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%9E%D7%95%D7%A6%D7%A8+OR+Product+Manager%29&location=%D7%9C%D7%99%D7%A1%D7%91%D7%95%D7%9F%2C+Portugal&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://pt.indeed.com/jobs?q=%28%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%9E%D7%95%D7%A6%D7%A8+OR+Product+Manager%29&l=%D7%9C%D7%99%D7%A1%D7%91%D7%95%D7%9F%2C+Portugal&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%9E%D7%95%D7%A6%D7%A8%22+OR+%22Product+Manager%22%29+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+%D7%9C%D7%99%D7%A1%D7%91%D7%95%D7%9F+Portugal&hl=he&gl=pt"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%9E%D7%95%D7%A6%D7%A8%22+OR+%22Product+Manager%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%9C%D7%99%D7%A1%D7%91%D7%95%D7%9F+Portugal+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=pt"
+        }
+      ]
+    },
+    {
+      "case": 12,
+      "role": "מנהלת מוצר",
+      "country": "פורטוגל",
+      "city": "ליסבון",
+      "language": "en",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%9E%D7%95%D7%A6%D7%A8+OR+Product+Manager%29&location=%D7%9C%D7%99%D7%A1%D7%91%D7%95%D7%9F%2C+Portugal&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://pt.indeed.com/jobs?q=%28%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%9E%D7%95%D7%A6%D7%A8+OR+Product+Manager%29&l=%D7%9C%D7%99%D7%A1%D7%91%D7%95%D7%9F%2C+Portugal&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%9E%D7%95%D7%A6%D7%A8%22+OR+%22Product+Manager%22%29+%28jobs+OR+careers+OR+hiring%29+%D7%9C%D7%99%D7%A1%D7%91%D7%95%D7%9F+Portugal&hl=en&gl=pt"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%9E%D7%95%D7%A6%D7%A8%22+OR+%22Product+Manager%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%9C%D7%99%D7%A1%D7%91%D7%95%D7%9F+Portugal+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=pt"
+        }
+      ]
+    },
+    {
+      "case": 12,
+      "role": "מנהלת מוצר",
+      "country": "פורטוגל",
+      "city": "ליסבון",
+      "language": "en",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%9E%D7%95%D7%A6%D7%A8+OR+Product+Manager%29&location=%D7%9C%D7%99%D7%A1%D7%91%D7%95%D7%9F%2C+Portugal&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://pt.indeed.com/jobs?q=%28%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%9E%D7%95%D7%A6%D7%A8+OR+Product+Manager%29&l=%D7%9C%D7%99%D7%A1%D7%91%D7%95%D7%9F%2C+Portugal&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%9E%D7%95%D7%A6%D7%A8%22+OR+%22Product+Manager%22%29+%28jobs+OR+careers+OR+hiring%29+%D7%9C%D7%99%D7%A1%D7%91%D7%95%D7%9F+Portugal&hl=en&gl=pt"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%9E%D7%95%D7%A6%D7%A8%22+OR+%22Product+Manager%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%9C%D7%99%D7%A1%D7%91%D7%95%D7%9F+Portugal+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=pt"
+        }
+      ]
+    },
+    {
+      "case": 13,
+      "role": "מהנדס תוכנה",
+      "country": "קנדה",
+      "city": "טורונטו",
+      "language": "he",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%94%D7%A0%D7%93%D7%A1+%D7%AA%D7%95%D7%9B%D7%A0%D7%94+OR+Software+Engineer%29&location=%D7%98%D7%95%D7%A8%D7%95%D7%A0%D7%98%D7%95%2C+Canada&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://ca.indeed.com/jobs?q=%28%D7%9E%D7%94%D7%A0%D7%93%D7%A1+%D7%AA%D7%95%D7%9B%D7%A0%D7%94+OR+Software+Engineer%29&l=%D7%98%D7%95%D7%A8%D7%95%D7%A0%D7%98%D7%95%2C+Canada&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%94%D7%A0%D7%93%D7%A1+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22+OR+%22Software+Engineer%22%29+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+%D7%98%D7%95%D7%A8%D7%95%D7%A0%D7%98%D7%95+Canada&hl=he&gl=ca"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%94%D7%A0%D7%93%D7%A1+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22+OR+%22Software+Engineer%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%98%D7%95%D7%A8%D7%95%D7%A0%D7%98%D7%95+Canada+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=ca"
+        }
+      ]
+    },
+    {
+      "case": 13,
+      "role": "מהנדס תוכנה",
+      "country": "קנדה",
+      "city": "טורונטו",
+      "language": "he",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%94%D7%A0%D7%93%D7%A1+%D7%AA%D7%95%D7%9B%D7%A0%D7%94+OR+Software+Engineer%29&location=%D7%98%D7%95%D7%A8%D7%95%D7%A0%D7%98%D7%95%2C+Canada&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://ca.indeed.com/jobs?q=%28%D7%9E%D7%94%D7%A0%D7%93%D7%A1+%D7%AA%D7%95%D7%9B%D7%A0%D7%94+OR+Software+Engineer%29&l=%D7%98%D7%95%D7%A8%D7%95%D7%A0%D7%98%D7%95%2C+Canada&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%94%D7%A0%D7%93%D7%A1+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22+OR+%22Software+Engineer%22%29+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+%D7%98%D7%95%D7%A8%D7%95%D7%A0%D7%98%D7%95+Canada&hl=he&gl=ca"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%94%D7%A0%D7%93%D7%A1+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22+OR+%22Software+Engineer%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%98%D7%95%D7%A8%D7%95%D7%A0%D7%98%D7%95+Canada+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=ca"
+        }
+      ]
+    },
+    {
+      "case": 13,
+      "role": "מהנדס תוכנה",
+      "country": "קנדה",
+      "city": "טורונטו",
+      "language": "en",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%94%D7%A0%D7%93%D7%A1+%D7%AA%D7%95%D7%9B%D7%A0%D7%94+OR+Software+Engineer%29&location=%D7%98%D7%95%D7%A8%D7%95%D7%A0%D7%98%D7%95%2C+Canada&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://ca.indeed.com/jobs?q=%28%D7%9E%D7%94%D7%A0%D7%93%D7%A1+%D7%AA%D7%95%D7%9B%D7%A0%D7%94+OR+Software+Engineer%29&l=%D7%98%D7%95%D7%A8%D7%95%D7%A0%D7%98%D7%95%2C+Canada&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%94%D7%A0%D7%93%D7%A1+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22+OR+%22Software+Engineer%22%29+%28jobs+OR+careers+OR+hiring%29+%D7%98%D7%95%D7%A8%D7%95%D7%A0%D7%98%D7%95+Canada&hl=en&gl=ca"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%94%D7%A0%D7%93%D7%A1+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22+OR+%22Software+Engineer%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%98%D7%95%D7%A8%D7%95%D7%A0%D7%98%D7%95+Canada+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=ca"
+        }
+      ]
+    },
+    {
+      "case": 13,
+      "role": "מהנדס תוכנה",
+      "country": "קנדה",
+      "city": "טורונטו",
+      "language": "en",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%94%D7%A0%D7%93%D7%A1+%D7%AA%D7%95%D7%9B%D7%A0%D7%94+OR+Software+Engineer%29&location=%D7%98%D7%95%D7%A8%D7%95%D7%A0%D7%98%D7%95%2C+Canada&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://ca.indeed.com/jobs?q=%28%D7%9E%D7%94%D7%A0%D7%93%D7%A1+%D7%AA%D7%95%D7%9B%D7%A0%D7%94+OR+Software+Engineer%29&l=%D7%98%D7%95%D7%A8%D7%95%D7%A0%D7%98%D7%95%2C+Canada&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%94%D7%A0%D7%93%D7%A1+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22+OR+%22Software+Engineer%22%29+%28jobs+OR+careers+OR+hiring%29+%D7%98%D7%95%D7%A8%D7%95%D7%A0%D7%98%D7%95+Canada&hl=en&gl=ca"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%94%D7%A0%D7%93%D7%A1+%D7%AA%D7%95%D7%9B%D7%A0%D7%94%22+OR+%22Software+Engineer%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%98%D7%95%D7%A8%D7%95%D7%A0%D7%98%D7%95+Canada+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=ca"
+        }
+      ]
+    },
+    {
+      "case": 14,
+      "role": "אנליסטית נתונים",
+      "country": "בלגיה",
+      "city": "בריסל",
+      "language": "he",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D+OR+Data+Analyst+OR+%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%29&location=%D7%91%D7%A8%D7%99%D7%A1%D7%9C%2C+Belgium&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://be.indeed.com/jobs?q=%28%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D+OR+Data+Analyst+OR+%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%29&l=%D7%91%D7%A8%D7%99%D7%A1%D7%9C%2C+Belgium&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22+OR+%22Data+Analyst%22+OR+%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22%29+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+%D7%91%D7%A8%D7%99%D7%A1%D7%9C+Belgium&hl=he&gl=be"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22+OR+%22Data+Analyst%22+OR+%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%91%D7%A8%D7%99%D7%A1%D7%9C+Belgium+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=be"
+        }
+      ]
+    },
+    {
+      "case": 14,
+      "role": "אנליסטית נתונים",
+      "country": "בלגיה",
+      "city": "בריסל",
+      "language": "he",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D+OR+Data+Analyst+OR+%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%29&location=%D7%91%D7%A8%D7%99%D7%A1%D7%9C%2C+Belgium&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://be.indeed.com/jobs?q=%28%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D+OR+Data+Analyst+OR+%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%29&l=%D7%91%D7%A8%D7%99%D7%A1%D7%9C%2C+Belgium&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22+OR+%22Data+Analyst%22+OR+%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22%29+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+%D7%91%D7%A8%D7%99%D7%A1%D7%9C+Belgium&hl=he&gl=be"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22+OR+%22Data+Analyst%22+OR+%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%91%D7%A8%D7%99%D7%A1%D7%9C+Belgium+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=be"
+        }
+      ]
+    },
+    {
+      "case": 14,
+      "role": "אנליסטית נתונים",
+      "country": "בלגיה",
+      "city": "בריסל",
+      "language": "en",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D+OR+Data+Analyst+OR+%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%29&location=%D7%91%D7%A8%D7%99%D7%A1%D7%9C%2C+Belgium&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://be.indeed.com/jobs?q=%28%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D+OR+Data+Analyst+OR+%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%29&l=%D7%91%D7%A8%D7%99%D7%A1%D7%9C%2C+Belgium&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22+OR+%22Data+Analyst%22+OR+%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22%29+%28jobs+OR+careers+OR+hiring%29+%D7%91%D7%A8%D7%99%D7%A1%D7%9C+Belgium&hl=en&gl=be"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22+OR+%22Data+Analyst%22+OR+%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%91%D7%A8%D7%99%D7%A1%D7%9C+Belgium+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=be"
+        }
+      ]
+    },
+    {
+      "case": 14,
+      "role": "אנליסטית נתונים",
+      "country": "בלגיה",
+      "city": "בריסל",
+      "language": "en",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D+OR+Data+Analyst+OR+%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%29&location=%D7%91%D7%A8%D7%99%D7%A1%D7%9C%2C+Belgium&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://be.indeed.com/jobs?q=%28%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D+OR+Data+Analyst+OR+%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%29&l=%D7%91%D7%A8%D7%99%D7%A1%D7%9C%2C+Belgium&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22+OR+%22Data+Analyst%22+OR+%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22%29+%28jobs+OR+careers+OR+hiring%29+%D7%91%D7%A8%D7%99%D7%A1%D7%9C+Belgium&hl=en&gl=be"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98%D7%99%D7%AA+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22+OR+%22Data+Analyst%22+OR+%22%D7%90%D7%A0%D7%9C%D7%99%D7%A1%D7%98+%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%91%D7%A8%D7%99%D7%A1%D7%9C+Belgium+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=be"
+        }
+      ]
+    },
+    {
+      "case": 15,
+      "role": "מנהל שרשרת אספקה",
+      "country": "ארצות הברית",
+      "city": "ניו יורק",
+      "language": "he",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94+OR+Supply+Chain+Manager+OR+%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%29&location=%D7%A0%D7%99%D7%95+%D7%99%D7%95%D7%A8%D7%A7%2C+United+States&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://www.indeed.com/jobs?q=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94+OR+Supply+Chain+Manager+OR+%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%29&l=%D7%A0%D7%99%D7%95+%D7%99%D7%95%D7%A8%D7%A7%2C+United+States&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22+OR+%22Supply+Chain+Manager%22+OR+%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22%29+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+%D7%A0%D7%99%D7%95+%D7%99%D7%95%D7%A8%D7%A7+United+States&hl=he&gl=us"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22+OR+%22Supply+Chain+Manager%22+OR+%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%A0%D7%99%D7%95+%D7%99%D7%95%D7%A8%D7%A7+United+States+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=us"
+        }
+      ]
+    },
+    {
+      "case": 15,
+      "role": "מנהל שרשרת אספקה",
+      "country": "ארצות הברית",
+      "city": "ניו יורק",
+      "language": "he",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94+OR+Supply+Chain+Manager+OR+%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%29&location=%D7%A0%D7%99%D7%95+%D7%99%D7%95%D7%A8%D7%A7%2C+United+States&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://www.indeed.com/jobs?q=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94+OR+Supply+Chain+Manager+OR+%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%29&l=%D7%A0%D7%99%D7%95+%D7%99%D7%95%D7%A8%D7%A7%2C+United+States&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22+OR+%22Supply+Chain+Manager%22+OR+%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22%29+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+%D7%A0%D7%99%D7%95+%D7%99%D7%95%D7%A8%D7%A7+United+States&hl=he&gl=us"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22+OR+%22Supply+Chain+Manager%22+OR+%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%A0%D7%99%D7%95+%D7%99%D7%95%D7%A8%D7%A7+United+States+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=us"
+        }
+      ]
+    },
+    {
+      "case": 15,
+      "role": "מנהל שרשרת אספקה",
+      "country": "ארצות הברית",
+      "city": "ניו יורק",
+      "language": "en",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94+OR+Supply+Chain+Manager+OR+%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%29&location=%D7%A0%D7%99%D7%95+%D7%99%D7%95%D7%A8%D7%A7%2C+United+States&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://www.indeed.com/jobs?q=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94+OR+Supply+Chain+Manager+OR+%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%29&l=%D7%A0%D7%99%D7%95+%D7%99%D7%95%D7%A8%D7%A7%2C+United+States&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22+OR+%22Supply+Chain+Manager%22+OR+%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22%29+%28jobs+OR+careers+OR+hiring%29+%D7%A0%D7%99%D7%95+%D7%99%D7%95%D7%A8%D7%A7+United+States&hl=en&gl=us"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22+OR+%22Supply+Chain+Manager%22+OR+%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%A0%D7%99%D7%95+%D7%99%D7%95%D7%A8%D7%A7+United+States+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=us"
+        }
+      ]
+    },
+    {
+      "case": 15,
+      "role": "מנהל שרשרת אספקה",
+      "country": "ארצות הברית",
+      "city": "ניו יורק",
+      "language": "en",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94+OR+Supply+Chain+Manager+OR+%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%29&location=%D7%A0%D7%99%D7%95+%D7%99%D7%95%D7%A8%D7%A7%2C+United+States&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://www.indeed.com/jobs?q=%28%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94+OR+Supply+Chain+Manager+OR+%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%29&l=%D7%A0%D7%99%D7%95+%D7%99%D7%95%D7%A8%D7%A7%2C+United+States&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22+OR+%22Supply+Chain+Manager%22+OR+%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22%29+%28jobs+OR+careers+OR+hiring%29+%D7%A0%D7%99%D7%95+%D7%99%D7%95%D7%A8%D7%A7+United+States&hl=en&gl=us"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=%28%22%D7%9E%D7%A0%D7%94%D7%9C+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22+OR+%22Supply+Chain+Manager%22+OR+%22%D7%9E%D7%A0%D7%94%D7%9C%D7%AA+%D7%A9%D7%A8%D7%A9%D7%A8%D7%AA+%D7%90%D7%A1%D7%A4%D7%A7%D7%94%22%29+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+%D7%A0%D7%99%D7%95+%D7%99%D7%95%D7%A8%D7%A7+United+States+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=us"
+        }
+      ]
+    },
+    {
+      "case": 16,
+      "role": "VP Engineering",
+      "country": "United States",
+      "city": "New York",
+      "language": "he",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=VP+Engineering&location=New+York%2C+United+States&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://www.indeed.com/jobs?q=VP+Engineering&l=New+York%2C+United+States&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=VP+Engineering+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+New+York+United+States&hl=he&gl=us"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=VP+Engineering+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+New+York+United+States+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=us"
+        }
+      ]
+    },
+    {
+      "case": 16,
+      "role": "VP Engineering",
+      "country": "United States",
+      "city": "New York",
+      "language": "he",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=VP+Engineering&location=New+York%2C+United+States&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://www.indeed.com/jobs?q=VP+Engineering&l=New+York%2C+United+States&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=VP+Engineering+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+New+York+United+States&hl=he&gl=us"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=VP+Engineering+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+New+York+United+States+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=us"
+        }
+      ]
+    },
+    {
+      "case": 16,
+      "role": "VP Engineering",
+      "country": "United States",
+      "city": "New York",
+      "language": "en",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=VP+Engineering&location=New+York%2C+United+States&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://www.indeed.com/jobs?q=VP+Engineering&l=New+York%2C+United+States&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=VP+Engineering+%28jobs+OR+careers+OR+hiring%29+New+York+United+States&hl=en&gl=us"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=VP+Engineering+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+New+York+United+States+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=us"
+        }
+      ]
+    },
+    {
+      "case": 16,
+      "role": "VP Engineering",
+      "country": "United States",
+      "city": "New York",
+      "language": "en",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=VP+Engineering&location=New+York%2C+United+States&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://www.indeed.com/jobs?q=VP+Engineering&l=New+York%2C+United+States&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=VP+Engineering+%28jobs+OR+careers+OR+hiring%29+New+York+United+States&hl=en&gl=us"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=VP+Engineering+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+New+York+United+States+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=us"
+        }
+      ]
+    },
+    {
+      "case": 17,
+      "role": "Registered Nurse",
+      "country": "Canada",
+      "city": "Toronto",
+      "language": "he",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=Registered+Nurse&location=Toronto%2C+Canada&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://ca.indeed.com/jobs?q=Registered+Nurse&l=Toronto%2C+Canada&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=Registered+Nurse+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+Toronto+Canada&hl=he&gl=ca"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=Registered+Nurse+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Toronto+Canada+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=ca"
+        }
+      ]
+    },
+    {
+      "case": 17,
+      "role": "Registered Nurse",
+      "country": "Canada",
+      "city": "Toronto",
+      "language": "he",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=Registered+Nurse&location=Toronto%2C+Canada&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://ca.indeed.com/jobs?q=Registered+Nurse&l=Toronto%2C+Canada&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=Registered+Nurse+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+Toronto+Canada&hl=he&gl=ca"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=Registered+Nurse+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Toronto+Canada+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=ca"
+        }
+      ]
+    },
+    {
+      "case": 17,
+      "role": "Registered Nurse",
+      "country": "Canada",
+      "city": "Toronto",
+      "language": "en",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=Registered+Nurse&location=Toronto%2C+Canada&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://ca.indeed.com/jobs?q=Registered+Nurse&l=Toronto%2C+Canada&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=Registered+Nurse+%28jobs+OR+careers+OR+hiring%29+Toronto+Canada&hl=en&gl=ca"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=Registered+Nurse+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Toronto+Canada+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=ca"
+        }
+      ]
+    },
+    {
+      "case": 17,
+      "role": "Registered Nurse",
+      "country": "Canada",
+      "city": "Toronto",
+      "language": "en",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=Registered+Nurse&location=Toronto%2C+Canada&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://ca.indeed.com/jobs?q=Registered+Nurse&l=Toronto%2C+Canada&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=Registered+Nurse+%28jobs+OR+careers+OR+hiring%29+Toronto+Canada&hl=en&gl=ca"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=Registered+Nurse+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Toronto+Canada+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=ca"
+        }
+      ]
+    },
+    {
+      "case": 18,
+      "role": "Teacher",
+      "country": "Australia",
+      "city": "Sydney",
+      "language": "he",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=Teacher&location=Sydney%2C+Australia&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://au.indeed.com/jobs?q=Teacher&l=Sydney%2C+Australia&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=Teacher+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+Sydney+Australia&hl=he&gl=au"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=Teacher+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Sydney+Australia+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=au"
+        }
+      ]
+    },
+    {
+      "case": 18,
+      "role": "Teacher",
+      "country": "Australia",
+      "city": "Sydney",
+      "language": "he",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=Teacher&location=Sydney%2C+Australia&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://au.indeed.com/jobs?q=Teacher&l=Sydney%2C+Australia&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=Teacher+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+Sydney+Australia&hl=he&gl=au"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=Teacher+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Sydney+Australia+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=au"
+        }
+      ]
+    },
+    {
+      "case": 18,
+      "role": "Teacher",
+      "country": "Australia",
+      "city": "Sydney",
+      "language": "en",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=Teacher&location=Sydney%2C+Australia&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://au.indeed.com/jobs?q=Teacher&l=Sydney%2C+Australia&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=Teacher+%28jobs+OR+careers+OR+hiring%29+Sydney+Australia&hl=en&gl=au"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=Teacher+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Sydney+Australia+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=au"
+        }
+      ]
+    },
+    {
+      "case": 18,
+      "role": "Teacher",
+      "country": "Australia",
+      "city": "Sydney",
+      "language": "en",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=Teacher&location=Sydney%2C+Australia&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://au.indeed.com/jobs?q=Teacher&l=Sydney%2C+Australia&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=Teacher+%28jobs+OR+careers+OR+hiring%29+Sydney+Australia&hl=en&gl=au"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=Teacher+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Sydney+Australia+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=au"
+        }
+      ]
+    },
+    {
+      "case": 19,
+      "role": "Senior Accountant",
+      "country": "italy",
+      "city": "Milan",
+      "language": "he",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=Senior+Accountant&location=Milan%2C+Italy&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://it.indeed.com/jobs?q=Senior+Accountant&l=Milan%2C+Italy&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=Senior+Accountant+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+Milan+Italy&hl=he&gl=it"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=Senior+Accountant+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Milan+Italy+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=it"
+        }
+      ]
+    },
+    {
+      "case": 19,
+      "role": "Senior Accountant",
+      "country": "italy",
+      "city": "Milan",
+      "language": "he",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=Senior+Accountant&location=Milan%2C+Italy&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://it.indeed.com/jobs?q=Senior+Accountant&l=Milan%2C+Italy&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=Senior+Accountant+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+Milan+Italy&hl=he&gl=it"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=Senior+Accountant+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Milan+Italy+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=it"
+        }
+      ]
+    },
+    {
+      "case": 19,
+      "role": "Senior Accountant",
+      "country": "italy",
+      "city": "Milan",
+      "language": "en",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=Senior+Accountant&location=Milan%2C+Italy&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://it.indeed.com/jobs?q=Senior+Accountant&l=Milan%2C+Italy&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=Senior+Accountant+%28jobs+OR+careers+OR+hiring%29+Milan+Italy&hl=en&gl=it"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=Senior+Accountant+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Milan+Italy+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=it"
+        }
+      ]
+    },
+    {
+      "case": 19,
+      "role": "Senior Accountant",
+      "country": "italy",
+      "city": "Milan",
+      "language": "en",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=Senior+Accountant&location=Milan%2C+Italy&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://it.indeed.com/jobs?q=Senior+Accountant&l=Milan%2C+Italy&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=Senior+Accountant+%28jobs+OR+careers+OR+hiring%29+Milan+Italy&hl=en&gl=it"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=Senior+Accountant+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Milan+Italy+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=it"
+        }
+      ]
+    },
+    {
+      "case": 20,
+      "role": "Electrician",
+      "country": "israel",
+      "city": "Haifa",
+      "language": "he",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=Electrician&location=Haifa%2C+Israel&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://il.indeed.com/jobs?q=Electrician&l=Haifa%2C+Israel&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=Electrician+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+Haifa+Israel&hl=he&gl=il"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=Electrician+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Haifa+Israel+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=il"
+        }
+      ]
+    },
+    {
+      "case": 20,
+      "role": "Electrician",
+      "country": "israel",
+      "city": "Haifa",
+      "language": "he",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=Electrician&location=Haifa%2C+Israel&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://il.indeed.com/jobs?q=Electrician&l=Haifa%2C+Israel&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=Electrician+%28jobs+OR+careers+OR+%D7%93%D7%A8%D7%95%D7%A9%D7%99%D7%9D+OR+%D7%9E%D7%A9%D7%A8%D7%95%D7%AA%29+Haifa+Israel&hl=he&gl=il"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=Electrician+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Haifa+Israel+-site%3Alinkedin.com+-site%3Aindeed.com&hl=he&gl=il"
+        }
+      ]
+    },
+    {
+      "case": 20,
+      "role": "Electrician",
+      "country": "israel",
+      "city": "Haifa",
+      "language": "en",
+      "width": 390,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=Electrician&location=Haifa%2C+Israel&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://il.indeed.com/jobs?q=Electrician&l=Haifa%2C+Israel&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=Electrician+%28jobs+OR+careers+OR+hiring%29+Haifa+Israel&hl=en&gl=il"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=Electrician+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Haifa+Israel+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=il"
+        }
+      ]
+    },
+    {
+      "case": 20,
+      "role": "Electrician",
+      "country": "israel",
+      "city": "Haifa",
+      "language": "en",
+      "width": 1366,
+      "checks": {
+        "localIndeed": true,
+        "roleTranslation": true,
+        "noAutomaticAdjacentRoles": true,
+        "careerRoleParity": true,
+        "noHorizontalOverflow": true
+      },
+      "links": [
+        {
+          "id": "linkedin",
+          "url": "https://www.linkedin.com/jobs/search/?keywords=Electrician&location=Haifa%2C+Israel&distance=&sortBy=DD&origin=JOB_SEARCH_PAGE_JOB_FILTER"
+        },
+        {
+          "id": "indeed",
+          "url": "https://il.indeed.com/jobs?q=Electrician&l=Haifa%2C+Israel&radius=&sort=date"
+        },
+        {
+          "id": "google",
+          "url": "https://www.google.com/search?q=Electrician+%28jobs+OR+careers+OR+hiring%29+Haifa+Israel&hl=en&gl=il"
+        },
+        {
+          "id": "careers",
+          "url": "https://www.google.com/search?q=Electrician+%28careers+OR+%22join+our+team%22+OR+site%3Ajobs.lever.co+OR+site%3Aboards.greenhouse.io+OR+site%3Ajob-boards.greenhouse.io+OR+site%3Ajobs.ashbyhq.com+OR+site%3Amyworkdayjobs.com+OR+site%3Aapply.workable.com%29+Haifa+Israel+-site%3Alinkedin.com+-site%3Aindeed.com&hl=en&gl=il"
+        }
+      ]
+    }
+  ]
+}

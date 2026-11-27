@@ -1,0 +1,50 @@
+[
+  {
+    "language": "he",
+    "width": 390,
+    "originals": [
+      "https://www.linkedin.com/jobs/view/123456"
+    ],
+    "checks": {
+      "onePostingWithoutDuplicates": true,
+      "noSearchAsPosting": true,
+      "closedExcluded": true
+    }
+  },
+  {
+    "language": "he",
+    "width": 1366,
+    "originals": [
+      "https://www.linkedin.com/jobs/view/123456"
+    ],
+    "checks": {
+      "onePostingWithoutDuplicates": true,
+      "noSearchAsPosting": true,
+      "closedExcluded": true
+    }
+  },
+  {
+    "language": "en",
+    "width": 390,
+    "originals": [
+      "https://www.linkedin.com/jobs/view/123456"
+    ],
+    "checks": {
+      "onePostingWithoutDuplicates": true,
+      "noSearchAsPosting": true,
+      "closedExcluded": true
+    }
+  },
+  {
+    "language": "en",
+    "width": 1366,
+    "originals": [
+      "https://www.linkedin.com/jobs/view/123456"
+    ],
+    "checks": {
+      "onePostingWithoutDuplicates": true,
+      "noSearchAsPosting": true,
+      "closedExcluded": true
+    }
+  }
+]

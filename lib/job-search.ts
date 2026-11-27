@@ -64,6 +64,22 @@ export function normalizeSearchText(value: string) {
   return value.trim().replace(/\s+/g, " ");
 }
 
+// Resolve explicit country aliases only for provider routing. Keep the user's
+// original country/city text in queries and summaries; never infer geography.
+export function providerCountry(country: string) {
+  const aliases: Record<string, string> = {
+    "ישראל": "Israel", "הולנד": "Netherlands", "גרמניה": "Germany",
+    "צרפת": "France", "ספרד": "Spain", "פורטוגל": "Portugal",
+    "בלגיה": "Belgium", "קנדה": "Canada", "בריטניה": "United Kingdom",
+    "אירלנד": "Ireland", "אוסטרליה": "Australia", "איטליה": "Italy",
+    "הממלכה המאוחדת": "United Kingdom", 'ארצות הברית': "United States",
+  };
+  const clean = normalizeSearchText(country);
+  const canonical = ["Israel", "Netherlands", "Germany", "France", "Spain", "Portugal", "Belgium", "Canada", "United Kingdom", "United States", "Ireland", "Australia", "Italy"];
+  return aliases[clean] || canonical.find(value => value.toLowerCase() === clean.toLowerCase()) || clean;
+}
+
+
 export function sanitizeSearchProfile(profile: SearchProfile): SearchProfile {
   return {
     ...profile,
@@ -118,7 +134,16 @@ export function linkedInDistanceFromKilometers(radius: string) {
 export function linkedInRoleTerms(role: string) {
   const cleanRole = normalizeSearchText(role).replace(/["“”]/g, "");
   const normalizedRole = cleanRole.toLocaleLowerCase();
-  const terms = [cleanRole];
+  const translations: Record<string, string> = {
+    "מנהל שרשרת אספקה": "Supply Chain Manager", "מנהלת שרשרת אספקה": "Supply Chain Manager",
+    "מנהל גיוס": "Recruitment Manager", "מנהלת גיוס": "Recruitment Manager",
+    "מפתח תוכנה": "Software Developer", "מפתחת תוכנה": "Software Developer",
+    "מהנדס תוכנה": "Software Engineer", "מהנדסת תוכנה": "Software Engineer",
+    "אנליסט נתונים": "Data Analyst", "אנליסטית נתונים": "Data Analyst",
+    "מנהל מוצר": "Product Manager", "מנהלת מוצר": "Product Manager",
+    "מנהל משאבי אנוש": "HR Manager", "מנהלת משאבי אנוש": "HR Manager",
+  };
+  const terms = [cleanRole, translations[cleanRole] || ""];
 
   if (/\b(senior\s+)?hr\s*business\s+partner\b|\b(senior\s+)?hrbp\b|\b(senior\s+)?human\s+resources\s+business\s+partner\b/.test(normalizedRole)) {
     const senior = /\bsenior\b/.test(normalizedRole);
@@ -134,7 +159,8 @@ export function linkedInRoleTerms(role: string) {
 // Suggestions are opt-in: adjacent roles can have different responsibilities.
 export function suggestedRoleAlternatives(role: string): string[] {
   const families = [
-    ["Supply Chain Director", "Director of Supply Chain", "Head of Supply Chain", "מנהל שרשרת אספקה", "מנהלת שרשרת אספקה"],
+    ["Supply Chain Director", "Director of Supply Chain", "Head of Supply Chain"],
+    ["Supply Chain Manager", "מנהל שרשרת אספקה", "מנהלת שרשרת אספקה"],
     ["Global Planning Director", "Director of Planning", "Head of Planning", "S&OP Director"],
     ["HR Business Partner", "HRBP", "Human Resources Business Partner", "People Business Partner"],
     ["Senior HR Business Partner", "Senior HRBP", "Senior Human Resources Business Partner", "Senior People Business Partner"],
@@ -259,6 +285,10 @@ export function captureJobLink(value: string) {
     "boards.greenhouse.io", "job-boards.greenhouse.io", "jobs.lever.co",
     "jobs.ashbyhq.com", "apply.workable.com",
   ];
+  const boardParts = pathname.split("/").filter(Boolean);
+  const isAtsBoard = (["boards.greenhouse.io", "job-boards.greenhouse.io", "jobs.lever.co", "jobs.eu.lever.co", "jobs.ashbyhq.com", "apply.workable.com"].includes(host) && boardParts.length <= 1)
+    || (host.endsWith(".myworkdayjobs.com") && boardParts.length <= 2);
+  if (isAtsBoard) throw new Error("Employer board URL is not a job listing");
   const companyCareers = companyCareerHosts.some((domain) => host === domain || host.endsWith(`.${domain}`)) || host.endsWith(".myworkdayjobs.com");
   return { jobUrl: url.toString(), source: linkedIn ? "LinkedIn" : indeed ? "Indeed" : companyCareers ? "Company careers" : "Other", company: "", role: "" };
 }
@@ -273,12 +303,12 @@ export function googleJobSearch(profile: SearchProfile, language: Language = "en
   // A role in normal page text is valid: do not require an exact phrase in its HTML title.
   // Location words are also unquoted because job boards format cities/countries differently.
   const careerTerms = '(careers OR "join our team" OR site:jobs.lever.co OR site:boards.greenhouse.io OR site:job-boards.greenhouse.io OR site:jobs.ashbyhq.com OR site:myworkdayjobs.com OR site:apply.workable.com)';
-  const roleTerms = selectedRoleAlternatives(clean);
-  const roleQuery = roleTerms.length ? `(${[clean.role, ...roleTerms].map(quote).join(" OR ")})` : text(clean.role);
+  const roleTerms = searchRoleTerms(clean);
+  const roleQuery = roleTerms.length > 1 ? `(${roleTerms.map(quote).join(" OR ")})` : text(clean.role);
   const query = [roleQuery, options.careerPages ? careerTerms : jobTerms, text(clean.city), text(clean.country), ...requiredSkills, text(clean.industry), text(clean.workModel), ...exclusions, options.careerPages ? "-site:linkedin.com -site:indeed.com" : ""].filter(Boolean).join(" ");
   const params = new URLSearchParams({ q: query, hl: language === "he" ? "he" : "en" });
-  const codes: Record<string, string> = { Netherlands: "nl", Israel: "il", "United Kingdom": "gb", Germany: "de", France: "fr", Spain: "es", Portugal: "pt", Belgium: "be", Canada: "ca", "United States": "us" };
-  if (codes[clean.country]) params.set("gl", codes[clean.country]);
+  const codes: Record<string, string> = { Netherlands: "nl", Israel: "il", "United Kingdom": "gb", Germany: "de", France: "fr", Spain: "es", Portugal: "pt", Belgium: "be", Canada: "ca", "United States": "us", Ireland: "ie", Australia: "au", Italy: "it" };
+  if (codes[providerCountry(clean.country)]) params.set("gl", codes[providerCountry(clean.country)]);
   const age = ({ "Past 24 hours": "qdr:d", "Past week": "qdr:w", "Past month": "qdr:m" } as Record<string, string>)[clean.datePosted];
   if (age && !options.anyTime) params.set("tbs", age);
   return { query, url: `https://www.google.com/search?${params.toString()}` };
@@ -319,8 +349,8 @@ export function localizedSearchFilter(value: string, language: Language) {
 export function companyJobSearchRoute(profile: SearchProfile, company: string, routeIndex = 0, officialCareerUrl = "") {
   const clean = normalizedSearchProfile(profile);
   const freshness = clean.datePosted === "Past 24 hours" ? "r86400" : clean.datePosted === "Past week" ? "r604800" : clean.datePosted === "Past month" ? "r2592000" : "";
-  const indeedDomains: Record<string, string> = { Netherlands: "nl.indeed.com", Israel: "il.indeed.com", "United Kingdom": "uk.indeed.com", Germany: "de.indeed.com", France: "fr.indeed.com", Spain: "es.indeed.com", Portugal: "pt.indeed.com", Belgium: "be.indeed.com", Canada: "ca.indeed.com", "United States": "www.indeed.com" };
-  const googleDomains: Record<string, string> = { Netherlands: "www.google.nl", Israel: "www.google.co.il", "United Kingdom": "www.google.co.uk", Germany: "www.google.de", France: "www.google.fr", Spain: "www.google.es", Portugal: "www.google.pt", Belgium: "www.google.be", Canada: "www.google.ca", "United States": "www.google.com" };
+  const indeedDomains: Record<string, string> = { Netherlands: "nl.indeed.com", Israel: "il.indeed.com", "United Kingdom": "uk.indeed.com", Germany: "de.indeed.com", France: "fr.indeed.com", Spain: "es.indeed.com", Portugal: "pt.indeed.com", Belgium: "be.indeed.com", Canada: "ca.indeed.com", "United States": "www.indeed.com", Ireland: "ie.indeed.com", Australia: "au.indeed.com", Italy: "it.indeed.com" };
+  const googleDomains: Record<string, string> = { Netherlands: "www.google.nl", Israel: "www.google.co.il", "United Kingdom": "www.google.co.uk", Germany: "www.google.de", France: "www.google.fr", Spain: "www.google.es", Portugal: "www.google.pt", Belgium: "www.google.be", Canada: "www.google.ca", "United States": "www.google.com", Ireland: "www.google.ie", Australia: "www.google.com.au", Italy: "www.google.it" };
   const indeedAge = clean.datePosted === "Past 24 hours" ? "1" : clean.datePosted === "Past week" ? "7" : clean.datePosted === "Past month" ? "30" : "";
   const provider = routeIndex % 3;
 
@@ -329,7 +359,7 @@ export function companyJobSearchRoute(profile: SearchProfile, company: string, r
     const location = encodeURIComponent(clean.location);
     return {
       provider: `Indeed · ${company}`,
-      url: `https://${indeedDomains[clean.country] || "www.indeed.com"}/jobs?q=${query}&l=${location}&radius=${encodeURIComponent(clean.radius)}${indeedAge ? `&fromage=${indeedAge}` : ""}&sort=date`,
+      url: `https://${indeedDomains[providerCountry(clean.country)] || "www.indeed.com"}/jobs?q=${query}&l=${location}&radius=${encodeURIComponent(clean.radius)}${indeedAge ? `&fromage=${indeedAge}` : ""}&sort=date`,
     };
   }
 
@@ -339,7 +369,7 @@ export function companyJobSearchRoute(profile: SearchProfile, company: string, r
     const query = [siteFilter, `"${clean.role}"`, `"${company}"`, clean.city ? `"${clean.city}"` : "", `"${clean.country}"`, "jobs"].filter(Boolean).join(" ");
     return {
       provider: officialDomain ? `Official-site results · ${company}` : `Web results · ${company}`,
-      url: `https://${googleDomains[clean.country] || "www.google.com"}/search?q=${encodeURIComponent(query)}`,
+      url: `https://${googleDomains[providerCountry(clean.country)] || "www.google.com"}/search?q=${encodeURIComponent(query)}`,
     };
   }
 
@@ -377,14 +407,14 @@ export function searchFilterSummary(profile: SearchProfile, source: "linkedin" |
 
 export function jobSearchSources(profile: SearchProfile, language: Language = "en"): JobSearchSource[] {
   const clean = normalizedSearchProfile(profile);
-  const indeedDomains: Record<string, string> = { Netherlands: "nl.indeed.com", Israel: "il.indeed.com", "United Kingdom": "uk.indeed.com", Germany: "de.indeed.com", France: "fr.indeed.com", Spain: "es.indeed.com", Portugal: "pt.indeed.com", Belgium: "be.indeed.com", Canada: "ca.indeed.com", "United States": "www.indeed.com" };
-  const indeedDomain = indeedDomains[clean.country] || "www.indeed.com";
+  const indeedDomains: Record<string, string> = { Netherlands: "nl.indeed.com", Israel: "il.indeed.com", "United Kingdom": "uk.indeed.com", Germany: "de.indeed.com", France: "fr.indeed.com", Spain: "es.indeed.com", Portugal: "pt.indeed.com", Belgium: "be.indeed.com", Canada: "ca.indeed.com", "United States": "www.indeed.com", Ireland: "ie.indeed.com", Australia: "au.indeed.com", Italy: "it.indeed.com" };
+  const indeedDomain = indeedDomains[providerCountry(clean.country)] || "www.indeed.com";
   const quote = (value: string) => `"${value.replace(/["“”]/g, "").trim()}"`;
   const skills = clean.skillsMode === "required" ? clean.skills.split(",").map(normalizeSearchText).filter(Boolean) : [];
   const exclusions = clean.exclude.split(",").map((term) => normalizeSearchText(term).replace(/^-+/, "")).filter(Boolean);
   const supplement = skills.map(quote);
   const negative = exclusions.map((term) => `-${quote(term)}`);
-  const indeedRoles = [clean.role, ...selectedRoleAlternatives(clean)];
+  const indeedRoles = searchRoleTerms(clean);
   const indeedRoleQuery = indeedRoles.length > 1 ? `(${indeedRoles.map(role => role.replace(/["“”]/g, "").trim()).join(" OR ")})` : clean.role.replace(/["“”]/g, "").trim();
   const indeedQuery = [indeedRoleQuery, ...supplement.map((term) => `AND ${term}`), ...negative, clean.workModel ? `AND ${quote(clean.workModel)}` : ""].filter(Boolean).join(" ");
   const google = googleJobSearch(profile, language);
@@ -412,4 +442,19 @@ export function jobSearchSources(profile: SearchProfile, language: Language = "e
     { id: "indeed", name: language === "he" ? "Indeed — חיפוש מקומי" : "Indeed — local search", emoji: "🌍", featured: false, freshness: freshnessLabel, accuracy: sentSummary, query: indeedQuery, description: language === "he" ? "קישור לחיפוש ב־Indeed. יש לבדוק את המסננים והתוצאות במקור." : "A search link to Indeed. Review its filters and results at the source.", url: `https://${indeedDomain}/jobs?${indeedParams.toString()}`, ...searchFilterSummary({ ...clean, location: clean.city }, "indeed", language) },
     { id: "google", name: language === "he" ? "Google — חיפוש ממוקד משרות" : "Google — jobs-focused search", emoji: "🔎", featured: false, freshness: freshnessLabel, accuracy: sentSummary, query: google.query, description: language === "he" ? "מילות חיפוש למשרות, לא מאגר תוצאות מאומתות." : "A web query for jobs, not a verified listing feed.", url: google.url, ...searchFilterSummary({ ...clean, location: clean.city }, "google", language) },
   ];
+}
+
+/** Legacy tracker entries remain editable; search/board URLs are never labelled original jobs. */
+export function savedJobListingUrl(value: string) {
+  try { return captureJobLink(value).jobUrl; } catch { return null; }
+}
+
+export function uniqueSavedJobs<T extends { jobUrl: string }>(items: T[]): T[] {
+  const seen = new Set<string>();
+  return items.filter(item => {
+    const identity = savedJobListingUrl(item.jobUrl) ? jobLinkIdentity(item.jobUrl) : null;
+    if (!identity) return true;
+    if (seen.has(identity)) return false;
+    seen.add(identity); return true;
+  });
 }

@@ -24,7 +24,7 @@ import Image from "next/image";
 import { applicationContextTool } from "@/lib/application-context-tool";
 import { readCvDraft, writeCvDraft, replaceCvDraft, emptyCvDraft, type CvDraft } from "@/lib/cv-draft";
 import { reviewResumeText, cleanResumeDraft } from "@/lib/resume-review";
-import { readPublicSearchHandoff, selectedRoleAlternatives, suggestedRoleAlternatives, googleJobSearch, officialSearchUrl, changeSearchRole, searchPreferencesNeedReview, emptySearchProfile, sanitizeSearchProfile, normalizedSearchProfile, migrateSearchProfile, nextSearchDateWindow, skillSuggestionsForRole, localizedSearchFilter, companyJobSearchRoute, jobSearchSources, searchProfileChanged, broadenSearchProfile, patchSearchProfile, captureJobLink, jobLinkIdentity, type SearchProfile, type SearchOutcome, type JobSearchSource } from "@/lib/job-search";
+import { readPublicSearchHandoff, selectedRoleAlternatives, suggestedRoleAlternatives, googleJobSearch, officialSearchUrl, changeSearchRole, searchPreferencesNeedReview, emptySearchProfile, sanitizeSearchProfile, normalizedSearchProfile, migrateSearchProfile, nextSearchDateWindow, skillSuggestionsForRole, localizedSearchFilter, companyJobSearchRoute, jobSearchSources, searchProfileChanged, broadenSearchProfile, patchSearchProfile, captureJobLink, jobLinkIdentity, savedJobListingUrl, uniqueSavedJobs, type SearchProfile, type SearchOutcome, type JobSearchSource } from "@/lib/job-search";
 import { agendaEntries, scheduledTimestamp } from "@/lib/schedule";
 import { greetingForHour, meaningfulMomentum } from "@/lib/ux-context";
 import { clearLocalWorkspaceData } from "@/lib/local-data";
@@ -3820,12 +3820,12 @@ function WorkspaceHome() {
             </div>
             {applications.filter(item => item.role.trim() && item.company.trim() && isActiveApplicationStatus(item.status)).length > 0 && (
               <div className="relative mt-5">
-                <h3 className="mb-3 text-sm font-bold text-slate-900">{language === "he" ? "המשרות הפעילות האחרונות שלכם" : "Your recent active jobs"}</h3>
+                <h3 className="mb-3 text-sm font-bold text-slate-900">{language === "he" ? "המועמדויות הפעילות האחרונות ששמרתם — זמינות המשרות לא אומתה כאן" : "Your recent active applications — listing availability not verified here"}</h3>
                 <div className="grid gap-3 sm:grid-cols-3">
-                  {applications.filter(item => item.role.trim() && item.company.trim() && isActiveApplicationStatus(item.status)).sort((a, b) => (Date.parse(b.lastActivityAt || b.capturedAt || b.appliedDate || "") || 0) - (Date.parse(a.lastActivityAt || a.capturedAt || a.appliedDate || "") || 0)).slice(0, 3).map(item => (
+                  {uniqueSavedJobs(applications.filter(item => item.role.trim() && item.company.trim() && isActiveApplicationStatus(item.status)).sort((a, b) => (Date.parse(b.lastActivityAt || b.capturedAt || b.appliedDate || "") || 0) - (Date.parse(a.lastActivityAt || a.capturedAt || a.appliedDate || "") || 0))).slice(0, 3).map(item => (
                     <div key={item.id} className="flex min-h-32 flex-col justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 p-4 text-slate-900">
                       <div><p className="font-bold">{item.role}</p><p className="mt-1 text-xs text-slate-600">{item.company}{item.location ? ` · ${item.location}` : ""}</p></div>
-                      {/^https?:\/\//i.test(item.jobUrl.trim()) ? <a href={item.jobUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm font-bold text-teal-800">{language === "he" ? "פתיחת המשרה המקורית" : "Open original job"}<ExternalLink className="h-4 w-4" /></a> : <button type="button" onClick={() => { setWorkspaceApplicationId(item.id); switchView("applications"); }} className="text-start text-sm font-bold text-teal-800">{language === "he" ? "פתיחה במעקב" : "Open in tracker"}</button>}
+                      {savedJobListingUrl(item.jobUrl) ? <a href={item.jobUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm font-bold text-teal-800">{language === "he" ? "פתיחת המשרה המקורית" : "Open original job"}<ExternalLink className="h-4 w-4" /></a> : <button type="button" onClick={() => { setWorkspaceApplicationId(item.id); switchView("applications"); }} className="text-start text-sm font-bold text-teal-800">{language === "he" ? "פתיחה במעקב" : "Open in tracker"}</button>}
                     </div>
                   ))}
                 </div>
