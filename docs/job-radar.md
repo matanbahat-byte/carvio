@@ -39,3 +39,23 @@ The security advisor reports one intentional warning: the authenticated consent 
 - `git diff --check`: passed.
 
 Full authenticated browser save/reload/edit/revoke checks, source permission and live coverage checks, shared source budgeting and sender design remain before release. No production changes and no emails were sent.
+
+## Step 3: personal email template and internal links
+
+`lib/job-radar-email.ts` renders an optional personal greeting, localized subject, responsive HTML and plain text in Hebrew/RTL or English/LTR. It uses inline table layouts, turquoise/mint colors, up to five distinct validated postings, direct role/company/location details and CARVIO buttons. Text is HTML-escaped; no pixels, external assets, recipient identifiers or search preferences are placed in links. Invalid/search links are rejected and an empty selection produces no message.
+
+There was no existing public per-job route, so this step adds `/radar/jobs/[id]?lang=he|en` and `/radar/preferences?lang=he|en[&action=stop]`. The job ID is a deterministic SHA-256 of the public source posting ID, shared between users; it contains no recipient data and grants no access to private user data. Each page shows the matching catalog entry and the existing source posting URL. Missing, inactive, expired or invalid entries show an unavailable state rather than invented data. The public page does not claim live source revalidation. Catalog entries expire after seven days unless a trusted worker refreshes them; availability is checked on the source site by the applicant.
+
+The new `job_radar_listings` table is installed only in carvio-dev. It contains public job snapshots only, with RLS allowing anonymous/authenticated read of active/unexpired entries. Only the service role may insert/update. `prepareRadarEmail` requires a trusted worker client, persists all selected listings before returning the rendered message, and throws on a failed write. Future orchestration must first call the existing consent-aware `prepareRadarJobs`; no sender, scheduler or browser catalog-write endpoint was added. No service-role key was created, stored or exposed by this step.
+
+Preferences reuse `JobRadar` with a small optional `openSettings` flag, leaving existing invitation behavior unchanged. Settings require authenticated ownership through the existing consent RPC. Opening either footer link, including `action=stop`, performs no mutation: stopping requires the existing explicit button. A guest is directed to workspace sign-in. No unsubscribe token or personal identifier appears in the URL. The stop route is an authenticated settings flow, not an RFC 8058 one-click email-header unsubscribe endpoint.
+
+Validation for this step:
+- `npm test`: 266 passed; `npx tsc --noEmit`, webpack build and `git diff --check` passed.
+- Five new unit scenarios cover bilingual output, five-card cap, deduplication, internal-only links, no PII in links, escaping, malicious/search URL rejection, empty email suppression, stable IDs and persistence failure.
+- `tests/job-radar-email-browser.mjs`: HTML rendered and visually inspected at 1280px/390px in both languages. All five unique job links opened the corresponding seeded job pages in local CARVIO against the real dev database. Both footer routes loaded and prompted guest sign-in; opening them did not call a consent mutation. Missing-job state and no horizontal overflow passed. No source-site application links were followed.
+- `tests/sql/job-radar-email-dev.sql`: actual development database verified active/unexpired-only reads and denied anonymous/authenticated writes; fixtures rolled back.
+- Five fictional catalog rows were temporarily seeded for browser QA and deleted afterward; cleanup confirmed zero fixture rows. No real users or job boards were contacted.
+- The security advisor returned only the previously documented consent-RPC warning, with no new findings.
+
+Browser previews are not a Gmail/Outlook rendering certification. Before sending, deploy the internal routes through a separately authorized release, test actual email clients and confirm live source permissions. The default template links target the existing CARVIO production origin; local QA explicitly overrides this with loopback. Nothing was emailed or deployed by this step. The source approval blocker remains unchanged.

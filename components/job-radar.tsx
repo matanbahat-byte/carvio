@@ -8,7 +8,7 @@ const SEEN = "carvio.job-radar.offered.v1";
 type Preferences = { role: string; country: string; city: string; workModel: string; seniority: string; employmentType: string };
 const preferences = (p: SearchProfile): Preferences => ({ role: p.role, country: p.country, city: p.location, workModel: p.workModel, seniority: p.seniority, employmentType: p.employmentType });
 
-export function JobRadar({ language, profile, successfulSearch = false }: { language: "he" | "en"; profile: SearchProfile; successfulSearch?: boolean }) {
+export function JobRadar({ language, profile, successfulSearch = false, openSettings = false }: { language: "he" | "en"; profile: SearchProfile; successfulSearch?: boolean; openSettings?: boolean }) {
   const he = language === "he";
   const t = (a: string, b: string) => he ? a : b;
   const [ready, setReady] = useState(false);
@@ -41,7 +41,7 @@ export function JobRadar({ language, profile, successfulSearch = false }: { lang
           if (error) { setMessage(t("לא ניתן לטעון התראות כרגע. נסו שוב מאוחר יותר.", "Unable to load alerts right now. Please try again later.")); return; }
           if (data) { setActive(data.enabled); setDraft(data.preferences); setFrequency(data.frequency_per_week); offered.current = true; }
         }
-        setReady(true);
+        setReady(true); setEditing(openSettings);
       } catch { if (alive) setMessage(t("לא ניתן לטעון התראות כרגע.", "Unable to load alerts right now.")); }
     }
     void load();
