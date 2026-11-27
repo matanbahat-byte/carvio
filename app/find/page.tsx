@@ -18,12 +18,12 @@ export default async function FindJobs({searchParams}:{searchParams:Promise<Find
  const city=typeof p.city==="string"?p.city.trim().slice(0,80):"";
  const countries:Record<string,string>={"ישראל":"Israel","גרמניה":"Germany","הולנד":"Netherlands","ארצות הברית":"United States","בריטניה":"United Kingdom","ספרד":"Spain","פורטוגל":"Portugal","אירלנד":"Ireland","צרפת":"France"};
  const cities:Record<string,string>={"תל אביב":"Tel Aviv","ירושלים":"Jerusalem","חיפה":"Haifa","הרצליה":"Herzliya","רמת גן":"Ramat Gan","פתח תקווה":"Petah Tikva","נתניה":"Netanya","באר שבע":"Beer Sheva","ראשון לציון":"Rishon LeZion","רחובות":"Rehovot","כפר סבא":"Kfar Saba"};
- const profile={...emptySearchProfile,role:q,alternativeRoles:suggestedRoleAlternatives(q).slice(0,3).join(", "),country:providerCountry(country),location:cities[city]||city,radius:"",datePosted:"Any time",employmentType:""};
+ const searchedAt = typeof p.searchedAt === "string" && Number.isFinite(Date.parse(p.searchedAt)) ? new Date(p.searchedAt).toISOString() : "";
+ const profile={...emptySearchProfile,role:q,alternativeRoles:suggestedRoleAlternatives(q).slice(0,3).join(", "),country:providerCountry(country),location:cities[city]||city,radius:"",datePosted:"Any time",employmentType:"",...(searchedAt?{lastSearchedAt:searchedAt}:{})};
  const routes=q?jobSearchSources(profile,language):[];
  const employerCareerUrl=q&&country?officialSearchUrl(profile,language):"";
  const sorted=[...routes].sort((a,b)=>({linkedin:0,indeed:1,google:2}[a.id]-{linkedin:0,indeed:1,google:2}[b.id]));
  const switchParams = new URLSearchParams({ lang: he ? "en" : "he", ...(q ? { q } : {}), ...(country ? { country } : {}), ...(city ? { city } : {}), ...(typeof p.searchedAt === "string" ? { searchedAt: p.searchedAt } : {}) });
- const searchedAt = typeof p.searchedAt === "string" && Number.isFinite(Date.parse(p.searchedAt)) ? new Date(p.searchedAt).toISOString() : "";
  const workspaceUrl = "/?" + new URLSearchParams({ workspace: "1", ...(q ? { findRole: q, findCountry: providerCountry(country), findCity: cities[city] || city, findLang: language, ...(searchedAt ? { findSearchedAt: searchedAt } : {}) } : {}) });
  return <main lang={language} dir={he ? "rtl" : "ltr"} className="relative min-h-screen overflow-hidden bg-[#f0faf7] text-[#18223c]">
   <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-[680px] overflow-hidden"><div className="absolute -top-56 -right-40 h-[720px] w-[720px] rounded-full bg-[#0f766e] opacity-40 blur-[120px]"/><div className="absolute top-12 -left-40 h-[560px] w-[560px] rounded-full bg-[#66e8dc] opacity-35 blur-[110px]"/><div className="absolute right-[20%] top-44 h-52 w-52 rotate-12 rounded-[65px] border-[28px] border-[#99f6e4]/35"/><div className="absolute left-[12%] top-24 h-20 w-20 rotate-45 rounded-[25px] bg-[#ffdf8b]/50"/></div>

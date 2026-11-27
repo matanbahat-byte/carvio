@@ -2,10 +2,11 @@
 import { createHash } from 'node:crypto';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { normalizePublicBoardJobs, type PublicJob } from './free-job-sources.ts';
+import {radarSearchSummary,type RadarSavedSearch} from './job-radar-search-memory.ts';
 
 type Language = 'he' | 'en';
 export type RadarListing = { id: string; source_id: string; title: string; company: string; location: string; source_url: string; provider: PublicJob['provider']; posted_at: string | null; expires_at: string; is_active: boolean };
-export type RadarEmailInput = { jobs: readonly PublicJob[]; language: Language; displayName?: string; origin?: string; dispatchId?: string; trackingTokens?: Record<string,string> };
+export type RadarEmailInput = { jobs: readonly PublicJob[]; language: Language; search?:Partial<RadarSavedSearch>; displayName?: string; origin?: string; dispatchId?: string; trackingTokens?: Record<string,string> };
 export const RADAR_PUBLIC_ORIGIN = 'https://carvio-pi.vercel.app';
 export const validRadarListingId = (id: string) => /^[a-f0-9]{64}$/.test(id);
 export function radarJobPath(id: string, language: Language, token?: string) {
@@ -66,7 +67,8 @@ export function renderRadarEmail(input: RadarEmailInput): {subject: string; html
   const greeting = t(name ? `שלום ${name},` : 'שלום,',name ? `Hi ${name},` : 'Hi,');
   const subject = t('משרות חדשות לחיפוש שלך | CARVIO','New jobs for your search | CARVIO');
   const title = t('ההזדמנות הבאה שלך מתחילה כאן','Your next opportunity starts here');
-  const intro = t('בחרנו עבורך משרות שמתאימות לחיפוש שלך. אפשר לפתוח כל משרה ב־CARVIO ולבחור את הצעד הבא.','Here are jobs selected for your search. Open each one in CARVIO and choose your next step.');
+  const searchSummary=input.search?radarSearchSummary(input.search):'';
+  const intro = t('בחרנו עבורך משרות שמתאימות לחיפוש שלך. אפשר לפתוח כל משרה ב־CARVIO ולבחור את הצעד הבא.','Here are jobs selected for your search. Open each one in CARVIO and choose your next step.')+(searchSummary?' '+t('החיפוש השמור שלך: ','Your saved search: ')+searchSummary:'');
   const manage = base + radarPreferencesPath(language);
   const stop = base + radarPreferencesPath(language,true);
   const listings = jobs.map(job => ({job,id:radarListingRecord(job).id}));

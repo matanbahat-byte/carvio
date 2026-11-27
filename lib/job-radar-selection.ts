@@ -1,8 +1,9 @@
 // Server-side selection foundation. No requests, scheduler or sender.
 import { normalizePublicBoardJobs, type PublicBoard, type PublicJob } from './free-job-sources.ts';
 import { linkedInRoleTerms, providerCountry, suggestedRoleAlternatives } from './job-search.ts';
+import {isExecutiveHrSearch,matchesExecutiveHrTitle} from './role-intent.ts';
 
-export type RadarPreferences = { role: string; country: string; city: string; seniority: string };
+export type RadarPreferences = { role: string; country: string; city: string; seniority: string; workModel?:string; employmentType?:string };
 export type RadarSubscription = { enabled: boolean; consentVersion: string; preferences: RadarPreferences };
 // Must be loaded from trusted server storage, never accepted from browser input.
 export type ApprovedRadarBoard = { board: PublicBoard; permissionReference: string };
@@ -34,6 +35,7 @@ function level(s: string): string | null {
   return null;
 }
 function roleMatches(title: string, p: RadarPreferences) {
+  if(isExecutiveHrSearch(p.role))return matchesExecutiveHrTitle(title)&&(!p.seniority.trim()||level(p.seniority)==='executive');
   const terms = [...linkedInRoleTerms(p.role), ...suggestedRoleAlternatives(p.role)];
   if (!terms.some(term => contains(title, term))) return false;
   const expected = level(p.seniority) || level(p.role);
@@ -59,6 +61,9 @@ export function selectRadarJobs(input: {
   if (!approved.length) return { jobs: [], blockers: ['no_authorized_source'] };
   const p = subscription.preferences;
   if (!p.role.trim() || !p.country.trim()) return { jobs: [], blockers: ['incomplete_preferences'] };
+  // Current normalized ATS records do not expose verified workplace/contract
+  // metadata. Preserve selected criteria and fail closed instead of dropping them.
+  if(p.workModel?.trim()||p.employmentType?.trim())return {jobs:[],blockers:['saved_filters_require_source_evidence']};
   const ids = new Set(input.sent.map(x => x.id));
   const urls = new Set(input.sent.map(x => urlKey(x.url)));
   const candidates: PublicJob[] = [];

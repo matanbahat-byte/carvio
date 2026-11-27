@@ -23,3 +23,11 @@ test('exactly two verified consents satisfy cohort readiness; other pilot sizes 
  assert.ok(radarPilotReadiness([s],checks).blockers.includes('two_explicit_consents_required'));
  for(const size of [1,3,5,10])assert.throws(()=>radarPilotReadiness([],checks,size));
 });
+test('a planned pilot cannot extend past OAuth expiry or silently assume an unknown lifetime',()=>{
+ const s=radarDispatchFixture().subscription;const accounts=[s,{...s,userId:'second'}];
+ const checks={sourceApproved:true,oauthConfigured:true,routesReleased:true,oauthValidUntil:'2026-12-04T19:33:16Z',pilotEndsAt:'2026-12-03T08:00:00Z'};
+ assert.equal(radarPilotReadiness(accounts,checks).ready,true);
+ assert.ok(radarPilotReadiness(accounts,{...checks,pilotEndsAt:checks.oauthValidUntil}).blockers.includes('oauth_renewal_required_before_pilot_end'));
+ assert.ok(radarPilotReadiness(accounts,{...checks,oauthValidUntil:null}).blockers.includes('oauth_lifetime_verification_required'));
+ assert.ok(radarPilotReadiness(accounts,{...checks,pilotEndsAt:'invalid'}).blockers.includes('valid_pilot_end_required'));
+});
