@@ -69,7 +69,7 @@ export function createRadarOAuth(config:OAuthConfig,store:OAuthStore,request:typ
   return {
     page(req:Request) {
       if(new URL(req.url).origin!==config.origin)return reply('Unavailable',404);
-      return new Response('<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>CARVIO Gmail setup</title><h1>Connect CARVIO Gmail</h1><p>Use carvio.team@gmail.com only. Connecting does not enable sending.</p><form method="post"><label>Operator setup key <input name="setup_token" type="password" required autocomplete="off" maxlength="256"></label><button>Continue to Google</button></form></html>',{headers:{...headers,'Content-Type':'text/html; charset=utf-8'}});
+      return new Response('<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>CARVIO Gmail setup</title><h1>Connect CARVIO Gmail</h1><p>Use carvio.team@gmail.com only. Connecting does not enable sending.</p><form method="post"><label>Operator setup key <input name="setup_token" type="password" required autocomplete="off" maxlength="256"></label><button>Continue to Google</button></form></html>',{headers:{...headers,'Referrer-Policy':'same-origin','Content-Type':'text/html; charset=utf-8'}});
     },
     async start(req:Request) {
       if(new URL(req.url).origin!==config.origin||req.headers.get('origin')!==config.origin)return reply('Forbidden',403);
