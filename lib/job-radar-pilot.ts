@@ -1,8 +1,14 @@
 import type {RadarWorkerSubscription} from './job-radar-dispatch.ts';
-export function radarPilotReadiness(subscriptions:readonly RadarWorkerSubscription[],checks:{sourceApproved:boolean;oauthConfigured:boolean;routesReleased:boolean},limit=2){
+export function radarPilotReadiness(subscriptions:readonly RadarWorkerSubscription[],checks:{sourceApproved:boolean;oauthConfigured:boolean;routesReleased:boolean;oauthValidUntil?:string|null;pilotEndsAt?:string},limit=2){
  if(limit!==2)throw Error('Pilot size must be exactly two');
  const unique=new Map(subscriptions.filter(s=>s.enabled&&s.verified&&s.consentVersion==='job-radar-v1'&&s.email).map(s=>[s.userId,s]));
  const eligible=[...unique.values()].slice(0,limit);
  const blockers=[...(eligible.length<2?['two_explicit_consents_required']:[]),...(!checks.sourceApproved?['authorized_source_required']:[]),...(!checks.oauthConfigured?['runtime_gmail_oauth_required']:[]),...(!checks.routesReleased?['internal_routes_release_required']:[])];
+ if(checks.pilotEndsAt){
+  const end=Date.parse(checks.pilotEndsAt);const expiry=Date.parse(checks.oauthValidUntil||'');
+  if(!Number.isFinite(end))blockers.push('valid_pilot_end_required');
+  if(!Number.isFinite(expiry))blockers.push('oauth_lifetime_verification_required');
+  else if(Number.isFinite(end)&&expiry<=end)blockers.push('oauth_renewal_required_before_pilot_end');
+ }
  return {target:limit,eligibleCount:eligible.length,ready:blockers.length===0,blockers};
 }

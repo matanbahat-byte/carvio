@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto';
 import {RADAR_SENDER} from './job-radar-schedule.ts';
+import {RADAR_ILLUSTRATION_CID,RADAR_ILLUSTRATION_BASE64} from './job-radar-illustration.ts';
 export type RadarMessage = {subject:string;html:string;text:string};
 export type GmailCredentials = {clientId:string;clientSecret:string;refreshToken:string};
 export function gmailRawMessage(to: string, message: RadarMessage, dispatchId: string) {
@@ -11,7 +12,11 @@ export function gmailRawMessage(to: string, message: RadarMessage, dispatchId: s
   const words:string[]=[];let word='';
   for(const char of message.subject){if(Buffer.byteLength(word+char)>42){words.push(word);word='';}word+=char;}if(word)words.push(word);
   const subject=words.map(w=>'=?UTF-8?B?'+Buffer.from(w).toString('base64')+'?=').join('\r\n ');
-  const raw=[`Date: ${new Date().toUTCString()}`,`From: CARVIO <${RADAR_SENDER}>`,`To: ${to}`,`Subject: ${subject}`,`Message-ID: <carvio.radar.${tag}@gmail.com>`,'MIME-Version: 1.0',`Content-Type: multipart/alternative; boundary="${boundary}"`,'',`--${boundary}`,'Content-Type: text/plain; charset=UTF-8','Content-Transfer-Encoding: base64','',b64(message.text),`--${boundary}`,'Content-Type: text/html; charset=UTF-8','Content-Transfer-Encoding: base64','',b64(message.html),`--${boundary}--`,''].join('\r\n');
+  const inline=message.html.includes(`cid:${RADAR_ILLUSTRATION_CID}`);
+  const alternative=inline?`${boundary}_alternative`:boundary;
+  const parts=[`--${alternative}`,'Content-Type: text/plain; charset=UTF-8','Content-Transfer-Encoding: base64','',b64(message.text),`--${alternative}`,'Content-Type: text/html; charset=UTF-8','Content-Transfer-Encoding: base64','',b64(message.html),`--${alternative}--`,''];
+  const body=inline?[`--${boundary}`,`Content-Type: multipart/alternative; boundary="${alternative}"`,'',...parts,`--${boundary}`,'Content-Type: image/jpeg',`Content-ID: <${RADAR_ILLUSTRATION_CID}>`,'Content-Disposition: inline; filename="carvio-illustration.jpg"','Content-Transfer-Encoding: base64','',RADAR_ILLUSTRATION_BASE64.match(/.{1,76}/g)!.join('\r\n'),`--${boundary}--`,'']:parts;
+  const raw=[`Date: ${new Date().toUTCString()}`,`From: CARVIO <${RADAR_SENDER}>`,`To: ${to}`,`Subject: ${subject}`,`Message-ID: <carvio.radar.${tag}@gmail.com>`,'MIME-Version: 1.0',`Content-Type: multipart/${inline?'related':'alternative'}; boundary="${boundary}"`,'',...body].join('\r\n');
   return Buffer.from(raw).toString('base64url');
 }
 export class RadarSendUncertain extends Error {constructor(){super('gmail_delivery_uncertain');}}
@@ -49,4 +54,11 @@ export function createRadarGmailTransport(credentials: GmailCredentials, request
     } catch {throw new RadarSendUncertain();}
   }
   return {verifySender,send};
+}
+
+/** Structured Gmail MIME representation used by the two-person scheduled pilot. */
+export function radarGmailPayload(message:RadarMessage) {
+ const alternative={mime_type:'multipart/alternative',parts:[{mime_type:'text/plain',charset:'UTF-8',body:{content:message.text}},{mime_type:'text/html',charset:'UTF-8',body:{content:message.html}}]};
+ if(!message.html.includes(`cid:${RADAR_ILLUSTRATION_CID}`))return alternative;
+ return {mime_type:'multipart/related',parts:[alternative,{mime_type:'image/jpeg',content_id:`<${RADAR_ILLUSTRATION_CID}>`,content_disposition:'inline',filename:'carvio-illustration.jpg',body:{base64_url_content:Buffer.from(RADAR_ILLUSTRATION_BASE64,'base64').toString('base64url')}}]};
 }

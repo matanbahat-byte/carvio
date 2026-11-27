@@ -4,10 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {readRadarWorkspace,radarJobAvailable,type RadarRecentJob} from "@/lib/job-radar-workspace";
 import type { SearchProfile } from "@/lib/job-search";
+import {radarSearchFromProfile,radarSearchSummary,nextRadarSearchUpdate,type RadarSavedSearch} from '@/lib/job-radar-search-memory';
 
 const SEEN = "carvio.job-radar.offered.v1";
-type Preferences = { role: string; country: string; city: string; workModel: string; seniority: string; employmentType: string };
-const preferences = (p: SearchProfile): Preferences => ({ role: p.role, country: p.country, city: p.location, workModel: p.workModel, seniority: p.seniority, employmentType: p.employmentType });
+type Preferences = RadarSavedSearch;
+const preferences=radarSearchFromProfile;
 
 export function JobRadar({ language, profile, successfulSearch = false, openSettings = false, onSelectJob }: { language: "he" | "en"; profile: SearchProfile; successfulSearch?: boolean; openSettings?: boolean; onSelectJob?:(job:RadarRecentJob)=>void }) {
   const he = language === "he";
@@ -28,6 +29,12 @@ export function JobRadar({ language, profile, successfulSearch = false, openSett
   const userId = useRef<string | null>(null);
   const generation = useRef(0);
   const offered = useRef(false);
+  const searchVersion=useRef<string|null>(null);
+  const lastSearchAt=useRef<string|null>(null);
+  const attemptedSearch=useRef('');
+  const syncInFlight=useRef(false);
+  const editingRef=useRef(false);
+  useEffect(()=>{editingRef.current=editing;},[editing]);
 
   useEffect(() => {
     const client = createClient();
@@ -35,17 +42,17 @@ export function JobRadar({ language, profile, successfulSearch = false, openSett
     async function load() {
       const version = ++generation.current;
       setReady(false); setRecent([]);setHistoryError(false);setRuntimeEnabled(false);setHasPreferences(false);setBusy(false);setDraft(preferences(profile));setFrequency(3);setActive(false); setEditing(false); setOffer(false); setMessage("");
-      userId.current = null;saved.current=null;
+      userId.current = null;saved.current=null;searchVersion.current=null;lastSearchAt.current=null;attemptedSearch.current='';syncInFlight.current=false;
       try {
         const result = client ? await client.auth.getUser() : null;
         const user = result?.data.user;
         if (!alive || version !== generation.current) return;
         if (user?.email_confirmed_at && !user.is_anonymous) {
           userId.current = user.id;
-          const { data, error } = await client!.from("job_radar_preferences").select("enabled,preferences,frequency_per_week").eq("user_id", user.id).maybeSingle();
+          const { data, error } = await client!.from("job_radar_preferences").select("enabled,preferences,frequency_per_week,updated_at,search_updated_at").eq("user_id", user.id).maybeSingle();
           if (!alive || version !== generation.current) return;
           if (error) { setMessage(t("לא ניתן לטעון התראות כרגע. נסו שוב מאוחר יותר.", "Unable to load alerts right now. Please try again later.")); return; }
-          if (data) { saved.current={draft:data.preferences,frequency:data.frequency_per_week};setHasPreferences(true);setActive(data.enabled); setDraft(data.preferences); setFrequency(data.frequency_per_week); offered.current = true; }
+          if (data) { searchVersion.current=data.updated_at;lastSearchAt.current=data.search_updated_at||data.updated_at;saved.current={draft:data.preferences,frequency:data.frequency_per_week};setHasPreferences(true);setActive(data.enabled); setDraft(data.preferences); setFrequency(data.frequency_per_week); offered.current = true; }
           const history=await client!.rpc("get_job_radar_workspace").abortSignal(AbortSignal.timeout(5000));
           if(!alive||version!==generation.current)return;
           if(history.error)setHistoryError(true);else {const summary=readRadarWorkspace(history.data);setRecent(summary.jobs);setRuntimeEnabled(summary.runtimeEnabled);}
@@ -67,6 +74,32 @@ export function JobRadar({ language, profile, successfulSearch = false, openSett
     setDraft(preferences(profile)); setOffer(true);
   }, [ready, successfulSearch, profile]);
 
+  useEffect(()=>{
+    if(!ready||busy||editing||syncInFlight.current||!userId.current)return;
+    const next=nextRadarSearchUpdate({profile,saved:saved.current?.draft||null,enabled:active,successfulSearch,lastSearchAt:lastSearchAt.current,expectedVersion:searchVersion.current});
+    if(!next||attemptedSearch.current===next.searchedAt)return;
+    const client=createClient();if(!client)return;
+    attemptedSearch.current=next.searchedAt;syncInFlight.current=true;
+    const version=generation.current;
+    void (async()=>{
+      await Promise.resolve();
+      if(version!==generation.current)return;
+      setBusy(true);
+      try {
+        const result=await client.rpc('update_job_radar_search',{p_preferences:next.preferences,p_expected_version:next.expectedVersion,p_searched_at:next.searchedAt}).abortSignal(AbortSignal.timeout(10000));
+        if(version!==generation.current)return;
+        if(result.error||!result.data?.updated)throw Error('search_not_saved');
+        searchVersion.current=result.data.updated_at;lastSearchAt.current=next.searchedAt;
+        saved.current={draft:result.data.preferences,frequency:saved.current!.frequency};
+        if(!editingRef.current)setDraft(result.data.preferences);
+        setMessage(t('החיפוש נשמר. המשרות במייל ייבחרו לפי הפרמטרים האלה.','Search saved. Email job matches will use these criteria.'));
+      }catch{
+        if(version===generation.current)setMessage(t('החיפוש החדש לא נשמר להתראות. ההעדפות הקודמות נשארו; אפשר לעדכן אותן בניהול ההתראות.','The new search was not saved for alerts. Previous preferences remain; update them in Manage job alerts.'));
+      }finally{if(version===generation.current){syncInFlight.current=false;setBusy(false);}}
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[ready,busy,editing,active,successfulSearch,profile]);
+
   async function save(enabled: boolean) {
     const client = createClient();
     if (!client || !userId.current) { setMessage(t("כדי לשמור התראות, התחברו עם מייל מאומת בסביבת העבודה ואז בחרו שוב להפעיל אותן.", "To save alerts, sign in with a verified email in the workspace, then choose to enable them again.")); return; }
@@ -76,6 +109,10 @@ export function JobRadar({ language, profile, successfulSearch = false, openSett
       const { error } = await client.rpc("save_job_radar_preferences", { p_enabled: enabled, p_preferences: draft, p_frequency: frequency, p_language: language, p_consent_version: "job-radar-v1" });
       if (version !== generation.current) return;
       if (error) throw error;
+      const metadata=await client.from('job_radar_preferences').select('updated_at,search_updated_at').eq('user_id',userId.current).maybeSingle();
+      if(version!==generation.current)return;
+      searchVersion.current=metadata.error?null:metadata.data?.updated_at||null;
+      lastSearchAt.current=metadata.data?.search_updated_at||metadata.data?.updated_at||null;
       if(enabled)saved.current={draft:{...draft},frequency};else if(saved.current){setDraft(saved.current.draft);setFrequency(saved.current.frequency);}
       setHasPreferences(true);setActive(enabled); setEditing(false); setOffer(false);
       setMessage(t(enabled ? "ההעדפות נשמרו. מצב המנגנון מוצג למעלה." : "ההתראות הופסקו.", enabled ? "Preferences saved. The current mechanism status is shown above." : "Alerts stopped."));
@@ -87,12 +124,12 @@ export function JobRadar({ language, profile, successfulSearch = false, openSett
   return <section aria-label="Job Radar" dir={he ? "rtl" : "ltr"} className="mx-auto my-4 w-full max-w-5xl rounded-2xl border border-teal-200 bg-[#f0fdfa] p-4 text-base text-[#134e4a] sm:p-6">
     <h2 className="text-xl font-bold">{t("המשרות ש־CARVIO מחפש בשבילך", "Your CARVIO job alerts")}</h2>
     <p role="status" className="my-3">{!ready?(message?t("מצב ההתראות אינו זמין כרגע. רעננו כדי לנסות שוב.","Alert status is unavailable. Refresh to try again."):t("טוען את מצב ההתראות…","Loading alert status…")):!userId.current?t("התחברו כדי לנהל את ההתראות האישיות שלכם.","Sign in to manage your personal alerts."):active?(runtimeEnabled?t("CARVIO מחפש עבורך משרות לפי ההעדפות ששמרת.","CARVIO is searching for jobs using your saved preferences."):t("ההעדפות שמורות. החיפוש והשליחה האוטומטיים עדיין לא הופעלו עבור החשבון שלך.","Your preferences are saved. Automatic search and sending are not enabled for your account yet.")):hasPreferences?t("ההתראות כבויות. ההעדפות נשמרו ואפשר להפעיל מחדש.","Alerts are off. Your preferences are retained so you can resume anytime."):t("עדיין לא הפעלת התראות משרות.","You have not enabled job alerts yet.")}</p>
-    {ready&&hasPreferences&&!editing&&<p className="mb-3 break-words"><bdi>{draft.role}</bdi> · <bdi>{draft.city||draft.country}</bdi> · {frequency===2?t("פעמיים בשבוע","Twice a week"):t("3 פעמים בשבוע","3 times a week")}</p>}
+    {ready&&hasPreferences&&!editing&&<p className="mb-3 break-words"><bdi>{radarSearchSummary(draft)}</bdi> · {frequency===2?t("פעמיים בשבוע","Twice a week"):t("3 פעמים בשבוע","3 times a week")}</p>}
     {offer && !editing ? <><h2 className="text-xl font-bold">{t("אנחנו נמשיך לחפש בשבילך!", "We’ll keep searching for you!")}</h2><p className="my-3">{t("רוצה ש־CARVIO ישלח לך למייל משרות חדשות שמתאימות לחיפוש שלך, 2–3 פעמים בשבוע?", "Want CARVIO to email you new jobs matching your search, 2–3 times a week?")}</p><div className="flex flex-wrap gap-3"><button className={`${button} bg-teal-700 text-white`} onClick={() => setEditing(true)}>{t("כן, חפשו בשבילי!", "Yes, search for me!")}</button><button className={button} onClick={() => setOffer(false)}>{t("אולי בהמשך", "Maybe later")}</button></div></> : !editing && <button className={button} disabled={!ready} onClick={() => { if (!hasPreferences) setDraft(preferences(profile)); setEditing(true); }}>{t("Job Radar · ניהול התראות משרות", "Job Radar · Manage job alerts")}</button>}
     {!editing&&active&&<button className={`${button} mt-3 sm:ms-3`} disabled={busy} onClick={()=>void save(false)}>{t("השהיה / הפסקת התראות","Pause / stop alerts")}</button>}
     {editing && <form className="grid min-w-0 gap-4" onSubmit={event => { event.preventDefault(); void save(true); }}>
       <h2 className="text-xl font-bold">{t("משרות שמתאימות לך", "Jobs that fit you")}</h2>
-      <p>{t("אפשר לעדכן את החיפוש ואת התדירות בכל עת. השהיה או הפסקה שומרות את ההעדפות, וחוסמות התראות עד להפעלה מחדש.", "Update your search and frequency anytime. Pausing or stopping retains your preferences and blocks alerts until you enable them again.")}</p>
+      <p>{t("לאחר הפעלת ההתראות, CARVIO יזכור חיפושים חדשים שתבצעו וישתמש בהם לבחירת המשרות במייל. אפשר לערוך כאן את ההעדפות והתדירות. השהיה שומרת את ההעדפות ולא מופעלת מחדש בעקבות חיפוש.", "After enabling alerts, CARVIO remembers new searches you run and uses them for email job matches. Edit preferences and frequency here. Pausing retains preferences; searching does not resume alerts.")}</p>
       <div className="grid min-w-0 gap-3 sm:grid-cols-2">{([["role", t("תפקיד", "Role")], ["country", t("מדינה", "Country")], ["city", t("עיר", "City")], ["workModel", t("מודל עבודה", "Work model")], ["seniority", t("דרגה", "Seniority")], ["employmentType", t("סוג משרה", "Employment type")]] as [keyof Preferences, string][]).map(([key, label]) => <label key={key} className="grid min-w-0 gap-1">{label}<input className="min-h-11 w-full min-w-0 rounded-lg border border-teal-700 bg-white px-3 text-[#134e4a]" required={key === "role" || key === "country"} maxLength={120} value={draft[key]} onChange={e => setDraft({ ...draft, [key]: e.target.value })}/></label>)}</div>
       <label className="grid gap-1">{t("כמה פעמים בשבוע?", "How often?")}<select className="min-h-11 rounded-lg border border-teal-700 bg-white p-2 text-[#134e4a]" value={frequency} onChange={e => setFrequency(Number(e.target.value))}><option value={2}>{t("פעמיים בשבוע", "Twice a week")}</option><option value={3}>{t("3 פעמים בשבוע", "3 times a week")}</option></select></label>
       <p>{t("בלחיצה על הפעלה ושמירה אני מסכים/ה לקבל למייל החשבון משרות בהתאם להעדפות ולתדירות שבחרתי.", "By choosing Enable and save, I agree to receive jobs at my account email according to my preferences and frequency.")}</p>

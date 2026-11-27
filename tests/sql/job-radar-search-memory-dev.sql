@@ -1,0 +1,33 @@
+begin;
+do $$
+declare a uuid:=gen_random_uuid(); b uuid:=gen_random_uuid(); version timestamptz; consent timestamptz; events integer; result jsonb;
+ prefs jsonb:='{"role":"Recruitment Manager","country":"Israel","city":"Tel Aviv","seniority":"Manager","workModel":"Hybrid","employmentType":"Full-time"}';
+begin
+ insert into auth.users(id,email,email_confirmed_at,is_anonymous) values(a,a::text||'@example.test',now()-interval '1 day',false),(b,b::text||'@example.test',now()-interval '1 day',false);
+ perform set_config('request.jwt.claim.sub',a::text,true);
+ execute 'set local role authenticated';
+ result:=public.update_job_radar_search(prefs,now()-interval '1 day',clock_timestamp());
+ if result->>'reason'<>'alerts_not_enabled' then raise exception 'search created consent'; end if;
+ perform public.save_job_radar_preferences(true,prefs,2,'he','job-radar-v1');
+ select updated_at,consented_at into version,consent from public.job_radar_preferences where user_id=a;
+ select count(*) into events from public.job_radar_consent_events where user_id=a;
+ result:=public.update_job_radar_search(prefs||'{"role":"HR Director","city":"Haifa"}'::jsonb,version,clock_timestamp());
+ if result->>'updated'<>'true' then raise exception 'fresh search not saved'; end if;
+ if not exists(select 1 from public.job_radar_preferences where user_id=a and preferences->>'role'='HR Director' and preferences->>'city'='Haifa' and frequency_per_week=2 and language='he' and consented_at=consent and enabled) then raise exception 'preferences or consent changed incorrectly'; end if;
+ if (select count(*) from public.job_radar_consent_events where user_id=a)<>events then raise exception 'search forged consent event'; end if;
+ result:=public.update_job_radar_search(prefs,version,clock_timestamp());
+ if result->>'reason'<>'stale_search' then raise exception 'stale tab overwrite'; end if;
+ perform set_config('request.jwt.claim.sub',b::text,true);
+ result:=public.update_job_radar_search(prefs,version,clock_timestamp());
+ if result->>'reason'<>'alerts_not_enabled' then raise exception 'cross account updated'; end if;
+ perform set_config('request.jwt.claim.sub',a::text,true);
+ perform public.save_job_radar_preferences(false,prefs,2,'he','job-radar-v1');
+ select updated_at into version from public.job_radar_preferences where user_id=a;
+ result:=public.update_job_radar_search(prefs,version,clock_timestamp());
+ if result->>'reason'<>'alerts_not_enabled' or exists(select 1 from public.job_radar_preferences where user_id=a and enabled) then raise exception 'search resumed paused alerts'; end if;
+ execute 'reset role';
+ if has_function_privilege('anon','public.update_job_radar_search(jsonb,timestamptz,timestamptz)','EXECUTE') then raise exception 'anonymous update allowed'; end if;
+ if (select enabled from public.job_radar_pilot_control where singleton) then raise exception 'pilot enabled'; end if;
+end $$;
+select 'search_memory_checks_passed' as result;
+rollback;
