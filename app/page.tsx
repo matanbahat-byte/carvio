@@ -3848,6 +3848,29 @@ function WorkspaceHome() {
         </nav>
 
         <header className={`calm-view dashboard-v2 ${activeView !== "home" ? "calm-view-hidden" : ""}`} id="dashboard">
+          <section className="home-career-tools" id="home-career-tools" aria-labelledby="home-career-tools-title">
+            <div className="home-career-tools-heading">
+              <div>
+                <p className="home-career-tools-kicker"><Sparkles aria-hidden="true" /> CARVIO INSIDER</p>
+                <h2 id="home-career-tools-title">{language === "he" ? "הצעד הבא בקריירה שלך" : "Your next career move"}</h2>
+                <p>{language === "he" ? "כלים אישיים שמתחילים מהמידע שכבר שמרת." : "Personal career tools that start with the information you have saved."}</p>
+              </div>
+              <button type="button" className="home-career-tools-all" onClick={() => switchView("tools")}>{language === "he" ? "כל הכלים" : "All tools"} <ArrowUpRight aria-hidden="true" /></button>
+            </div>
+            <div className="home-career-tools-grid">
+              {([
+                { id: "studio", Icon: MessagesSquare, title: language === "he" ? "כתיבת פנייה אישית" : "Write a personal message", detail: language === "he" ? "למגייס, למנהל או לרפרל" : "To a recruiter, manager or referral" },
+                { id: "interview", Icon: Target, title: language === "he" ? "הכנה לראיון" : "Prepare for an interview", detail: language === "he" ? "שאלות ותרגול לפי המשרה" : "Role-specific questions and practice" },
+                { id: "cv", Icon: FileCheck2, title: language === "he" ? "התאמת קורות חיים" : "Tailor your CV", detail: language === "he" ? "חידוד קורות החיים למשרה" : "Refine your CV for the role" },
+              ] as const).map(({ id, Icon, title, detail }) => (
+                <button key={id} type="button" data-home-career-tool={id} className="home-career-tool" onClick={() => { switchView("tools"); openCareerTool(id); }}>
+                  <span className="home-career-tool-icon"><Icon aria-hidden="true" /></span>
+                  <span className="home-career-tool-copy"><strong>{title}</strong><small>{detail}</small></span>
+                  <ArrowUpRight className="home-career-tool-arrow" aria-hidden="true" />
+                </button>
+              ))}
+            </div>
+          </section>
           <section aria-label={language === "he" ? "החיפושים והמשרות השמורות שלכם" : "Your saved jobs and searches"} className="relative mb-7 overflow-hidden rounded-[30px] border border-slate-200 bg-slate-50 p-5 shadow-sm sm:p-8">
             <div className="relative flex flex-wrap items-start justify-between gap-3">
               <div>

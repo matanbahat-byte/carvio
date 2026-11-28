@@ -7,8 +7,14 @@ try{for(const width of [390,1366])for(const language of ['he','en']){
  await context.addInitScript(({statuses,language})=>{if(sessionStorage.getItem('qa-context-tool'))return;sessionStorage.setItem('qa-context-tool','1');sessionStorage.setItem('carvio.language.v1',JSON.stringify(language));sessionStorage.setItem('carvio.profile.v1',JSON.stringify({name:'QA Candidate',targetRole:language==='he'?'':'QA Target Role',professionalSummary:'Saved professional summary',completed:true}));sessionStorage.setItem('carvio.search-profile.v1',JSON.stringify({role:'QA Target Role',country:'Israel',location:'Tel Aviv'}));sessionStorage.setItem('carvio.resumes.v1',JSON.stringify([{id:'qa-cv',name:'QA CV.txt',size:100,type:'text/plain',addedAt:'2026-11-28',extractedText:'Led a global engineering team\nqa@example.com',readState:'ready'}]));sessionStorage.setItem('carvio.cv-draft.v1',JSON.stringify({version:1,current:'SAVED CV MANUAL',previous:'PREVIOUS CV'}));sessionStorage.setItem('carvio.applications.v1',JSON.stringify(statuses.map((status,i)=>({id:`qa-${i}`,company:`QA Company ${i}`,role:`QA Role ${i}`,status,nextStep:'QA next action',requirements:'SQL experience',requirementEvidence:[{id:'r1',requirement:'SQL experience',evidence:'Saved real example'}],eventDateTime:'2026-12-04T10:00',interviewPreparation:{starStories:'SAVED STAR MANUAL',interviewerQuestions:'SAVED QUESTIONS',updatedAt:'2026-11-26'},offerDetails:{decisionBrief:'SAVED OFFER MANUAL'}}))));},{statuses,language});
  await page.goto(`${base}/?workspace=1&demo=1`);
  await page.getByRole('button',{name:language==='he'?'שמירת משרה מקישור':'Save a job from a link',exact:true}).click();await page.getByRole('dialog').waitFor();await page.keyboard.press('Escape');
- if(width<768){await page.getByRole('button',{name:language==='he'?'עוד':'More',exact:true}).click();await page.locator('.mobile-more-menu').getByText(language==='he'?'כלים':'Tools',{exact:true}).click();}else await page.getByRole('button',{name:language==='he'?'כלים':'Tools',exact:true}).click();
- await page.getByText(language==='he'?'כתיבת הודעה':'Write a message',{exact:true}).click();
+ const home=page.locator('#home-career-tools');await home.waitFor({state:'visible'});
+ await page.screenshot({path:`artifacts/context-tool/home-${language}-${width}.png`});
+ for(const [id,target] of [['cv','#cv-lab'],['interview','#interview-prep'],['studio','#message-studio']]){
+  await home.locator(`[data-home-career-tool="${id}"]`).click();
+  await page.locator(target).waitFor({state:'visible'});
+  if(id!=='studio'){await page.getByRole('button',{name:language==='he'?'סקירה':'Overview',exact:true}).click();await home.waitFor({state:'visible'});}
+ }
+ console.log(`PASS one-click homepage tools ${language} ${width}`);
  const quick=page.locator('#message-studio');
  const field=(he,en)=>quick.getByRole('textbox',{name:language==='he'?he:en,exact:true});
  const disclosure=quick.locator('.message-premium-disclosure').first();
