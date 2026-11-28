@@ -63,12 +63,16 @@ export function WelcomeAccountAccess({ language, onContinueLocal, compact=false,
   }, [retryAfter]);
 
   useEffect(() => {
-    if(new URLSearchParams(window.location.search).has("auth"))setShowSignIn(true);
+    const timer = new URLSearchParams(window.location.search).has("auth")
+      ? window.setTimeout(() => setShowSignIn(true), 0) : null;
     const supabase = supabaseRef.current;
-    if (!supabase) return;
+    if (!supabase) return () => { if (timer !== null) window.clearTimeout(timer); };
     supabase.auth.getSession().then(({ data }) => setSession(data.session)).catch(() => setSession(null));
     const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => setSession(nextSession));
-    return () => data.subscription.unsubscribe();
+    return () => {
+      if (timer !== null) window.clearTimeout(timer);
+      data.subscription.unsubscribe();
+    };
   }, []);
 
   async function signInWithGoogle() {
