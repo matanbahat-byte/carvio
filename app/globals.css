@@ -11046,5 +11046,22 @@ html[data-carvio-theme="light"] :is(input,textarea)::placeholder { color: #526b6
 .home-career-tools-eyebrow .home-career-tools-kicker { margin:0; }
 .home-career-tools-free { display:inline-flex;align-items:center;line-height:1.35;padding:.25rem .65rem;border-radius:999px;border:1px solid #fbcfe8;background:#fce7f3;color:#9d174d;font-size:.74rem;font-weight:800;white-space:nowrap; }
 
-.welcome-career-tools { max-width:72rem; margin:0 auto 1.5rem; padding:0 1rem; }
+.welcome-hero > .welcome-career-tools { grid-column:1 / -1; min-width:0; }
+@media (max-width:900px) { .welcome-hero > .welcome-copy { order:1; } .welcome-hero > .welcome-career-tools { order:2; } .welcome-hero > .landing-hero-visual { order:3; } }
 .carvio-welcome .home-career-tools { --cv-primary:#0f766e; --cv-primary-ink:#115e59; --cv-border:#cfe3df; --cv-surface:#ffffff; --cv-muted:#475569; --cv-text:#0f172a; margin:0; }
+/* Free badge: small, bright fuchsia accent (white on #c026d3 is about 4.9:1). */
+.home-career-tools-free { padding:.12rem .5rem; border:0; background:#c026d3; color:#fff; font-size:.68rem; letter-spacing:.01em; }
+/* Public landing: compact, borderless strip right under the entry buttons, ahead of the illustration. */
+.welcome-hero > .welcome-career-tools { margin-top:.25rem; }
+.carvio-welcome .home-career-tools { padding:0; border:0; background:transparent; border-radius:0; }
+.carvio-welcome .home-career-tools-heading { align-items:center; margin-bottom:.5rem; }
+.carvio-welcome .home-career-tools-kicker,.carvio-welcome .home-career-tools-heading p:not(.home-career-tools-kicker) { display:none; }
+.carvio-welcome .home-career-tools-eyebrow { margin:0; flex-wrap:nowrap; align-items:center; gap:.5rem; }
+.carvio-welcome .home-career-tools-heading > div { display:flex; flex-wrap:wrap; align-items:center; gap:.4rem .6rem; }
+.carvio-welcome .home-career-tools-heading h2 { font-size:1.05rem; order:1; }
+.carvio-welcome .home-career-tools-eyebrow { order:2; }
+.carvio-welcome .home-career-tools-all { min-height:44px; }
+.carvio-welcome .home-career-tool { min-height:52px; padding:.4rem .6rem; border-radius:.75rem; }
+.carvio-welcome .home-career-tool-icon { width:1.9rem; height:1.9rem; }
+.carvio-welcome .home-career-tool-copy small { display:none; }
+@media (min-width:901px) { .carvio-welcome .home-career-tool-copy small { display:block; } .carvio-welcome .home-career-tool { min-height:64px; } }
