@@ -19,6 +19,16 @@ const questions: Record<InterviewKind, Record<Language, string[]>> = {
 // A figure alone is context (team size, year, budget), not an outcome. Count a result only when an outcome verb and a quantity both appear in the same line.
 export const hasStatedOutcome = (line: string) => /\b(reduc|cut|cutting|increas|improv|grew|grow|sav(ed|ing)|boost|decreas|rais(ed|ing)|lower|doubl|tripl|accelerat|shorten|drove|generat|won|achiev)\w*|הקטנ|קיצ|הגדל|שיפר|חסכ|העלי|הפחת|הגדלת|צמצ/i.test(line) && /\d/.test(line);
 
+// Splits a CV line into an action and, only when a later clause itself states an outcome (verb plus number), a result clause. Text is never rewritten, only cut at punctuation.
+export function splitActionResult(line: string) {
+  const parts = line.split(/,\s+|;\s+|\s+(?=resulting in\b|which\b)/);
+  for (let i = 1; i < parts.length; i++) {
+    const tail = parts.slice(i).join(", ");
+    if (hasStatedOutcome(tail)) return { action: parts.slice(0, i).join(", "), result: tail.replace(/[.\s]+$/, "") };
+  }
+  return { action: line.replace(/[.\s]+$/, ""), result: "" };
+}
+
 export function buildInterviewQuickBrief(source: Source, career: Career, kind: InterviewKind, language: Language, cvText = "") {
   const he = language === "he";
   const rows = evidenceForRequirements(source.requirementEvidence, source.evidenceItems || [], source.id).filter(row => row.requirement.trim()).slice(0, 5);
@@ -31,9 +41,9 @@ export function buildInterviewQuickBrief(source: Source, career: Career, kind: I
   const stories = requirements.filter(r => r.evidence.trim()).map(r => `${r.requirement}: ${r.evidence.trim()}\n  ${he ? "חדדו מצב, משימה, פעולה ותוצאה." : "Refine the situation, task, action and result."}`);
   const gaps = requirements.filter(r => !r.evidence.trim()).map(r => `${r.requirement} — ${he ? "לא נשמרה דוגמה מקושרת; הכינו דוגמה אמיתית או שאלה לבירור." : "No linked example saved; prepare a real example or a clarifying question."}`);
   const cvMatches = matchCvLines(requirements.filter(r => !r.evidence.trim()).map(r => r.requirement), cvText);
-  const cvSection = cvText.trim() ? section(he ? "טיוטות תשובה מקורות החיים" : "Answer drafts from your CV", cvMatches.length ? [he ? "השורות נבחרו לפי התאמת מילים בלבד, לא הוכחה. ערכו לפני שימוש." : "Lines are chosen by word match only, not proof. Edit before use.", ...cvMatches.map(m => he
-    ? `${m.requirement}\n  טיוטה: "בניסיון שלי: ${m.line}"\n  ${hasStatedOutcome(m.line) ? "בשורה מופיעה תוצאה כפי שנכתבה. הוסיפו באיזה מצב זה קרה ומה תפקידכם, ואמתו שהתוצאה שלכם." : "חסר: איזו תוצאה נבעה מהעבודה (מספר אם יש), באיזה מצב זה קרה ומה תפקידכם בפועל."} ערכו רק אם נכון.`
-    : `${m.requirement}\n  Draft: "In my background: ${m.line}"\n  ${hasStatedOutcome(m.line) ? "The line states an outcome as written; verify it is yours and add the situation it happened in and your own part." : "Missing: the result of this work (what changed, with a number if you have one), the situation it happened in and your own part."} Edit only if true.`)] : [he ? "לא נמצאה שורה קשורה בקורות החיים השמורים." : "No related line found in the saved CV."]) : "";
+  const cvSection = cvText.trim() ? section(he ? "טיוטות תשובה מקורות החיים" : "Answer drafts from your CV", cvMatches.length ? [he ? "השורות נבחרו לפי התאמת מילים בלבד, לא הוכחה. ערכו לפני שימוש." : "Lines are chosen by word match only, not proof. Edit before use.", ...cvMatches.map(m => { const { action, result } = splitActionResult(m.line); return he
+    ? `${m.requirement}\n  מצב: [חסר, השלימו באיזה הקשר זה קרה]\n  משימה: ${m.requirement}\n  פעולה (מקורות החיים): "${action}"\n  תוצאה: ${result ? `"${result}" (כפי שנכתב; אמתו שהיא שלכם)` : "[חסר: מה השתנה בעקבות העבודה, עם מספר אם יש]"}\n  תפקידכם בפועל: [חסר]`
+    : `${m.requirement}\n  Situation: [missing: add the context it happened in]\n  Task: ${m.requirement}\n  Action (from your CV): "${action}"\n  Result: ${result ? `"${result}" (as written; verify it is yours)` : "[missing: what changed because of the work, with a number if you have one]"}\n  Your own part: [missing]`; })] : [he ? "לא נמצאה שורה קשורה בקורות החיים השמורים." : "No related line found in the saved CV."]) : "";
   return [
     `${source.role} · ${source.company}`,
     he ? "הכנה מבוססת מידע שמור. השאלות הן לתרגול בלבד; לא בוצע מחקר חיצוני." : "Preparation from saved information. Questions are practice prompts; no external research performed.",
