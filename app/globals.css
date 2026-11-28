@@ -11097,3 +11097,13 @@ html[data-carvio-theme="light"] :is(input,textarea)::placeholder { color: #526b6
 .interview-brief-row[open] .interview-brief-chevron { transform:rotate(180deg); }
 .interview-brief-row > p { color:var(--cv-body);font-size:.82rem;line-height:1.7;white-space:pre-wrap;margin:0;padding:0 .25rem .9rem 2.9rem;padding-inline:3rem .25rem;overflow-wrap:anywhere; }
 @media(min-width:900px){.interview-brief-cards { grid-template-columns:1fr; }}
+
+.cv-job-fit { display:grid;gap:.5rem;padding:1rem;margin:.75rem 0;border:1px solid color-mix(in srgb,var(--cv-primary) 25%,var(--cv-border));border-radius:1rem;background:color-mix(in srgb,var(--cv-primary) 5%,var(--cv-surface));min-width:0; }
+.cv-job-fit h4 { margin:0;color:var(--cv-text);font-size:.95rem; }
+.cv-job-fit h5 { margin:.4rem 0 0;color:var(--cv-primary-ink);font-size:.82rem;font-weight:750; }
+.cv-job-fit p { margin:0;color:var(--cv-body);font-size:.8rem;line-height:1.6; }
+.cv-job-fit-note { color:var(--cv-muted) !important; }
+.cv-job-fit ul { list-style:none;margin:0;padding:0;display:grid;gap:.55rem; }
+.cv-job-fit li { display:grid;gap:.15rem;font-size:.82rem;color:var(--cv-body);overflow-wrap:anywhere; }
+.cv-job-fit li strong { color:var(--cv-text);font-size:.8rem; }
+.cv-job-fit li small { color:var(--cv-muted);font-size:.72rem; }
