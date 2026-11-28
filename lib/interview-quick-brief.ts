@@ -5,7 +5,7 @@ import { extractJobRequirements, splitRequirementText } from "./job-requirements
 export const interviewKinds = ["General", "Recruiter", "Hiring manager", "Executive", "Professional"] as const;
 export type InterviewKind = typeof interviewKinds[number];
 type Language = "he" | "en";
-type Source = { id: string; company: string; role: string; requirements?: string; jobDescription?: string; requirementEvidence: { id?: string; requirement: string; evidence: string }[]; evidenceItems?: LinkedEvidence[] };
+type Source = { id: string; eventDateTime?: string; company: string; role: string; requirements?: string; jobDescription?: string; requirementEvidence: { id?: string; requirement: string; evidence: string }[]; evidenceItems?: LinkedEvidence[] };
 type Career = { professionalSummary?: string };
 
 const questions: Record<InterviewKind, Record<Language, string[]>> = {
@@ -15,6 +15,9 @@ const questions: Record<InterviewKind, Record<Language, string[]>> = {
   Executive: { en: ["How would you connect this role to business outcomes?", "Describe a difficult tradeoff you managed.", "What would you prioritize in the first 90 days?"], he: ["איך תחברו את התפקיד לתוצאות עסקיות?", "תארו החלטה מורכבת שקיבלתם.", "מה תעדיפו ב־90 הימים הראשונים?"] },
   Professional: { en: ["Walk through a relevant project, including your decisions.", "How did you measure success and address problems?", "What would you do differently next time?"], he: ["תארו פרויקט רלוונטי וההחלטות שקיבלתם.", "איך מדדתם הצלחה והתמודדתם עם בעיות?", "מה הייתם עושים אחרת בפעם הבאה?"] },
 };
+
+// A figure alone is context (team size, year, budget), not an outcome. Count a result only when an outcome verb and a quantity both appear in the same line.
+export const hasStatedOutcome = (line: string) => /\b(reduc|cut|cutting|increas|improv|grew|grow|sav(ed|ing)|boost|decreas|rais(ed|ing)|lower|doubl|tripl|accelerat|shorten|drove|generat|won|achiev)\w*|הקטנ|קיצ|הגדל|שיפר|חסכ|העלי|הפחת|הגדלת|צמצ/i.test(line) && /\d/.test(line);
 
 export function buildInterviewQuickBrief(source: Source, career: Career, kind: InterviewKind, language: Language, cvText = "") {
   const he = language === "he";
@@ -28,7 +31,9 @@ export function buildInterviewQuickBrief(source: Source, career: Career, kind: I
   const stories = requirements.filter(r => r.evidence.trim()).map(r => `${r.requirement}: ${r.evidence.trim()}\n  ${he ? "חדדו מצב, משימה, פעולה ותוצאה." : "Refine the situation, task, action and result."}`);
   const gaps = requirements.filter(r => !r.evidence.trim()).map(r => `${r.requirement} — ${he ? "לא נשמרה דוגמה מקושרת; הכינו דוגמה אמיתית או שאלה לבירור." : "No linked example saved; prepare a real example or a clarifying question."}`);
   const cvMatches = matchCvLines(requirements.filter(r => !r.evidence.trim()).map(r => r.requirement), cvText);
-  const cvSection = cvText.trim() ? section(he ? "שורות מקורות החיים שנראות קשורות (התאמת מילים בלבד, לא הוכחה)" : "Saved CV lines that look related (word match only, not proof)", cvMatches.length ? cvMatches.map(m => he ? `${m.requirement}\n  מקורות החיים: "${m.line}"\n  עדיין חסר: מצב, תפקידכם בפועל ותוצאה. ערכו רק אם נכון.` : `${m.requirement}\n  From your CV: "${m.line}"\n  Still missing: the situation, your own role and the result. Edit only if true.`) : [he ? "לא נמצאה שורה קשורה בקורות החיים השמורים." : "No related line found in the saved CV."]) : "";
+  const cvSection = cvText.trim() ? section(he ? "טיוטות תשובה מקורות החיים" : "Answer drafts from your CV", cvMatches.length ? [he ? "השורות נבחרו לפי התאמת מילים בלבד, לא הוכחה. ערכו לפני שימוש." : "Lines are chosen by word match only, not proof. Edit before use.", ...cvMatches.map(m => he
+    ? `${m.requirement}\n  טיוטה: "בניסיון שלי: ${m.line}"\n  ${hasStatedOutcome(m.line) ? "בשורה מופיעה תוצאה כפי שנכתבה. הוסיפו באיזה מצב זה קרה ומה תפקידכם, ואמתו שהתוצאה שלכם." : "חסר: איזו תוצאה נבעה מהעבודה (מספר אם יש), באיזה מצב זה קרה ומה תפקידכם בפועל."} ערכו רק אם נכון.`
+    : `${m.requirement}\n  Draft: "In my background: ${m.line}"\n  ${hasStatedOutcome(m.line) ? "The line states an outcome as written; verify it is yours and add the situation it happened in and your own part." : "Missing: the result of this work (what changed, with a number if you have one), the situation it happened in and your own part."} Edit only if true.`)] : [he ? "לא נמצאה שורה קשורה בקורות החיים השמורים." : "No related line found in the saved CV."]) : "";
   return [
     `${source.role} · ${source.company}`,
     he ? "הכנה מבוססת מידע שמור. השאלות הן לתרגול בלבד; לא בוצע מחקר חיצוני." : "Preparation from saved information. Questions are practice prompts; no external research performed.",
@@ -40,4 +45,15 @@ export function buildInterviewQuickBrief(source: Source, career: Career, kind: I
     section(he ? "שאלות למראיינים" : "Questions for interviewers", he ? ["מה ייחשב להצלחה לאחר 90 יום?", "מהו האתגר המרכזי בתפקיד?", "איך הצוות והמנהלים עובדים יחד?", "מהם השלבים הבאים בתהליך?", "האם יש תחום שכדאי להעמיק בו?"] : ["What does success look like after 90 days?", "What is the main challenge in the role?", "How do the team and leadership work together?", "What are the next steps in the process?", "Is there an area I should explore in more depth?"]),
     section(he ? "מחקר חברה — לאמת לפני הראיון" : "Company research — verify before the interview", he ? ["פעילות החברה, מוצר או שירות", "הצוות והמראיינים", "עדכונים עסקיים ואתגרי התפקיד"] : ["Company activity, product or service", "Team and interviewers", "Recent business updates and role challenges"]),
   ].filter(Boolean).join("\n\n");
+}
+
+// Readiness is derived only from what is actually saved; it never claims a finished answer.
+export function interviewBriefReadiness(source: Source, career: Career, cvText = "") {
+  const rows = evidenceForRequirements(source.requirementEvidence, source.evidenceItems || [], source.id).filter(row => row.requirement.trim()).slice(0, 5);
+  const fallback = source.requirements?.trim() ? splitRequirementText(source.requirements) : extractJobRequirements(source.jobDescription || "");
+  const requirements = rows.length ? rows : fallback.slice(0, 5).map(requirement => ({ requirement, evidence: "" }));
+  const matches = matchCvLines(requirements.filter(r => !r.evidence.trim()).map(r => r.requirement), cvText);
+  const withSource = requirements.filter(r => r.evidence.trim() || matches.some(m => m.requirement === r.requirement)).length;
+  const withOutcome = requirements.filter(r => hasStatedOutcome(r.evidence) || matches.some(m => m.requirement === r.requirement && hasStatedOutcome(m.line))).length;
+  return { total: requirements.length, withSource, withOutcome, hasSummary: Boolean(career.professionalSummary?.trim()), hasCv: Boolean(cvText.trim()), hasDate: Boolean(source.eventDateTime), hasRole: Boolean(source.role && source.company) };
 }
