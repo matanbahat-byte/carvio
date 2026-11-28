@@ -11018,3 +11018,30 @@ html[data-carvio-theme="light"] :is(input,textarea)::placeholder { color: #526b6
 .interview-brief-edit textarea { text-align:start;font-weight:400; }
 @media(min-width:900px){.interview-brief-cards { grid-template-columns:repeat(2,minmax(0,1fr)); }}
 @media(max-width:767px){.interview-quick-panel { padding:.75rem; } .interview-quick-panel > .primary-button { width:100%;justify-content:center; } }
+
+/* Homepage: direct, compact career-tool entry points. */
+.home-career-tools { margin:0 0 1.25rem; padding:1.15rem; border:1px solid color-mix(in srgb,var(--cv-primary) 25%,var(--cv-border)); border-radius:1.3rem; background:color-mix(in srgb,var(--cv-primary) 6%,var(--cv-surface)); }
+.home-career-tools-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:.75rem; margin-bottom:.9rem; }
+.home-career-tools-heading > div { min-width:0; }
+.home-career-tools-kicker { display:flex;align-items:center;gap:.35rem;color:var(--cv-primary-ink);font-size:.69rem;font-weight:800;letter-spacing:.045em;margin:0 0 .3rem; }
+.home-career-tools-kicker svg { width:.9rem;height:.9rem; }
+.home-career-tools-heading h2 { font-weight:800;font-size:clamp(1.2rem,2.5vw,1.65rem);line-height:1.25;color:var(--cv-text);margin:0; }
+.home-career-tools-heading p:not(.home-career-tools-kicker) { color:var(--cv-muted);font-size:.82rem;line-height:1.5;margin:.3rem 0 0; }
+.home-career-tools-all { display:inline-flex;align-items:center;gap:.25rem;min-height:44px;white-space:nowrap;font-size:.78rem;font-weight:750;color:var(--cv-primary-ink);background:transparent;border:0;padding:.25rem; }
+.home-career-tools-all svg,.home-career-tool-arrow { width:1rem;height:1rem;flex-shrink:0; }
+.home-career-tools-grid { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.6rem; }
+.home-career-tool { display:flex;text-align:start;align-items:center;gap:.65rem;padding:.8rem;min-width:0;min-height:76px;background:var(--cv-surface);color:var(--cv-text);border:1px solid color-mix(in srgb,var(--cv-primary) 23%,var(--cv-border));border-radius:.85rem;transition:border-color .15s,background .15s; }
+.home-career-tool:hover { border-color:var(--cv-primary);background:color-mix(in srgb,var(--cv-primary) 4%,var(--cv-surface)); }
+.home-career-tool:focus-visible,.home-career-tools-all:focus-visible { outline:2px solid var(--cv-primary);outline-offset:3px; }
+.home-career-tool-icon { width:2.4rem;height:2.4rem;flex-shrink:0;display:grid;place-items:center;border-radius:.65rem;background:color-mix(in srgb,var(--cv-primary) 12%,var(--cv-surface));color:var(--cv-primary-ink); }
+.home-career-tool-icon svg { width:1.25rem;height:1.25rem; }
+.home-career-tool-copy { display:grid;gap:.2rem;min-width:0;flex:1; }
+.home-career-tool-copy strong { font-size:.88rem;line-height:1.35;font-weight:750; }
+.home-career-tool-copy small { color:var(--cv-muted);font-size:.73rem;line-height:1.4; }
+.home-career-tool-arrow { color:var(--cv-primary-ink); }
+@media(max-width:900px) { .home-career-tools-grid { grid-template-columns:1fr;gap:.38rem; } .home-career-tool { min-height:58px;padding:.48rem .65rem; } .home-career-tool-icon { width:2rem;height:2rem; } .home-career-tools { padding:.85rem;margin-bottom:1rem; } .home-career-tools-heading { margin-bottom:.65rem; } }
+
+/* Free career tools: a subtle rose accent above the dashboard cards. */
+.home-career-tools-eyebrow { display:flex;flex-wrap:wrap;align-items:center;gap:.4rem .6rem;margin:0 0 .4rem; }
+.home-career-tools-eyebrow .home-career-tools-kicker { margin:0; }
+.home-career-tools-free { display:inline-flex;align-items:center;line-height:1.35;padding:.25rem .65rem;border-radius:999px;border:1px solid #fbcfe8;background:#fce7f3;color:#9d174d;font-size:.74rem;font-weight:800;white-space:nowrap; }
