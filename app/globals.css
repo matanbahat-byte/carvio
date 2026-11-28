@@ -10997,3 +10997,24 @@ html[data-carvio-theme="light"] :is(input,textarea)::placeholder { color: #526b6
 .message-premium .message-email-help { background:transparent; border:0;padding:0; }
 @media(min-width:1024px){.message-premium-workspace { grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1rem; }}
 @media(max-width:767px){.message-premium-header { padding:.9rem;gap:.6rem; } .message-premium-icon { width:2.2rem;height:2.2rem; } .message-premium-header .secondary-button { min-width:0;padding:.4rem .55rem;font-size:.7rem; } .message-premium-workspace { padding:.55rem;gap:.65rem; } .message-premium-input { padding:.75rem; } .message-premium .message-compact-options button { flex:1 1 44%; } .message-premium .message-draft-panel { padding:.8rem !important; }}
+
+/* Interview preparation: a quiet two-input setup and readable cards. */
+.interview-quick-panel { display:grid; gap:.8rem; padding:1rem; border:1px solid color-mix(in srgb,var(--cv-primary) 25%,var(--cv-border));border-radius:1rem; background:color-mix(in srgb,var(--cv-primary) 5%,var(--cv-surface)); }
+.interview-quick-panel > h4 { color:var(--cv-text);font-size:1.05rem;font-weight:750;margin:0; }
+.interview-quick-panel > p { color:var(--cv-muted);font-size:.8rem;line-height:1.55;margin:0; }
+.interview-quick-panel > .primary-button { justify-self:start; margin:0; }
+.interview-brief-result { display:grid; gap:.75rem; padding-top:.5rem; border-top:1px solid var(--cv-border); min-width:0; }
+.interview-brief-toolbar { display:flex;align-items:center;justify-content:space-between;gap:.6rem; }
+.interview-brief-toolbar > div { display:grid;gap:.2rem; }
+.interview-brief-toolbar strong { color:var(--cv-text);font-size:.95rem; }
+.interview-brief-toolbar small { color:var(--cv-muted);font-size:.7rem; }
+.interview-brief-cards { display:grid;gap:.6rem;min-width:0; }
+.interview-brief-card { min-width:0; padding:.8rem .9rem; border:1px solid var(--cv-border);border-radius:.7rem;background:var(--cv-surface);text-align:start;overflow-wrap:anywhere; }
+.interview-brief-card h5 { color:var(--cv-primary-ink);font-size:.83rem;font-weight:750;line-height:1.45;margin:0; }
+.interview-brief-card p { color:var(--cv-body);font-size:.8rem;line-height:1.65;white-space:pre-wrap;margin:.45rem 0 0; }
+.interview-brief-meta { border:0;padding:.15rem .25rem;background:transparent;grid-column:1/-1; }
+.interview-brief-meta h5 { color:var(--cv-muted);font-weight:500;font-size:.73rem; }
+.interview-brief-meta:first-child h5 { color:var(--cv-text);font-weight:750;font-size:.95rem; }
+.interview-brief-edit textarea { text-align:start;font-weight:400; }
+@media(min-width:900px){.interview-brief-cards { grid-template-columns:repeat(2,minmax(0,1fr)); }}
+@media(max-width:767px){.interview-quick-panel { padding:.75rem; } .interview-quick-panel > .primary-button { width:100%;justify-content:center; } }

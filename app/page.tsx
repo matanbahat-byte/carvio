@@ -10,6 +10,7 @@ import { MessageTrustCard } from "@/components/message-trust-card";
 import { messageProvenance, messageInputsChanged, type MessageProvenance } from "@/lib/message-provenance";
 import { savedCareerMessageFields, careerCvOptions } from "@/lib/career-message-context";
 import { interviewSuggestions, appendInterviewSuggestion, initialInterviewPreparation } from "@/lib/interview-preparation";
+import { buildInterviewQuickBrief, interviewKinds, type InterviewKind } from "@/lib/interview-quick-brief";
 import { EvidenceLinksEditor } from "@/components/evidence-links-editor";
 import { relinkEvidence, evidenceForRequirements, restorableRequirementEvidence, firstApplicationEvidence } from "@/lib/evidence-links";
 import { messageFollowUpTarget, followUpDate, captureReviewAction, captureStageChange } from "@/lib/message-follow-up";
@@ -153,6 +154,10 @@ type ReadinessStatus = "complete" | "improve" | "missing";
 type ReadinessTarget = "job-url" | "job-description" | "requirements" | "evidence" | "contact" | "next-action";
 type ReadinessItem = { target: ReadinessTarget; status: ReadinessStatus; label: string; detail: string; action: string; group: "role" | "application" };
 type InterviewPreparation = {
+  quickBrief?: string;
+  quickKind?: InterviewKind;
+  quickLanguage?: Language;
+  quickBriefLanguage?: Language;
   companyResearch: string;
   starStories: string;
   interviewerQuestions: string;
@@ -4831,6 +4836,21 @@ function WorkspaceHome() {
         <Modal title={language === "he" ? "מרכז הכנה לראיון" : "Interview preparation workspace"} description={`${interviewPrepApplication.role} · ${interviewPrepApplication.company}`} closeLabel={language === "he" ? "סגירת מרכז ההכנה" : "Close preparation workspace"} onClose={() => { setInterviewPrepApplicationId(null); setWorkspaceApplicationId(interviewPrepApplication.id); }} wide>
           <div className="interview-preparation-editor">
             <header><div><span>{language === "he" ? "הכנה ממוקדת ואמיתית" : "Focused, evidence-led preparation"}</span><h3>{interviewPrepApplication.eventType || (language === "he" ? "הראיון הבא" : "Your next interview")}</h3><p>{interviewPrepApplication.eventDateTime ? formatDate(language, interviewPrepApplication.eventDateTime, true) : (language === "he" ? "לא נקבע מועד — אפשר להתחיל להתכונן כבר עכשיו." : "No date is set—you can still start preparing now.")}</p></div><figure className="workflow-illustration workflow-illustration-compact"><Image alt={language === "he" ? "איור של הכנה רגועה לראיון" : "Illustration of calm interview preparation"} fill sizes="150px" src="/carvio-interview-preparation-v1.jpg" /></figure></header>
+            <section className="workspace-evidence-map interview-quick-panel" aria-label={language === "he" ? "הכנה מהירה לראיון" : "Quick interview preparation"}>
+              <h4>{language === "he" ? "ערכת הכנה אישית בלחיצה" : "Your personalized interview brief"}</h4>
+              <p>{language === "he" ? "המשרה, הדרישות, הדוגמאות והתקציר המקצועי השמור נטענים אוטומטית. בחרו רק את סוג הראיון והשפה. הכלי מכין שאלות לתרגול ולא חוזה את שאלות המראיינים." : "Your saved role, requirements, examples and career summary are reused. Just choose the interview type and language. These are practice prompts, not predicted questions."}</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label={language === "he" ? "סוג הראיון" : "Interview type"}><select className="form-control" value={interviewPreparationDraft.quickKind || "General"} onChange={event => setInterviewPreparationDraft(current => ({ ...current, quickKind: event.target.value as InterviewKind }))}>{interviewKinds.map(kind => <option key={kind} value={kind}>{language === "he" ? ({ General: "כללי", Recruiter: "משאבי אנוש / גיוס", "Hiring manager": "מנהל מגייס", Executive: "הנהלה בכירה", Professional: "מקצועי" } as Record<InterviewKind,string>)[kind] : kind}</option>)}</select></Field>
+                <Field label={language === "he" ? "שפת הראיון" : "Interview language"}><select className="form-control" value={interviewPreparationDraft.quickLanguage || language} onChange={event => setInterviewPreparationDraft(current => ({ ...current, quickLanguage: event.target.value as Language }))}><option value="he">עברית</option><option value="en">English</option></select></Field>
+              </div>
+              <button className="primary-button" type="button" onClick={() => { if (interviewPreparationDraft.quickBrief && !window.confirm(language === "he" ? "להחליף את ערכת ההכנה הנוכחית? השדות האחרים יישמרו." : "Replace this brief? Your other preparation fields will be preserved.")) return; setInterviewPreparationDraft(current => ({ ...current, quickKind: current.quickKind || "General", quickLanguage: current.quickLanguage || language, quickBriefLanguage: current.quickLanguage || language, quickBrief: buildInterviewQuickBrief(interviewPrepApplication, userProfile, current.quickKind || "General", current.quickLanguage || language) })); }}><WandSparkles className="h-4 w-4" />{language === "he" ? "הכנת ערכת הראיון שלי" : "Create my interview brief"}</button>
+              {interviewPreparationDraft.quickBrief !== undefined && <div className="interview-brief-result">
+                <div className="interview-brief-toolbar"><div><strong>{language === "he" ? "ערכת ההכנה שלך" : "Your interview brief"}</strong><small>{language === "he" ? "מבוססת על המידע ששמרתם" : "Based on your saved information"}</small></div><button className="secondary-button" type="button" onClick={async () => { try { await navigator.clipboard.writeText(interviewPreparationDraft.quickBrief || ""); setNotice(language === "he" ? "ערכת ההכנה הועתקה." : "Interview brief copied."); } catch { setNotice(language === "he" ? "אפשר לסמן ולהעתיק את הטקסט ידנית." : "Select and copy the text manually."); } }}><Copy className="h-4 w-4" />{language === "he" ? "העתקה" : "Copy brief"}</button></div>
+                <div className="interview-brief-cards" dir={(interviewPreparationDraft.quickBriefLanguage || interviewPreparationDraft.quickLanguage || language) === "he" ? "rtl" : "ltr"}>{interviewPreparationDraft.quickBrief.split(/\n\n+/).filter(Boolean).map((section,index) => { const [heading,...body] = section.split("\n"); return <article className={`interview-brief-card ${index < 2 ? "interview-brief-meta" : ""}`} key={index}><h5>{heading}</h5>{body.length > 0 && <p>{body.join("\n")}</p>}</article>; })}</div>
+                <details className="message-premium-disclosure interview-brief-edit"><summary>{language === "he" ? "עריכת ערכת ההכנה" : "Edit interview brief"}</summary><Field label={language === "he" ? "ערכת הכנה אישית לעריכה" : "Editable personal interview brief"}><textarea dir={(interviewPreparationDraft.quickBriefLanguage || interviewPreparationDraft.quickLanguage || language) === "he" ? "rtl" : "ltr"} rows={12} className="form-control resize-y" value={interviewPreparationDraft.quickBrief} onChange={event => setInterviewPreparationDraft(current => ({ ...current, quickBrief: event.target.value }))} /></Field></details>
+                <p className="message-template-caption">{language === "he" ? "הערכה נשמרת עם המועמדות בעת שמירת ההכנה." : "Save preparation to keep this brief with your application."}</p>
+              </div>}
+            </section>
             <section className="workspace-evidence-map" aria-label={language === "he" ? "הצעות הכנה לעריכה" : "Editable preparation suggestions"}>
               <h4>{language === "he" ? "הצעות הכנה מהדרישות והדוגמאות השמורות" : "Preparation suggestions from saved requirements and examples"}</h4>
               <p>{language === "he" ? "שאלות לתרגול, לא תחזית לשאלות החברה או הערכה של היכולות שלכם. דוגמה חסרה פירושה שלא נשמרה דוגמה מקושרת. הוסיפו הצעה לשדות למטה, ערכו ושמרו." : "Practice prompts, not predicted company questions or an assessment of your abilities. A missing example means no linked example is saved. Add a suggestion to the fields below, edit, and save."}</p>
