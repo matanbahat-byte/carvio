@@ -11040,3 +11040,8 @@ html[data-carvio-theme="light"] :is(input,textarea)::placeholder { color: #526b6
 .home-career-tool-copy small { color:var(--cv-muted);font-size:.73rem;line-height:1.4; }
 .home-career-tool-arrow { color:var(--cv-primary-ink); }
 @media(max-width:900px) { .home-career-tools-grid { grid-template-columns:1fr;gap:.38rem; } .home-career-tool { min-height:58px;padding:.48rem .65rem; } .home-career-tool-icon { width:2rem;height:2rem; } .home-career-tools { padding:.85rem;margin-bottom:1rem; } .home-career-tools-heading { margin-bottom:.65rem; } }
+
+/* Free career tools: a subtle rose accent above the dashboard cards. */
+.home-career-tools-eyebrow { display:flex;flex-wrap:wrap;align-items:center;gap:.4rem .6rem;margin:0 0 .4rem; }
+.home-career-tools-eyebrow .home-career-tools-kicker { margin:0; }
+.home-career-tools-free { display:inline-flex;align-items:center;line-height:1.35;padding:.25rem .65rem;border-radius:999px;border:1px solid #fbcfe8;background:#fce7f3;color:#9d174d;font-size:.74rem;font-weight:800;white-space:nowrap; }

@@ -3851,7 +3851,7 @@ function WorkspaceHome() {
           <section className="home-career-tools" id="home-career-tools" aria-labelledby="home-career-tools-title">
             <div className="home-career-tools-heading">
               <div>
-                <p className="home-career-tools-kicker"><Sparkles aria-hidden="true" /> CARVIO INSIDER</p>
+                <div className="home-career-tools-eyebrow"><p className="home-career-tools-kicker"><Sparkles aria-hidden="true" /> CARVIO INSIDER</p><span className="home-career-tools-free">{language === "he" ? "כל הכלים בחינם" : "All tools are free"}</span></div>
                 <h2 id="home-career-tools-title">{language === "he" ? "הצעד הבא בקריירה שלך" : "Your next career move"}</h2>
                 <p>{language === "he" ? "כלים אישיים שמתחילים מהמידע שכבר שמרת." : "Personal career tools that start with the information you have saved."}</p>
               </div>
