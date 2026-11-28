@@ -2703,7 +2703,10 @@ function WorkspaceHome() {
   function openInterviewPreparation(application: Application) {
     setWorkspaceApplicationId(null);
     setInterviewPrepApplicationId(application.id);
-    setInterviewPreparationDraft(initialInterviewPreparation(application, { ...emptyApplication.interviewPreparation, ...application.interviewPreparation }, language));
+    const initial = initialInterviewPreparation(application, { ...emptyApplication.interviewPreparation, ...application.interviewPreparation }, language);
+    // 80/20: build the brief from saved data right away. It is a draft to edit; an existing saved brief is never replaced.
+    const cvText = (application.linkedResumeId ? resumes.find(item => item.id === application.linkedResumeId)?.extractedText : "") || (resumes.length === 1 ? resumes[0].extractedText : "") || resumeText || "";
+    setInterviewPreparationDraft(initial.quickBrief ? initial : { ...initial, quickKind: initial.quickKind || "General", quickLanguage: initial.quickLanguage || language, quickBriefLanguage: initial.quickLanguage || language, quickBrief: buildInterviewQuickBrief(application, userProfile, initial.quickKind || "General", initial.quickLanguage || language, cvText) });
   }
 
   function addInterviewSuggestion(suggestion: ReturnType<typeof interviewSuggestions>[number]) {
