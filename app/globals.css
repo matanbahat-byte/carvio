@@ -11107,3 +11107,8 @@ html[data-carvio-theme="light"] :is(input,textarea)::placeholder { color: #526b6
 .cv-job-fit li { display:grid;gap:.15rem;font-size:.82rem;color:var(--cv-body);overflow-wrap:anywhere; }
 .cv-job-fit li strong { color:var(--cv-text);font-size:.8rem; }
 .cv-job-fit li small { color:var(--cv-muted);font-size:.72rem; }
+
+/* Opening a tool from the home screen must leave its title clear of the sticky desktop navigation. */
+@media (min-width: 1024px) {
+  .message-studio-panel[id], #cv-lab, #interview-prep { scroll-margin-top: 8.5rem; }
+}
