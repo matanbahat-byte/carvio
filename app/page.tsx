@@ -3826,7 +3826,7 @@ function WorkspaceHome() {
 
   function renderCareerToolsSection(where: "workspace" | "landing") {
     return (
-      <section className="home-career-tools" id={`home-career-tools-${where}`} aria-labelledby={`home-career-tools-title-${where}`}>
+      <section className="home-career-tools" id={where === "workspace" ? "home-career-tools" : "home-career-tools-landing"} aria-labelledby={`home-career-tools-title-${where}`}>
         <div className="home-career-tools-heading">
           <div>
             <div className="home-career-tools-eyebrow"><p className="home-career-tools-kicker"><Sparkles aria-hidden="true" /> CARVIO INSIDER</p><span className="home-career-tools-free">{language === "he" ? "כל הכלים בחינם" : "All tools are free"}</span></div>
