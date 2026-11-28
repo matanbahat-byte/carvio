@@ -11065,3 +11065,8 @@ html[data-carvio-theme="light"] :is(input,textarea)::placeholder { color: #526b6
 .carvio-welcome .home-career-tool-icon { width:1.9rem; height:1.9rem; }
 .carvio-welcome .home-career-tool-copy small { display:none; }
 @media (min-width:901px) { .carvio-welcome .home-career-tool-copy small { display:block; } .carvio-welcome .home-career-tool { min-height:64px; } }
+@media (min-width:901px) {
+  .welcome-hero { padding-block: 1rem .75rem; row-gap: 1rem; align-items: start; }
+  .welcome-copy h1 { font-size: clamp(2.4rem,4vw,3.7rem); margin-top: .5rem; }
+  .welcome-hero > .welcome-career-tools { margin-top: 0; }
+}
