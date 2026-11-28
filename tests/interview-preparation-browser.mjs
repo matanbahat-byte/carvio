@@ -48,7 +48,7 @@ try {
     await quick.getByRole('combobox',{name:language==='he'?'שפת הראיון':'Interview language'}).selectOption('en');
     await quick.getByRole('button',{name:language==='he'?'הכנת ערכת הראיון שלי':'Create my interview brief'}).click();
     assert.equal(await quick.locator('.interview-brief-cards').getAttribute('dir'),'ltr');
-    assert.ok(await quick.locator('.interview-brief-card').count()>=5);
+    assert.ok(await quick.locator('.interview-brief-card, .interview-brief-row').count()>=5);
     await quick.locator('.interview-brief-edit summary').click();
     const brief=quick.getByRole('textbox',{name:language==='he'?'ערכת הכנה אישית לעריכה':'Editable personal interview brief'});
     assert.match(await brief.inputValue(),/QA Role · QA Company/);
