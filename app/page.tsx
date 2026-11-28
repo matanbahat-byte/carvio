@@ -1338,6 +1338,7 @@ function WorkspaceHome() {
   const [searchTaskDraft, setSearchTaskDraft] = useState({ role: "", location: "", action: "", due: "" });
   const [hydrated, setHydrated] = useState(false);
   const [showLanding, setShowLanding] = useState(false);
+  const [pendingCareerTool, setPendingCareerTool] = useState<CareerTool | "all" | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [applicationDraft, setApplicationDraft] = useState<ApplicationDraft>(emptyApplication);
@@ -1821,6 +1822,14 @@ function WorkspaceHome() {
     return { title, support, urgency, target: "applications" };
   }, [actionApplication, language]);
 
+  useEffect(() => {
+    if (!pendingCareerTool || showLanding) return;
+    const tool = pendingCareerTool;
+    setPendingCareerTool(null);
+    switchView("tools");
+    if (tool !== "all") openCareerTool(tool);
+  });
+
   function enterWorkspace() {
     window.history.pushState({ carvioView: "workspace" }, "", demoMode ? "/?workspace=1&demo=1" : "/?workspace=1");
     setShowLanding(false);
@@ -1869,7 +1878,28 @@ function WorkspaceHome() {
     window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   }
 
-  function openCareerTool(tool: CareerTool) { const eligibleApplications = applications.filter(item => !isClosedApplicationStatus(item.status)); const onlyApplication = eligibleApplications.length === 1 ? eligibleApplications[0] : null; if (onlyApplication) { if (tool === "studio" && !messageContext?.applicationId && !generatedMessage && !messageProfile.recipientName && !messageProfile.company) { openOutreachForApplication(onlyApplication); return; } if (tool === "interview" && !interviewPrepApplicationId) { openInterviewPreparation(onlyApplication); } if (tool === "cv") { if (!cvEvidenceApplicationId) setCvEvidenceApplicationId(onlyApplication.id); if (!resumeText.trim() && !selectedResumeId) { const linked = onlyApplication.linkedResumeId ? resumes.find(item => item.id === onlyApplication.linkedResumeId) : undefined; const resumeToUse = linked || (resumes.length === 1 ? resumes[0] : undefined); if (resumeToUse?.extractedText) selectResume(resumeToUse); } } }
+  function openCareerTool(tool: CareerTool) {
+    // 80/20: when exactly one active role is saved there is nothing to choose, so start from it (visible and editable).
+    // With several roles the user picks one; an existing selection or draft always wins and is never overwritten.
+    const eligibleApplications = applications.filter(item => !isClosedApplicationStatus(item.status));
+    const onlyApplication = eligibleApplications.length === 1 ? eligibleApplications[0] : null;
+    if (onlyApplication) {
+      if (tool === "studio" && !messageContext?.applicationId && !generatedMessage && !messageProfile.recipientName && !messageProfile.company) {
+        openOutreachForApplication(onlyApplication);
+        return;
+      }
+      if (tool === "interview" && !interviewPrepApplicationId) {
+        openInterviewPreparation(onlyApplication);
+      }
+      if (tool === "cv") {
+        if (!cvEvidenceApplicationId) setCvEvidenceApplicationId(onlyApplication.id);
+        if (!resumeText.trim() && !selectedResumeId) {
+          const linked = onlyApplication.linkedResumeId ? resumes.find(item => item.id === onlyApplication.linkedResumeId) : undefined;
+          const resumeToUse = linked || (resumes.length === 1 ? resumes[0] : undefined);
+          if (resumeToUse?.extractedText) selectResume(resumeToUse);
+        }
+      }
+    }
     if (tool === "studio" && !messageContext && !generatedMessage) {
       const saved = savedCareerMessageFields({ ...userProfile, targetRole: userProfile.targetRole || searchProfile.role });
       const loadedFields = [!messageProfile.senderName && saved.senderName && "sender", !messageProfile.role && saved.role && "role", !messageProfile.value && saved.value && "career summary"].filter(Boolean) as string[];
@@ -3794,6 +3824,34 @@ function WorkspaceHome() {
     }}/>
   </section>:null;
 
+  function renderCareerToolsSection(where: "workspace" | "landing") {
+    return (
+      <section className="home-career-tools" id={`home-career-tools-${where}`} aria-labelledby={`home-career-tools-title-${where}`}>
+        <div className="home-career-tools-heading">
+          <div>
+            <div className="home-career-tools-eyebrow"><p className="home-career-tools-kicker"><Sparkles aria-hidden="true" /> CARVIO INSIDER</p><span className="home-career-tools-free">{language === "he" ? "כל הכלים בחינם" : "All tools are free"}</span></div>
+            <h2 id={`home-career-tools-title-${where}`}>{language === "he" ? "הצעד הבא בקריירה שלך" : "Your next career move"}</h2>
+            <p>{language === "he" ? "כלים אישיים שמתחילים מהמידע שכבר שמרת." : "Personal career tools that start with the information you have saved."}</p>
+          </div>
+          <button type="button" className="home-career-tools-all" onClick={() => { if (where === "landing") { setPendingCareerTool("all"); enterWorkspace(); } else switchView("tools"); }}>{language === "he" ? "כל הכלים" : "All tools"} <ArrowUpRight aria-hidden="true" /></button>
+        </div>
+        <div className="home-career-tools-grid">
+          {([
+            { id: "studio", Icon: MessagesSquare, title: language === "he" ? "כתיבת פנייה אישית" : "Write a personal message", detail: language === "he" ? "למגייס, למנהל או לרפרל" : "To a recruiter, manager or referral" },
+            { id: "interview", Icon: Target, title: language === "he" ? "הכנה לראיון" : "Prepare for an interview", detail: language === "he" ? "שאלות ותרגול לפי המשרה" : "Role-specific questions and practice" },
+            { id: "cv", Icon: FileCheck2, title: language === "he" ? "התאמת קורות חיים" : "Tailor your CV", detail: language === "he" ? "חידוד קורות החיים למשרה" : "Refine your CV for the role" },
+          ] as const).map(({ id, Icon, title, detail }) => (
+            <button key={id} type="button" data-home-career-tool={id} className="home-career-tool" onClick={() => { if (where === "landing") { setPendingCareerTool(id); enterWorkspace(); } else { switchView("tools"); openCareerTool(id); } }}>
+              <span className="home-career-tool-icon"><Icon aria-hidden="true" /></span>
+              <span className="home-career-tool-copy"><strong>{title}</strong><small>{detail}</small></span>
+              <ArrowUpRight className="home-career-tool-arrow" aria-hidden="true" />
+            </button>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
   if (showLanding) {
     return (
       <main className={`carvio-welcome welcome-theme-${theme}`} dir={language === "he" ? "rtl" : "ltr"}>
@@ -3815,6 +3873,7 @@ function WorkspaceHome() {
             <figcaption>{language === "he" ? "לראות את כל התהליך. לפעול לפי מה שחשוב עכשיו." : "See the whole search. Act on what matters next."}</figcaption>
           </figure>
         </section>
+        <div className="welcome-career-tools">{renderCareerToolsSection("landing")}</div>
         <section className="welcome-benefits">
           {[
             { Icon: BriefcaseBusiness, title: language === "he" ? "לארגן את החיפוש במקום אחד" : "Organize the search in one place", text: language === "he" ? "מועמדויות, קשרים, פגישות וצעדים הבאים נשארים בתמונה אחת ברורה." : "Keep applications, contacts, meetings, and next steps in one clear view." },
@@ -3848,29 +3907,7 @@ function WorkspaceHome() {
         </nav>
 
         <header className={`calm-view dashboard-v2 ${activeView !== "home" ? "calm-view-hidden" : ""}`} id="dashboard">
-          <section className="home-career-tools" id="home-career-tools" aria-labelledby="home-career-tools-title">
-            <div className="home-career-tools-heading">
-              <div>
-                <div className="home-career-tools-eyebrow"><p className="home-career-tools-kicker"><Sparkles aria-hidden="true" /> CARVIO INSIDER</p><span className="home-career-tools-free">{language === "he" ? "כל הכלים בחינם" : "All tools are free"}</span></div>
-                <h2 id="home-career-tools-title">{language === "he" ? "הצעד הבא בקריירה שלך" : "Your next career move"}</h2>
-                <p>{language === "he" ? "כלים אישיים שמתחילים מהמידע שכבר שמרת." : "Personal career tools that start with the information you have saved."}</p>
-              </div>
-              <button type="button" className="home-career-tools-all" onClick={() => switchView("tools")}>{language === "he" ? "כל הכלים" : "All tools"} <ArrowUpRight aria-hidden="true" /></button>
-            </div>
-            <div className="home-career-tools-grid">
-              {([
-                { id: "studio", Icon: MessagesSquare, title: language === "he" ? "כתיבת פנייה אישית" : "Write a personal message", detail: language === "he" ? "למגייס, למנהל או לרפרל" : "To a recruiter, manager or referral" },
-                { id: "interview", Icon: Target, title: language === "he" ? "הכנה לראיון" : "Prepare for an interview", detail: language === "he" ? "שאלות ותרגול לפי המשרה" : "Role-specific questions and practice" },
-                { id: "cv", Icon: FileCheck2, title: language === "he" ? "התאמת קורות חיים" : "Tailor your CV", detail: language === "he" ? "חידוד קורות החיים למשרה" : "Refine your CV for the role" },
-              ] as const).map(({ id, Icon, title, detail }) => (
-                <button key={id} type="button" data-home-career-tool={id} className="home-career-tool" onClick={() => { switchView("tools"); openCareerTool(id); }}>
-                  <span className="home-career-tool-icon"><Icon aria-hidden="true" /></span>
-                  <span className="home-career-tool-copy"><strong>{title}</strong><small>{detail}</small></span>
-                  <ArrowUpRight className="home-career-tool-arrow" aria-hidden="true" />
-                </button>
-              ))}
-            </div>
-          </section>
+          {renderCareerToolsSection("workspace")}
           <section aria-label={language === "he" ? "החיפושים והמשרות השמורות שלכם" : "Your saved jobs and searches"} className="relative mb-7 overflow-hidden rounded-[30px] border border-slate-200 bg-slate-50 p-5 shadow-sm sm:p-8">
             <div className="relative flex flex-wrap items-start justify-between gap-3">
               <div>
