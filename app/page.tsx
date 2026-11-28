@@ -1869,7 +1869,7 @@ function WorkspaceHome() {
     window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   }
 
-  function openCareerTool(tool: CareerTool) {
+  function openCareerTool(tool: CareerTool) { const eligibleApplications = applications.filter(item => !isClosedApplicationStatus(item.status)); const onlyApplication = eligibleApplications.length === 1 ? eligibleApplications[0] : null; if (onlyApplication) { if (tool === "studio" && !messageContext?.applicationId && !generatedMessage && !messageProfile.recipientName && !messageProfile.company) { openOutreachForApplication(onlyApplication); return; } if (tool === "interview" && !interviewPrepApplicationId) { openInterviewPreparation(onlyApplication); } if (tool === "cv") { if (!cvEvidenceApplicationId) setCvEvidenceApplicationId(onlyApplication.id); if (!resumeText.trim() && !selectedResumeId) { const linked = onlyApplication.linkedResumeId ? resumes.find(item => item.id === onlyApplication.linkedResumeId) : undefined; const resumeToUse = linked || (resumes.length === 1 ? resumes[0] : undefined); if (resumeToUse?.extractedText) selectResume(resumeToUse); } } }
     if (tool === "studio" && !messageContext && !generatedMessage) {
       const saved = savedCareerMessageFields({ ...userProfile, targetRole: userProfile.targetRole || searchProfile.role });
       const loadedFields = [!messageProfile.senderName && saved.senderName && "sender", !messageProfile.role && saved.role && "role", !messageProfile.value && saved.value && "career summary"].filter(Boolean) as string[];
