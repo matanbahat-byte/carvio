@@ -1,7 +1,7 @@
 // Keyword-overlap lookup of saved CV lines for a job requirement.
 // This is a retrieval aid only: a match shows where the CV mentions similar words, not that the requirement is met.
 const STOP = new Set(["the","and","for","with","you","your","our","are","will","have","has","experience","years","year","ability","strong","work","working","team","skills","skill","knowledge","of","in","to","a","an","or","on","as","at","by","be","is","בעל","בעלת","ניסיון","שנות","יכולת","עבודה","עם","של","על","או","את","כולל","ידע","כישורים"]);
-const tokens = (text: string) => (text.toLowerCase().match(/[\p{L}\p{N}+#.]{3,}/gu) || []).map(t => t.replace(/^[.]+|[.]+$/g, "")).filter(t => t.length >= 3 && !STOP.has(t));
+const tokens = (text: string) => (text.toLowerCase().match(/[\p{L}\p{N}+#.]{3,}/gu) || []).map(t => t.replace(/^[.]+|[.]+$/g, "")).filter(t => t.length >= 3 && !STOP.has(t)).map(t => (t.length > 4 && t.endsWith("s") ? t.slice(0, -1) : t));
 export type CvLineMatch = { requirement: string; line: string; shared: string[] };
 
 export function cvLines(cvText: string) {
