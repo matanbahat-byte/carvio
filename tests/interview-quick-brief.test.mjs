@@ -15,8 +15,8 @@ test('quick brief quotes saved CV lines as unproven, labelled leads and never in
   const cv = 'Led a team of 6 engineers migrating billing to Stripe, cutting failed payments by 18%.\nHobbies: chess.';
   const out = buildInterviewQuickBrief({ id: '1', company: 'Acme', role: 'PM', requirements: 'Stripe billing experience\nKubernetes', requirementEvidence: [] }, {}, 'General', 'en', cv);
   assert.match(out, /word match only, not proof/);
-  assert.match(out, /Draft: "In my background: Led a team of 6 engineers migrating billing to Stripe/);
-  assert.match(out, /states an outcome as written/);
+  assert.match(out, /Action \(from your CV\): "Led a team of 6 engineers migrating billing to Stripe/);
+  assert.match(out, /Result: "cutting failed payments by 18%" \(as written; verify it is yours\)/);
   assert.doesNotMatch(out, /chess/);
   assert.match(out, /No linked examples are saved/);
 });
@@ -25,8 +25,17 @@ test('numbers alone are not outcomes', () => {
   const brief = cv => buildInterviewQuickBrief({ id: '1', company: 'Acme', role: 'PM', requirements: 'Stripe billing experience', requirementEvidence: [] }, {}, 'General', 'en', cv);
   for (const line of ['Worked on Stripe billing for 5 years since 2019 in a team of six engineers.', 'Owned the Stripe billing annual budget of 2,000,000 USD.']) {
     const out = brief(line);
-    assert.match(out, /Missing: the result of this work/);
-    assert.doesNotMatch(out, /states an outcome/);
+    assert.match(out, /Result: \[missing/);
+    assert.doesNotMatch(out, /as written; verify/);
   }
-  assert.match(brief('Migrated Stripe billing, cutting failed payments by 18%.'), /states an outcome as written/);
+  assert.match(brief('Migrated Stripe billing, cutting failed payments by 18%.'), /Result: "cutting failed payments by 18%"/);
+});
+
+test('result is split out only when a clause states an outcome', async () => {
+  const { splitActionResult } = await import('../lib/interview-quick-brief.ts');
+  const a = splitActionResult('Led a team of 6 engineers migrating billing to Stripe, cutting failed payments by 18%.');
+  assert.equal(a.action, 'Led a team of 6 engineers migrating billing to Stripe');
+  assert.equal(a.result, 'cutting failed payments by 18%');
+  const b = splitActionResult('Worked on Stripe billing for 5 years, in a team of six.');
+  assert.equal(b.result, '');
 });
