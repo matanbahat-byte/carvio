@@ -8,9 +8,10 @@ import { validApplicationLinks } from "@/lib/backup-links";
 import { linkedOutreachContact } from "@/lib/contact-links";
 import { MessageTrustCard } from "@/components/message-trust-card";
 import { messageProvenance, messageInputsChanged, type MessageProvenance } from "@/lib/message-provenance";
+import { matchCvLines } from "@/lib/cv-grounding";
 import { savedCareerMessageFields, careerCvOptions } from "@/lib/career-message-context";
 import { interviewSuggestions, appendInterviewSuggestion, initialInterviewPreparation } from "@/lib/interview-preparation";
-import { buildInterviewQuickBrief, interviewKinds, type InterviewKind } from "@/lib/interview-quick-brief";
+import { buildInterviewQuickBrief, interviewBriefReadiness, interviewKinds, type InterviewKind } from "@/lib/interview-quick-brief";
 import { EvidenceLinksEditor } from "@/components/evidence-links-editor";
 import { relinkEvidence, evidenceForRequirements, restorableRequirementEvidence, firstApplicationEvidence } from "@/lib/evidence-links";
 import { messageFollowUpTarget, followUpDate, captureReviewAction, captureStageChange } from "@/lib/message-follow-up";
@@ -91,6 +92,7 @@ import {
   Zap,
   WandSparkles,
   Wrench,
+  User as UserIcon, MessageSquare as MessageSquareIcon, Star as StarIcon, Building2 as BuildingIcon,
 } from "lucide-react";
 import {AUTH_RETURN_KEY,parseAuthReturn} from "@/lib/auth-return";
 import { CloudAccount, WelcomeAccountAccess, type CloudAccountStatus, type CloudWorkspacePayload } from "@/components/cloud-account";
@@ -158,6 +160,7 @@ type InterviewPreparation = {
   quickKind?: InterviewKind;
   quickLanguage?: Language;
   quickBriefLanguage?: Language;
+  quickBriefAutoText?: string;
   companyResearch: string;
   starStories: string;
   interviewerQuestions: string;
@@ -494,6 +497,18 @@ const emptyContact: ContactDraft = {
   notes: "",
 };
 
+// Synthetic sample CV and profile, used only in the labelled demo workspace. Not a real person.
+const demoResume: ResumeFile = {
+  id: "demo-cv", name: "Sample CV (demo, fictional).txt", size: 900, type: "text/plain", addedAt: "2026-07-01", readState: "ready",
+  extractedText: [
+    "Led a design system used by six product teams, with shared components and accessibility guidelines.",
+    "Ran user research and usability testing for a checkout redesign across three markets.",
+    "Worked daily with product managers and engineers to ship a mobile onboarding flow.",
+    "Shipped end-to-end product work from discovery to launch for a subscription app.",
+  ].join("\n"),
+};
+const demoProfile = { name: "Dana Demo (sample)", targetRole: "Senior Product Designer", professionalSummary: "Sample profile: product designer focused on design systems and research-led product work." };
+
 const demoApplications: Partial<Application>[] = [
   {
     id: "demo-app-1",
@@ -517,6 +532,7 @@ const demoApplications: Partial<Application>[] = [
     eventType: "Second interview",
     eventDateTime: "2026-07-25T10:00",
     notes: "Interview with the product design lead.",
+    requirements: "Design systems experience at scale\nUser research and usability testing\nCollaboration with product managers and engineers\nPortfolio of shipped end-to-end product work",
   },
   {
     id: "demo-app-2",
@@ -1521,7 +1537,7 @@ function WorkspaceHome() {
       setDemoMode(isDemo);
       setApplications(readStored<Partial<Application>[]>(APPLICATIONS_KEY, isDemo ? relativeDemoApplications() : []).map(normalizeApplication));
       setContacts(readStored<(Partial<Contact> & { companyRole?: string })[]>(CONTACTS_KEY, isDemo ? demoContacts.map((item) => ({ ...item, nextActionDue: "", eventDateTime: "", lastContactDate: "" })) : []).map(normalizeContact));
-      setResumes(readStored<ResumeFile[]>(RESUMES_KEY, []));
+      setResumes(readStored<ResumeFile[]>(RESUMES_KEY, isDemo ? [demoResume] : []));
       try {
         setRewriteState(readCvDraft(workspaceStorage()));
         setRewriteReady(true);
@@ -1549,7 +1565,7 @@ function WorkspaceHome() {
       workspaceStorage().setItem(THEME_KEY, JSON.stringify("light"));
       workspaceStorage().setItem(THEME_EXPLICIT_KEY, JSON.stringify(false));
       setLanguage(handoff?.language || readStored<Language>(LANGUAGE_KEY, "en"));
-      const savedProfile = { ...emptyUserProfile, ...readStored<Partial<UserProfile>>(PROFILE_KEY, emptyUserProfile) };
+      const savedProfile = { ...emptyUserProfile, ...readStored<Partial<UserProfile>>(PROFILE_KEY, new URLSearchParams(window.location.search).get("demo") === "1" ? { ...emptyUserProfile, ...demoProfile } : emptyUserProfile) };
       setUserProfile({ ...savedProfile, usageIntent: normalizeUsageIntent(savedProfile.usageIntent) });
       const checkIn = readStored<{ date: string; mood: DailyMood }>(CHECKIN_KEY, { date: "", mood: "" });
       setDailyMood(checkIn.date === new Date().toISOString().slice(0, 10) ? checkIn.mood : "");
@@ -2706,7 +2722,7 @@ function WorkspaceHome() {
     const initial = initialInterviewPreparation(application, { ...emptyApplication.interviewPreparation, ...application.interviewPreparation }, language);
     // 80/20: build the brief from saved data right away. It is a draft to edit; an existing saved brief is never replaced.
     const cvText = (application.linkedResumeId ? resumes.find(item => item.id === application.linkedResumeId)?.extractedText : "") || (resumes.length === 1 ? resumes[0].extractedText : "") || resumeText || "";
-    setInterviewPreparationDraft(initial.quickBrief ? initial : { ...initial, quickKind: initial.quickKind || "General", quickLanguage: initial.quickLanguage || language, quickBriefLanguage: initial.quickLanguage || language, quickBrief: buildInterviewQuickBrief(application, userProfile, initial.quickKind || "General", initial.quickLanguage || language, cvText) });
+    { if (initial.quickBrief) setInterviewPreparationDraft(initial); else { const autoBrief = buildInterviewQuickBrief(application, userProfile, initial.quickKind || "General", initial.quickLanguage || language, cvText); setInterviewPreparationDraft({ ...initial, quickKind: initial.quickKind || "General", quickLanguage: initial.quickLanguage || language, quickBriefLanguage: initial.quickLanguage || language, quickBrief: autoBrief, quickBriefAutoText: autoBrief }); } }
   }
 
   function addInterviewSuggestion(suggestion: ReturnType<typeof interviewSuggestions>[number]) {
@@ -3250,7 +3266,10 @@ function WorkspaceHome() {
     }
     const linkedContact = contactOverride || linkedOutreachContact(application, contacts);
     const evidence = firstApplicationEvidence(application);
-    const career = savedCareerMessageFields(userProfile, { role: application.role, evidence });
+    // With no linked evidence, offer the saved CV line that best matches the role's requirements (verbatim, editable) instead of the generic summary.
+    const cvForLine = (application.linkedResumeId ? resumes.find(item => item.id === application.linkedResumeId)?.extractedText : "") || (resumes.length === 1 ? resumes[0].extractedText : "") || "";
+    const cvRequirementLine = evidence ? "" : (matchCvLines((application.requirements?.trim() ? splitRequirementText(application.requirements) : extractJobRequirements(application.jobDescription || "")).slice(0, 8), cvForLine)[0]?.line || "");
+    const career = savedCareerMessageFields(userProfile, { role: application.role, evidence: evidence || cvRequirementLine });
     const recipientName = linkedContact?.name || application.contactName || "";
     const recipientEmail = linkedContact?.email || "";
     setWorkspaceApplicationId(null);
@@ -3270,7 +3289,7 @@ function WorkspaceHome() {
       applicationId: application.id,
       contactId: linkedContact?.id,
       contactLabel: linkedContact?.name || application.contactName || "",
-      loadedFields: [recipientName && "recipient", recipientEmail && "email", application.company && "company", career.role && "role", career.senderName && "sender", career.value && (evidence ? "evidence" : "career summary")].filter(Boolean) as string[],
+      loadedFields: [recipientName && "recipient", recipientEmail && "email", application.company && "company", career.role && "role", career.senderName && "sender", career.value && (evidence ? "evidence" : cvRequirementLine ? "CV line" : "career summary")].filter(Boolean) as string[],
     });
     setGeneratedMessage("");
     setMessageSubjectDraft("");
@@ -4455,7 +4474,7 @@ function WorkspaceHome() {
           <div className="mt-6 grid gap-5 xl:grid-cols-[0.8fr_1.2fr]">
             <div className="space-y-3">
               <div className="flex items-center justify-between text-sm"><span className="text-slate-400">{language === "he" ? "גרסאות שמורות" : "Saved versions"}</span><span className="rounded-full bg-emerald-400/10 px-2.5 py-1 text-xs text-emerald-300">{resumes.length}/6</span></div>
-              {resumes.length === 0 ? <div className="rounded-2xl border border-dashed border-emerald-400/20 bg-emerald-400/5 p-8 text-center"><FileText className="mx-auto h-9 w-9 text-emerald-300" /><p className="mt-3 font-medium">{language === "he" ? "העלאת קורות החיים הראשונים" : "Upload your first CV"}</p><p className="mt-2 text-sm leading-6 text-slate-400">{language === "he" ? "ניתן לקרוא PDF עם טקסט, DOCX וקובצי טקסט במכשיר. מקבצים סרוקים יש להדביק טקסט." : "Text-based PDF, DOCX, and text files can be read on this device. For scanned files, paste the text."}</p></div> : resumes.map((resume) => <button className={`content-card flex w-full items-center gap-3 text-left ${selectedResumeId === resume.id ? "border-emerald-400/35 bg-emerald-400/5" : ""}`} key={resume.id} onClick={() => selectResume(resume)} type="button"><div className="rounded-xl bg-emerald-400/10 p-2.5 text-emerald-300"><FileCheck2 className="h-5 w-5" /></div><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-100">{resume.name}</p><p className="mt-1 text-xs text-slate-500">{formatFileSize(resume.size)} · {language === "he" ? (resume.extractedText ? "מוכן לבדיקה ✨" : "נדרש טקסט לעריכה") : (resume.extractedText ? "Review ready ✨" : "Needs editable text")}</p></div><span className="icon-button h-8 w-8" onClick={(event) => { event.stopPropagation(); removeResume(resume); }} role="button" tabIndex={0}><X className="h-4 w-4" /></span></button>)}
+              {resumes.length === 0 ? <div className="rounded-2xl border border-dashed border-emerald-400/20 bg-emerald-400/5 p-8 text-center"><FileText className="mx-auto h-9 w-9 text-emerald-300" /><p className="mt-3 font-medium">{language === "he" ? "העלאת קורות החיים הראשונים" : "Upload your first CV"}</p><p className="mt-2 text-sm leading-6 text-slate-400">{language === "he" ? "ניתן לקרוא PDF עם טקסט, DOCX וקובצי טקסט במכשיר. מקבצים סרוקים יש להדביק טקסט." : "Text-based PDF, DOCX, and text files can be read on this device. For scanned files, paste the text."}</p></div> : resumes.map((resume) => <div className={`content-card flex w-full items-center gap-3 text-left ${selectedResumeId === resume.id ? "border-emerald-400/35 bg-emerald-400/5" : ""}`} key={resume.id}><button className="flex min-w-0 flex-1 items-center gap-3 text-left" onClick={() => selectResume(resume)} type="button"><div className="rounded-xl bg-emerald-400/10 p-2.5 text-emerald-300"><FileCheck2 className="h-5 w-5" /></div><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-100">{resume.name}</p><p className="mt-1 text-xs text-slate-500">{formatFileSize(resume.size)} · {language === "he" ? (resume.extractedText ? "מוכן לבדיקה ✨" : "נדרש טקסט לעריכה") : (resume.extractedText ? "Review ready ✨" : "Needs editable text")}</p></div></button><button aria-label={language === "he" ? "הסרת קורות החיים" : "Remove CV"} className="icon-button h-8 w-8" onClick={() => removeResume(resume)} type="button"><X className="h-4 w-4" /></button></div>)}
             </div>
             <div className="cv-review-surface rounded-2xl border border-white/10 bg-slate-950/55 p-5">
               <div className="flex items-center gap-3"><div className="rounded-xl bg-teal-700/10 p-2.5 text-teal-700"><WandSparkles className="h-5 w-5" /></div><div><h3 className="font-semibold">{language === "he" ? "בדיקה מקצועית של קורות החיים ✨" : "Professional CV review ✨"}</h3><p className="text-xs text-slate-500">{language === "he" ? "בדיקת פיילוט פרטית, מבוססת כללים, במכשיר הזה" : "Private, rules-based pilot review on this device"}</p></div></div>
@@ -4899,6 +4918,21 @@ function WorkspaceHome() {
         <Modal title={language === "he" ? "מרכז הכנה לראיון" : "Interview preparation workspace"} description={`${interviewPrepApplication.role} · ${interviewPrepApplication.company}`} closeLabel={language === "he" ? "סגירת מרכז ההכנה" : "Close preparation workspace"} onClose={() => { setInterviewPrepApplicationId(null); setWorkspaceApplicationId(interviewPrepApplication.id); }} wide>
           <div className="interview-preparation-editor">
             <header><div><span>{language === "he" ? "הכנה ממוקדת ואמיתית" : "Focused, evidence-led preparation"}</span><h3>{interviewPrepApplication.eventType || (language === "he" ? "הראיון הבא" : "Your next interview")}</h3><p>{interviewPrepApplication.eventDateTime ? formatDate(language, interviewPrepApplication.eventDateTime, true) : (language === "he" ? "לא נקבע מועד — אפשר להתחיל להתכונן כבר עכשיו." : "No date is set—you can still start preparing now.")}</p></div><figure className="workflow-illustration workflow-illustration-compact"><Image alt={language === "he" ? "איור של הכנה רגועה לראיון" : "Illustration of calm interview preparation"} fill sizes="150px" src="/carvio-interview-preparation-v1.jpg" /></figure></header>
+            {(() => {
+              const he = language === "he";
+              const cvForStatus = (interviewPrepApplication.linkedResumeId ? resumes.find(item => item.id === interviewPrepApplication.linkedResumeId)?.extractedText : "") || (resumes.length === 1 ? resumes[0].extractedText : "") || resumeText || "";
+              const r = interviewBriefReadiness(interviewPrepApplication, userProfile, cvForStatus);
+              const pct = r.total ? Math.round((r.withSource / r.total) * 100) : 0;
+              const items: [string, boolean][] = [[he ? "תפקיד וחברה" : "Role and company", r.hasRole], [he ? "דרישות המשרה" : "Job requirements", r.total > 0], [he ? "קורות חיים שמורים" : "Saved CV", r.hasCv], [he ? "תקציר מקצועי" : "Professional summary", r.hasSummary], [he ? "מועד הראיון" : "Interview date", r.hasDate]];
+              const needs = [r.total - r.withOutcome > 0 ? (he ? `תוצאה מוכחת ב־${r.total - r.withOutcome} מתוך ${r.total} דרישות (מה השתנה בעקבות העבודה)` : `A stated result for ${r.total - r.withOutcome} of ${r.total} requirements (what changed because of your work)`) : "", !r.hasSummary ? (he ? "תקציר מקצועי להצגה עצמית" : "A professional summary for your introduction") : "", !r.hasDate ? (he ? "מועד הראיון (לא חובה)" : "Interview date (optional)") : "", he ? "מידע על החברה: לאמת מקורות לפני הראיון" : "Company facts: verify from sources before the interview"].filter(Boolean);
+              return <section className="interview-status-panel" aria-label={he ? "מצב ההכנה" : "Preparation status"}>
+                <div className="interview-status-head"><Sparkles className="h-4 w-4" /><strong>{he ? "מה כבר נמצא במידע השמור" : "What we found in your saved information"}</strong></div>
+                <p className="interview-status-note">{he ? "טיוטות שנבנו ממה ששמור. מה שחסר מסומן, ואותו תשלימו." : "Drafts built from what you saved. Whatever is missing is marked, and only that is left for you."}</p>
+                <ul className="interview-status-list">{items.map(([label, ok]) => <li data-ok={ok ? "true" : "false"} key={label}>{ok ? <CheckCircle2 className="h-4 w-4" aria-hidden="true" /> : <span className="interview-status-dash" aria-hidden="true">–</span>}<span>{label}</span><small>{ok ? (he ? "נמצא" : "Found") : (he ? "חסר" : "Missing")}</small></li>)}</ul>
+                <h5>{he ? "מה עדיין חסר ממך" : "Still needed from you"}</h5>
+                <ul className="interview-status-needs">{needs.map(n => <li key={n}>{n}</li>)}</ul>
+              </section>;
+            })()}
             <section className="workspace-evidence-map interview-quick-panel" aria-label={language === "he" ? "הכנה מהירה לראיון" : "Quick interview preparation"}>
               <h4>{language === "he" ? "ערכת הכנה אישית בלחיצה" : "Your personalized interview brief"}</h4>
               <p>{language === "he" ? "המשרה, הדרישות, הדוגמאות והתקציר המקצועי השמור נטענים אוטומטית. בחרו רק את סוג הראיון והשפה. הכלי מכין שאלות לתרגול ולא חוזה את שאלות המראיינים." : "Your saved role, requirements, examples and career summary are reused. Just choose the interview type and language. These are practice prompts, not predicted questions."}</p>
@@ -4906,10 +4940,10 @@ function WorkspaceHome() {
                 <Field label={language === "he" ? "סוג הראיון" : "Interview type"}><select className="form-control" value={interviewPreparationDraft.quickKind || "General"} onChange={event => setInterviewPreparationDraft(current => ({ ...current, quickKind: event.target.value as InterviewKind }))}>{interviewKinds.map(kind => <option key={kind} value={kind}>{language === "he" ? ({ General: "כללי", Recruiter: "משאבי אנוש / גיוס", "Hiring manager": "מנהל מגייס", Executive: "הנהלה בכירה", Professional: "מקצועי" } as Record<InterviewKind,string>)[kind] : kind}</option>)}</select></Field>
                 <Field label={language === "he" ? "שפת הראיון" : "Interview language"}><select className="form-control" value={interviewPreparationDraft.quickLanguage || language} onChange={event => setInterviewPreparationDraft(current => ({ ...current, quickLanguage: event.target.value as Language }))}><option value="he">עברית</option><option value="en">English</option></select></Field>
               </div>
-              <button className="primary-button" type="button" onClick={() => { if (interviewPreparationDraft.quickBrief && !window.confirm(language === "he" ? "להחליף את ערכת ההכנה הנוכחית? השדות האחרים יישמרו." : "Replace this brief? Your other preparation fields will be preserved.")) return; setInterviewPreparationDraft(current => ({ ...current, quickKind: current.quickKind || "General", quickLanguage: current.quickLanguage || language, quickBriefLanguage: current.quickLanguage || language, quickBrief: buildInterviewQuickBrief(interviewPrepApplication, userProfile, current.quickKind || "General", current.quickLanguage || language, (interviewPrepApplication.linkedResumeId ? resumes.find(item => item.id === interviewPrepApplication.linkedResumeId)?.extractedText : "") || (resumes.length === 1 ? resumes[0].extractedText : "") || resumeText || "") })); }}><WandSparkles className="h-4 w-4" />{language === "he" ? "הכנת ערכת הראיון שלי" : "Create my interview brief"}</button>
+              <button className="primary-button" type="button" onClick={() => { if (interviewPreparationDraft.quickBrief && interviewPreparationDraft.quickBrief !== interviewPreparationDraft.quickBriefAutoText && !window.confirm(language === "he" ? "להחליף את ערכת ההכנה הנוכחית? השדות האחרים יישמרו." : "Replace this brief? Your other preparation fields will be preserved.")) return; setInterviewPreparationDraft(current => ({ ...current, quickKind: current.quickKind || "General", quickLanguage: current.quickLanguage || language, quickBriefLanguage: current.quickLanguage || language, quickBriefAutoText: undefined, quickBrief: buildInterviewQuickBrief(interviewPrepApplication, userProfile, current.quickKind || "General", current.quickLanguage || language, (interviewPrepApplication.linkedResumeId ? resumes.find(item => item.id === interviewPrepApplication.linkedResumeId)?.extractedText : "") || (resumes.length === 1 ? resumes[0].extractedText : "") || resumeText || "") })); }}><WandSparkles className="h-4 w-4" />{language === "he" ? "הכנת ערכת הראיון שלי" : "Create my interview brief"}</button>
               {interviewPreparationDraft.quickBrief !== undefined && <div className="interview-brief-result">
                 <div className="interview-brief-toolbar"><div><strong>{language === "he" ? "ערכת ההכנה שלך" : "Your interview brief"}</strong><small>{language === "he" ? "מבוססת על המידע ששמרתם" : "Based on your saved information"}</small></div><button className="secondary-button" type="button" onClick={async () => { try { await navigator.clipboard.writeText(interviewPreparationDraft.quickBrief || ""); setNotice(language === "he" ? "ערכת ההכנה הועתקה." : "Interview brief copied."); } catch { setNotice(language === "he" ? "אפשר לסמן ולהעתיק את הטקסט ידנית." : "Select and copy the text manually."); } }}><Copy className="h-4 w-4" />{language === "he" ? "העתקה" : "Copy brief"}</button></div>
-                <div className="interview-brief-cards" dir={(interviewPreparationDraft.quickBriefLanguage || interviewPreparationDraft.quickLanguage || language) === "he" ? "rtl" : "ltr"}>{interviewPreparationDraft.quickBrief.split(/\n\n+/).filter(Boolean).map((section,index) => { const [heading,...body] = section.split("\n"); return <article className={`interview-brief-card ${index < 2 ? "interview-brief-meta" : ""}`} key={index}><h5>{heading}</h5>{body.length > 0 && <p>{body.join("\n")}</p>}</article>; })}</div>
+                <div className="interview-brief-cards" dir={(interviewPreparationDraft.quickBriefLanguage || interviewPreparationDraft.quickLanguage || language) === "he" ? "rtl" : "ltr"}>{interviewPreparationDraft.quickBrief.split(/\n\n+/).filter(Boolean).map((section,index) => { const [heading,...body] = section.split("\n"); if (index < 2) return <article className="interview-brief-card interview-brief-meta" key={index}><h5>{heading}</h5>{body.length > 0 && <p>{body.join("\n")}</p>}</article>; const Icon = [UserIcon, MessageSquareIcon, StarIcon, FileText, Target, CircleHelp, BuildingIcon][Math.min(index - 2, 6)]; return <details className="interview-brief-row" key={index} open={index === 2}><summary><span className="interview-brief-icon"><Icon className="h-4 w-4" aria-hidden="true" /></span><span>{heading}</span><ChevronDown className="interview-brief-chevron h-4 w-4" aria-hidden="true" /></summary><p>{body.join("\n")}</p></details>; })}</div>
                 <details className="message-premium-disclosure interview-brief-edit"><summary>{language === "he" ? "עריכת ערכת ההכנה" : "Edit interview brief"}</summary><Field label={language === "he" ? "ערכת הכנה אישית לעריכה" : "Editable personal interview brief"}><textarea dir={(interviewPreparationDraft.quickBriefLanguage || interviewPreparationDraft.quickLanguage || language) === "he" ? "rtl" : "ltr"} rows={12} className="form-control resize-y" value={interviewPreparationDraft.quickBrief} onChange={event => setInterviewPreparationDraft(current => ({ ...current, quickBrief: event.target.value }))} /></Field></details>
                 <p className="message-template-caption">{language === "he" ? "הערכה נשמרת עם המועמדות בעת שמירת ההכנה." : "Save preparation to keep this brief with your application."}</p>
               </div>}
