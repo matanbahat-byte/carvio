@@ -47,6 +47,9 @@ try {
     await quick.getByRole('combobox',{name:language==='he'?'סוג הראיון':'Interview type'}).selectOption('Executive');
     await quick.getByRole('combobox',{name:language==='he'?'שפת הראיון':'Interview language'}).selectOption('en');
     await quick.getByRole('button',{name:language==='he'?'הכנת ערכת הראיון שלי':'Create my interview brief'}).click();
+    assert.equal(await quick.locator('.interview-brief-cards').getAttribute('dir'),'ltr');
+    assert.ok(await quick.locator('.interview-brief-card').count()>=5);
+    await quick.locator('.interview-brief-edit summary').click();
     const brief=quick.getByRole('textbox',{name:language==='he'?'ערכת הכנה אישית לעריכה':'Editable personal interview brief'});
     assert.match(await brief.inputValue(),/QA Role · QA Company/);
     assert.match(await brief.inputValue(),/90 days/);
@@ -91,6 +94,7 @@ try {
     await fields().nth(2).fill('');
     await page.getByRole('dialog').getByRole('button', { name: language === 'he' ? 'שמירת ההכנה' : 'Save preparation', exact: true }).click();
     await openPreparation();
+    await quick.locator('.interview-brief-edit summary').click();
     assert.equal(await brief.inputValue(), 'MY EDITED QUICK BRIEF');
     assert.equal(await fields().nth(1).inputValue(), expectedStories);
     assert.equal(await fields().nth(3).inputValue(), expectedGaps);
