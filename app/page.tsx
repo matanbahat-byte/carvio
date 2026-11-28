@@ -11,6 +11,7 @@ import { messageProvenance, messageInputsChanged, type MessageProvenance } from 
 import { matchCvLines } from "@/lib/cv-grounding";
 import { savedCareerMessageFields, careerCvOptions } from "@/lib/career-message-context";
 import { interviewSuggestions, appendInterviewSuggestion, initialInterviewPreparation } from "@/lib/interview-preparation";
+import { buildCvJobFit } from "@/lib/cv-job-fit";
 import { buildInterviewQuickBrief, interviewBriefReadiness, interviewKinds, type InterviewKind } from "@/lib/interview-quick-brief";
 import { EvidenceLinksEditor } from "@/components/evidence-links-editor";
 import { relinkEvidence, evidenceForRequirements, restorableRequirementEvidence, firstApplicationEvidence } from "@/lib/evidence-links";
@@ -1916,6 +1917,8 @@ function WorkspaceHome() {
         }
       }
     }
+    // A single saved CV version is the obvious input: load it (editable) instead of asking to upload or paste again.
+    if (tool === "cv" && !resumeText.trim() && !selectedResumeId && resumes.length === 1 && resumes[0].extractedText) selectResume(resumes[0]);
     if (tool === "studio" && !messageContext && !generatedMessage) {
       const saved = savedCareerMessageFields({ ...userProfile, targetRole: userProfile.targetRole || searchProfile.role });
       const loadedFields = [!messageProfile.senderName && saved.senderName && "sender", !messageProfile.role && saved.role && "role", !messageProfile.value && saved.value && "career summary"].filter(Boolean) as string[];
@@ -4464,7 +4467,18 @@ function WorkspaceHome() {
         </section>
 
         <section className={`calm-view panel overflow-hidden ${activeView !== "tools" || !expandedTools.cv ? "calm-view-hidden" : ""}`} id="cv-lab">
-          <details className="panel"><summary>{language === "he" ? "מיפוי ראיות למשרה" : "Map evidence to an application"}</summary><Field label={language === "he" ? "בחירת משרה לראיה" : "Choose an application for evidence"}><select className="form-control" value={cvEvidenceApplicationId} onChange={event => setCvEvidenceApplicationId(event.target.value)}><option value="">{language === "he" ? "בחירה" : "Choose"}</option>{applications.map(item => <option key={item.id} value={item.id}>{item.role} · {item.company}</option>)}</select></Field>{applications.filter(item => item.id === cvEvidenceApplicationId).map(item => <Fragment key={item.id}><AiEvidenceForm language={language} requirements={item.requirementEvidence} onSave={(text, ids) => saveAiEvidence(item.id, text, ids)} /><EvidenceLinksEditor applicationId={item.id} items={item.evidenceItems || []} requirements={item.requirementEvidence} language={language} onSave={(id, ids) => updateEvidenceLinks(item.id, id, ids)} /></Fragment>)}</details>
+          <details className="panel"><summary>{language === "he" ? "מיפוי ראיות למשרה" : "Map evidence to an application"}</summary><Field label={language === "he" ? "בחירת משרה לראיה" : "Choose an application for evidence"}><select className="form-control" value={cvEvidenceApplicationId} onChange={event => setCvEvidenceApplicationId(event.target.value)}><option value="">{language === "he" ? "בחירה" : "Choose"}</option>{applications.map(item => <option key={item.id} value={item.id}>{item.role} · {item.company}</option>)}</select></Field>{applications.filter(item => item.id === cvEvidenceApplicationId).map(item => { const he = language === "he"; const reqs = item.requirementEvidence?.length ? item.requirementEvidence.map(r => r.requirement) : item.requirements?.trim() ? splitRequirementText(item.requirements) : extractJobRequirements(item.jobDescription || ""); const fit = buildCvJobFit(reqs, resumeText, userProfile.professionalSummary || ""); return <section className="cv-job-fit" key={"fit-" + item.id} aria-label={he ? "התאמה בין קורות החיים למשרה" : "CV fit for this job"}>
+            <h4>{he ? "התאמת קורות החיים למשרה" : "CV fit for this job"}</h4>
+            {!resumeText.trim() ? <p>{he ? "בחרו או הדביקו קורות חיים כדי לראות התאמה." : "Choose or paste a CV to see the fit."}</p> : !reqs.length ? <p>{he ? "לא נשמרו דרישות למשרה הזו. הוסיפו תיאור משרה כדי לבדוק התאמה." : "No requirements are saved for this job. Add the job description to check fit."}</p> : <>
+              <p className="cv-job-fit-note">{he ? "בחירה וסידור מחדש של שורות מקורות החיים שלכם, בלי שינוי ניסוח. התאמת מילים אינה הוכחה." : "Selects and reorders your own CV lines without rewording. A word match is not proof."}</p>
+              <h5>{he ? "שורות שנראות רלוונטיות" : "Lines that look relevant"}</h5>
+              <ul>{fit.matches.map(m => <li key={m.requirement + m.line}><strong>{m.requirement}</strong><span dir="auto">{m.line}</span><small>{he ? "מילים תואמות: " : "Matched words: "}{m.shared.join(", ")}</small></li>)}</ul>
+              {fit.gaps.length > 0 && <><h5>{he ? "דרישות ללא שורה תואמת" : "Requirements with no matching line"}</h5><ul>{fit.gaps.map(g => <li key={g}><strong>{g}</strong><small>{he ? "הוסיפו ניסיון רק אם הוא נכון." : "Add experience only if it is true."}</small></li>)}</ul></>}
+              {fit.keywordsMissing.length > 0 && <p><strong>{he ? "מילים מהמשרה שלא מופיעות בקורות החיים: " : "Job words not found in your CV: "}</strong><span dir="auto">{fit.keywordsMissing.join(", ")}</span></p>}
+              <h5>{he ? "סדר מוצע לקורות החיים (ניתן לעריכה)" : "Suggested CV order (editable)"}</h5>
+              <textarea className="form-control" dir="auto" key={"order-" + item.id + "-" + fit.reordered.length} defaultValue={fit.reordered} rows={8} aria-label={he ? "סדר מוצע לקורות החיים" : "Suggested CV order"} />
+            </>}
+          </section>; })}{applications.filter(item => item.id === cvEvidenceApplicationId).map(item => <Fragment key={item.id}><AiEvidenceForm language={language} requirements={item.requirementEvidence} onSave={(text, ids) => saveAiEvidence(item.id, text, ids)} /><EvidenceLinksEditor applicationId={item.id} items={item.evidenceItems || []} requirements={item.requirementEvidence} language={language} onSave={(id, ids) => updateEvidenceLinks(item.id, id, ids)} /></Fragment>)}</details>
           <div className="section-heading tool-card-heading">
             <div className="tool-card-copy"><p className="eyebrow flex items-center gap-2 text-emerald-300"><FileText className="h-4 w-4" /> {copy.cv}</p><h2 className="section-title">{language === "he" ? "הפכו כל גרסה של קורות החיים לסיפור מקצועי חזק יותר" : "Turn every CV version into a stronger story"}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">{language === "he" ? "שמרו עד שש גרסאות, קבלו בדיקת מבנה פרטית ובנו שכתוב אמין בלי להמציא ניסיון." : "Keep up to six versions, receive a private structure review, and build a grounded rewrite without inventing experience."}</p></div>
             <figure className="tool-card-illustration tool-card-illustration-cv"><Image alt={language === "he" ? "איור של השוואת מספר גרסאות קורות חיים ושיפורן בהדרגה" : "Illustration of comparing several CV versions and improving them step by step"} fill sizes="(max-width: 767px) 92px, 176px" src="/carvio-cv-review-versions-v2.webp" /><span aria-hidden="true"><FileCheck2 className="h-4 w-4" /></span></figure>
