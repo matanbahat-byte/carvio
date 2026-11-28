@@ -19,7 +19,7 @@ for(const lang of ['he','en'])for(const width of [360,390]){
  assert.ok(await page.evaluate(()=>scrollY>0),'Submission must scroll below the form');
  for(const [name,value] of [['q',role],['country',country],['city',city]])assert.equal(await page.locator(`input[name=${name}]`).inputValue(),value);
  assert.equal(new URL(page.url()).searchParams.get('lang'),lang);
- assert.ok(await page.locator('#search-sources').innerText().then(t=>t.includes(lang==='he'?'לא משרות':'not job listings')));
+ assert.ok(await page.locator('#search-sources').innerText().then(t=>t.includes(lang==='he'?'שאר המקורות פותחים חיפוש חיצוני, שתוצאותיו לא אומתו.':'Other sources open external searches whose results are not verified.')));
  // A second submission must keep locale/country and support an empty optional city.
  const next=lang==='he'?'מנהל מוצר':'Product Manager';await page.locator('input[name=q]').fill(next);await page.locator('input[name=city]').fill('');await submit(next);
  assert.equal(await page.locator('input[name=q]').inputValue(),next);assert.equal(await page.locator('input[name=country]').inputValue(),country);assert.equal(await page.locator('input[name=city]').inputValue(),'');
