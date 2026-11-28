@@ -15,8 +15,8 @@ test('quick brief quotes saved CV lines as unproven, labelled leads and never in
   const cv = 'Led a team of 6 engineers migrating billing to Stripe, cutting failed payments by 18%.\nHobbies: chess.';
   const out = buildInterviewQuickBrief({ id: '1', company: 'Acme', role: 'PM', requirements: 'Stripe billing experience\nKubernetes', requirementEvidence: [] }, {}, 'General', 'en', cv);
   assert.match(out, /word match only, not proof/);
-  assert.match(out, /Action \(from your CV\): "Led a team of 6 engineers migrating billing to Stripe/);
-  assert.match(out, /Result: "cutting failed payments by 18%" \(as written; verify it is yours\)/);
+  assert.match(out, /Draft answer: Led a team of 6 engineers migrating billing to Stripe/);
+  assert.match(out, /Result as written: cutting failed payments by 18%/);
   assert.doesNotMatch(out, /chess/);
   assert.match(out, /No linked examples are saved/);
 });
@@ -25,10 +25,10 @@ test('numbers alone are not outcomes', () => {
   const brief = cv => buildInterviewQuickBrief({ id: '1', company: 'Acme', role: 'PM', requirements: 'Stripe billing experience', requirementEvidence: [] }, {}, 'General', 'en', cv);
   for (const line of ['Worked on Stripe billing for 5 years since 2019 in a team of six engineers.', 'Owned the Stripe billing annual budget of 2,000,000 USD.']) {
     const out = brief(line);
-    assert.match(out, /Result: \[missing/);
-    assert.doesNotMatch(out, /as written; verify/);
+    assert.match(out, /To complete:.*the result/);
+    assert.doesNotMatch(out, /Result as written/);
   }
-  assert.match(brief('Migrated Stripe billing, cutting failed payments by 18%.'), /Result: "cutting failed payments by 18%"/);
+  assert.match(brief('Migrated Stripe billing, cutting failed payments by 18%.'), /Result as written: cutting failed payments by 18%/);
 });
 
 test('result is split out only when a clause states an outcome', async () => {
@@ -38,4 +38,11 @@ test('result is split out only when a clause states an outcome', async () => {
   assert.equal(a.result, 'cutting failed payments by 18%');
   const b = splitActionResult('Worked on Stripe billing for 5 years, in a team of six.');
   assert.equal(b.result, '');
+});
+
+test('a qualitative outcome without a number is kept and no number is invented', async () => {
+  const { splitActionResult } = await import('../lib/interview-quick-brief.ts');
+  const r = splitActionResult('Rebuilt the onboarding flow, improving activation for new users.');
+  assert.equal(r.result, 'improving activation for new users');
+  assert.doesNotMatch(r.result, /\d/);
 });
