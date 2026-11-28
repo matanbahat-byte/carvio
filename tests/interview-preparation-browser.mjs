@@ -43,6 +43,16 @@ try {
       await page.getByRole('dialog').getByRole('button', { name: language === 'he' ? /^(פתיחת מרכז ההכנה|המשך הכנה)$/ : /^(Open preparation workspace|Continue preparation)$/ }).click();
     };
     await open();
+    const quick = page.getByRole('region',{name:language==='he'?'הכנה מהירה לראיון':'Quick interview preparation'});
+    await quick.getByRole('combobox',{name:language==='he'?'סוג הראיון':'Interview type'}).selectOption('Executive');
+    await quick.getByRole('combobox',{name:language==='he'?'שפת הראיון':'Interview language'}).selectOption('en');
+    await quick.getByRole('button',{name:language==='he'?'הכנת ערכת הראיון שלי':'Create my interview brief'}).click();
+    const brief=quick.getByRole('textbox',{name:language==='he'?'ערכת הכנה אישית לעריכה':'Editable personal interview brief'});
+    assert.match(await brief.inputValue(),/QA Role · QA Company/);
+    assert.match(await brief.inputValue(),/90 days/);
+    assert.match(await brief.inputValue(),/Python/);
+    if(evidence) assert.match(await brief.inputValue(),/Saved real reporting example/);
+    await brief.fill('MY EDITED QUICK BRIEF');
     const fields = () => page.getByRole('dialog').locator('.interview-preparation-grid textarea');
     assert.equal(await fields().nth(0).inputValue(), '');
     assert.match(await fields().nth(2).inputValue(), /SQL/);
@@ -81,6 +91,7 @@ try {
     await fields().nth(2).fill('');
     await page.getByRole('dialog').getByRole('button', { name: language === 'he' ? 'שמירת ההכנה' : 'Save preparation', exact: true }).click();
     await openPreparation();
+    assert.equal(await brief.inputValue(), 'MY EDITED QUICK BRIEF');
     assert.equal(await fields().nth(1).inputValue(), expectedStories);
     assert.equal(await fields().nth(3).inputValue(), expectedGaps);
     assert.equal(await fields().nth(2).inputValue(), '');
