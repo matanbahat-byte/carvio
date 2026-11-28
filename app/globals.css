@@ -11045,3 +11045,6 @@ html[data-carvio-theme="light"] :is(input,textarea)::placeholder { color: #526b6
 .home-career-tools-eyebrow { display:flex;flex-wrap:wrap;align-items:center;gap:.4rem .6rem;margin:0 0 .4rem; }
 .home-career-tools-eyebrow .home-career-tools-kicker { margin:0; }
 .home-career-tools-free { display:inline-flex;align-items:center;line-height:1.35;padding:.25rem .65rem;border-radius:999px;border:1px solid #fbcfe8;background:#fce7f3;color:#9d174d;font-size:.74rem;font-weight:800;white-space:nowrap; }
+
+.welcome-career-tools { max-width:72rem; margin:0 auto 1.5rem; padding:0 1rem; }
+.carvio-welcome .home-career-tools { --cv-primary:#0f766e; --cv-primary-ink:#115e59; --cv-border:#cfe3df; --cv-surface:#ffffff; --cv-muted:#475569; --cv-text:#0f172a; margin:0; }
